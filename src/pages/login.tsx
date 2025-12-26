@@ -14,8 +14,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { Link } from "react-router-dom"
 import { LoginInput, loginSchema } from "../schema"
-import { toast } from "react-hot-toast"
-import { Dialog,DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { toast } from "sonner"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { forgotPasswordSchema, ForgotPasswordInput } from "../schema";
 import apiClient from "@/api/apiClient";
 import { useState } from "react";
@@ -34,28 +34,6 @@ const LoginPage = () => {
     },
   })
 
-  async function onSubmit(values: LoginInput) {
-    try {
-      await login.mutateAsync({
-        email: values.email,
-        password: values.password
-      })
-      toast.success("Login Successfull, Please wait while we prepare your dashboard")
-      if (values.rememberMe) {
-        // Implement remember me logic if needed
-      }
-    } catch (error: any) {
-      if (error?.response?.status === 404 || error?.response?.data?.message?.toLowerCase().includes("not found")) {
-        toast.error("Account does not exist. Please check your email or register.")
-      } else if (error?.response?.data?.message) {
-        toast.error(error.response.data.message)
-      } else {
-        toast.error("Login failed. Please try again.")
-      }
-      console.error("Login error:", error)
-    }
-  }
-
   const [forgotOpen, setForgotOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const forgotForm = useForm<ForgotPasswordInput>({
@@ -65,12 +43,18 @@ const LoginPage = () => {
     defaultValues: { email: '' },
   });
 
+  async function onSubmit(values: LoginInput) {
+    await login.mutateAsync({
+      email: values.email,
+      password: values.password
+    });
+  }
+
   async function onForgotSubmit(values: ForgotPasswordInput) {
-    if (isSubmitting) return; // Prevent multiple submissions
+    if (isSubmitting) return;
     
     setIsSubmitting(true);
     
-    // Show loading toast
     const loadingToast = toast.loading("Sending reset link... Please wait.");
     
     try {
@@ -78,7 +62,6 @@ const LoginPage = () => {
         email: values.email 
       });
       
-      // Validate response structure
       if (response.status === 200 || response.status === 201) {
         toast.dismiss(loadingToast);
         toast.success(`A password reset link has been sent to ${values.email}. Please check your email inbox and spam folder.`, { duration: 8000 });
@@ -90,10 +73,8 @@ const LoginPage = () => {
     } catch (err: any) {
       console.error("Forgot password error:", err);
       
-      // Dismiss loading toast
       toast.dismiss(loadingToast);
       
-      // Handle specific error cases
       if (err.response?.status === 404) {
         toast.error(`No account found with email: ${values.email}. Please check the email address or register a new account.`, { duration: 6000 });
       } else if (err.response?.status === 429) {
@@ -217,7 +198,6 @@ const LoginPage = () => {
           New User?
         </Link>
       </div>
-      {/* Forgot Password Modal */}
       <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
         <DialogContent className="animate-fadeIn bg-white text-black">
           <DialogHeader>

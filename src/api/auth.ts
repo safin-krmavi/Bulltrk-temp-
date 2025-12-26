@@ -1,9 +1,15 @@
+import type { AxiosRequestConfig } from 'axios';
 import apiClient from './apiClient';
+import { apiurls } from './apiurls';
 
-export interface AuthSuccess {
-  token: string;
-  user: Record<string, any> | null;
-  raw: any;
+export interface LoginResponse {
+  status: string;
+  message?: string;
+  data: {
+    message: string | undefined;
+    token: string;
+    user: Record<string, any>;
+  };
 }
 
 export interface ApiError {
@@ -12,86 +18,62 @@ export interface ApiError {
   errors?: Record<string, string[]>;
 }
 
-// Normalize any backend shape into { token, user, raw }
-function normalizeAuthPayload(raw: any): AuthSuccess {
-  const token =
-    raw?.data?.token ??
-    raw?.token ??
-    raw?.access_token ??
-    raw?.data?.access_token ??
-    '';
-
-  const user =
-    raw?.data?.user ??
-    raw?.user ??
-    raw?.profile ??
-    null;
-
-  return { token, user, raw };
-}
-
 export async function loginUser(
-  emailOrUsername: string,
+  email: string, 
   password: string
-): Promise<AuthSuccess> {
+): Promise<LoginResponse> {
   try {
-    const { data } = await apiClient.post('/auth', {
-      // send both to satisfy either validator
-      username: emailOrUsername,
-      email: emailOrUsername,
-      password,
+    const response = await apiClient.post(apiurls.userAuth.login, {
+      email,
+      password
     });
-    return normalizeAuthPayload(data);
+    
+    localStorage.setItem("AUTH_TOKEN", response.data.data.token);
+    return response.data;
+    
   } catch (error: any) {
-    const msg =
-      error?.response?.data?.message ||
-      error?.message ||
-      'Login request failed';
-    throw new Error(msg);
+    throw new Error(
+      error.response?.data?.message || "Login request failed"
+    );
   }
 }
 
 export async function registerUser(data: {
-  first_name: string;
-  last_name: string;
+  name: string;
   email: string;
-  mobile: string;
+  phone: string;
   password: string;
-  password_confirmation: string;
-}): Promise<any> {
+  roleId: string;
+}): Promise<LoginResponse> {
   try {
-    const res = await apiClient.post('/signup', data);
-    return res.data;
+    const response = await apiClient.post(apiurls.userAuth.signup, data);
+    return response.data;
   } catch (error: any) {
-    const msg =
-      error?.response?.data?.message ||
-      error?.message ||
-      'Registration failed';
-    throw new Error(msg);
+    throw new Error(
+      error.response?.data?.message || "Registration failed"
+    );
   }
 }
 
 export function logoutUser(): void {
-  localStorage.removeItem('AUTH_TOKEN');
-  localStorage.removeItem('user');
+  localStorage.removeItem("AUTH_TOKEN");
 }
 
 export function getToken(): string | null {
-  return localStorage.getItem('AUTH_TOKEN');
+  return localStorage.getItem("AUTH_TOKEN");
 }
 
+// Generic authenticated request
 export async function authFetch<T = any>(
   endpoint: string,
-  config?: import('axios').AxiosRequestConfig
+  config?: AxiosRequestConfig
 ): Promise<T> {
   try {
     const response = await apiClient(endpoint, config);
     return response.data;
   } catch (error: any) {
-    const msg =
-      error?.response?.data?.message ||
-      error?.message ||
-      'Request failed';
-    throw new Error(msg);
+    throw new Error(
+      error.response?.data?.message || "Request failed"
+    );
   }
 }

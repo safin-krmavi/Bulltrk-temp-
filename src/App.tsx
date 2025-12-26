@@ -10,7 +10,7 @@ import LoginPage from "./pages/login"
 import MarketPlacePage from "./pages/market-pace"
 import PaymentPage from "./pages/payment"
 import PricingPage from "./pages/pricing"
-import RecoverPasswordPage from "./pages/recover-password"
+// import RecoverPasswordPage from "./pages/recover-password"
 import RegisterPage from "./pages/register"
 import SmartCopyPage from "./pages/smart-copy"
 import SupportPage from "./pages/support"
@@ -53,7 +53,7 @@ const AppRouter = ({ theme }: { theme: string }) => {
         <Route path="/login" element={<AuthLayout children={<LoginPage /> } />} />
         <Route path="/register" element={<AuthLayout children={<RegisterPage /> } />} />
         <Route path="/authentication" element={<AuthLayout children={<AuthenticationPage /> } />} />
-        <Route path="/recover-password" element={<AuthLayout children={<RecoverPasswordPage  /> } />} />
+        {/* <Route path="/recover-password" element={<AuthLayout children={<RecoverPasswordPage  /> } />} /> */}
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/dashboard" element={<GenericLayout children={<DashboardPage />} />} />

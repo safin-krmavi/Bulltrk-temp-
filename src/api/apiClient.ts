@@ -2,7 +2,7 @@ import axios from "axios";
 
 const baseURL =
   (import.meta as any)?.env?.VITE_API_BASE_URL?.replace(/\/+$/, "") ||
-  "https://newterminals.marketsverse.com/api/v1";
+  "http://localhost:5000/api/v1";
 
 const apiClient = axios.create({
   baseURL,

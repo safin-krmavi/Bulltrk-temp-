@@ -1,62 +1,286 @@
-// src/components/common/AccountDetailsCard.tsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authstore";
+import { useStrategyStore } from "@/stores/strategyStore";
+import apiClient from "@/api/apiClient";
+import { apiurls } from "@/api/apiurls";
+import { toast } from "sonner";
 
 interface AccountDetailsCardProps {
-  selectedApi: string;
-  setSelectedApi: (api: string) => void;
-  isBrokeragesLoading: boolean;
-  brokerages: any[];
   title?: string;
+  onDataChange?: (data: { 
+    selectedApi: string;
+    exchange: string;
+    segment: string;
+    pair: string;
+  }) => void;
+}
+
+const SEGMENTS = [
+  { value: "SPOT", label: "Spot" },
+  { value: "FUTURES", label: "Futures" },
+  { value: "MARGIN", label: "Margin" },
+];
+
+interface BrokerageConnection {
+  id: string;
+  userId: string;
+  exchange: string;
+  apiKey: string;
+  apiSecret: string;
+  apiPassphrase?: string;
+  apiKeyVersion?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
-  selectedApi,
-  setSelectedApi,
-  isBrokeragesLoading,
-  brokerages,
   title = "Account Details",
+  onDataChange,
 }) => {
   const [open, setOpen] = React.useState(true);
+  const [selectedApi, setSelectedApi] = React.useState("");
+  const [segment, setSegment] = React.useState("SPOT");
+  const [pair, setPair] = React.useState("");
+  const [connections, setConnections] = useState<BrokerageConnection[]>([]);
+  const [isLoadingConnections, setIsLoadingConnections] = useState(false);
+
+  const { user } = useAuthStore();
+  const { fetchSymbols, getSymbolsByExchange, isLoadingSymbols } = useStrategyStore();
+
+  // Get filtered symbols based on selected exchange and segment
+  const availableSymbols = React.useMemo(() => {
+    if (!selectedApi || !segment) return [];
+    
+    const selectedConnection = connections.find(c => c.id === selectedApi);
+    if (!selectedConnection) return [];
+    
+    return getSymbolsByExchange(selectedConnection.exchange, segment);
+  }, [selectedApi, segment, connections, getSymbolsByExchange]);
+
+  // Fetch symbols on mount
+  useEffect(() => {
+    console.log("Fetching all symbols on mount...");
+    fetchSymbols().catch(err => {
+      console.error("Failed to fetch symbols:", err);
+      toast.error("Failed to load trading pairs");
+    });
+  }, []);
+
+  // Fetch connections on mount
+  useEffect(() => {
+    if (user?.id) {
+      fetchConnections();
+    }
+  }, [user?.id]);
+
+  // Auto-select first symbol when available symbols change
+  useEffect(() => {
+    if (availableSymbols.length > 0) {
+      console.log("Auto-selecting first symbol:", availableSymbols[0].symbol);
+      setPair(availableSymbols[0].symbol);
+    } else {
+      console.log("No symbols available, clearing pair");
+      setPair("");
+    }
+  }, [availableSymbols]);
+
+  // Notify parent when data changes
+  useEffect(() => {
+    if (onDataChange) {
+      const selectedConnection = connections.find(c => c.id === selectedApi);
+      const dataToSend = {
+        selectedApi: selectedApi,
+        exchange: selectedConnection?.exchange || "",
+        segment,
+        pair,
+      };
+      
+      console.log("Sending data to parent:", dataToSend);
+      onDataChange(dataToSend);
+    }
+  }, [selectedApi, segment, pair, connections, onDataChange]);
+
+  const fetchConnections = async () => {
+    setIsLoadingConnections(true);
+    try {
+      if (!user?.id) {
+        console.error("No user ID available");
+        return;
+      }
+
+      const url = apiurls.credentials.getConnections.replace(':userId', user.id);
+      console.log("Fetching connections from:", url);
+      const response = await apiClient.get(url);
+      
+      console.log("Connections response:", response.data);
+      
+      if (response.data?.data) {
+        const connectionsData = Array.isArray(response.data.data) 
+          ? response.data.data 
+          : [response.data.data];
+        
+        console.log("Connections loaded:", connectionsData);
+        setConnections(connectionsData);
+        
+        // Auto-select first connection if available
+        if (connectionsData.length > 0 && !selectedApi) {
+          console.log("Auto-selecting first connection:", connectionsData[0].id);
+          setSelectedApi(connectionsData[0].id);
+        }
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch connections:", error);
+      if (error.response?.status !== 404) {
+        toast.error("Failed to load API connections");
+      }
+    } finally {
+      setIsLoadingConnections(false);
+    }
+  };
+
+  // Helper function to get platform label from exchange value
+  const getPlatformLabel = (exchange: string) => {
+    const platformMap: { [key: string]: string } = {
+      BINANCE: "Binance",
+      ZERODHA: "Zerodha",
+      KUCOIN: "KuCoin",
+      OKX: "OKX",
+    };
+    return platformMap[exchange.toUpperCase()] || exchange;
+  };
 
   return (
     <Card className="bg-card dark:bg-[#232326] border border-border dark:border-gray-700 shadow-lg text-foreground dark:text-white rounded-lg transition-colors duration-300">
       <CardHeader
-        className="bg-[#4A1C24]  dark:bg-[#232326] dark:border-gray-700 text-white cursor-pointer flex flex-row items-center justify-between p-4 rounded-t-lg"
+        className="bg-[#4A1C24] dark:bg-[#232326] dark:border-gray-700 text-white cursor-pointer flex flex-row items-center justify-between p-4 rounded-t-lg"
         onClick={() => setOpen((prev) => !prev)}
       >
         <CardTitle className="text-base font-medium">{title}</CardTitle>
         {open ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
       </CardHeader>
       <div className={cn("transition-all duration-200", open ? "block" : "hidden")}>
-        <CardContent className="p-4 pt-0 space-y-4">
+        <CardContent className="p-6 space-y-6">
+          {/* API Connect Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">API Key</label>
-            <Select value={selectedApi} onValueChange={setSelectedApi}>
-              <SelectTrigger className="w-full bg-background border border-border rounded">
-                <SelectValue placeholder="Select API connection" />
+            <label className="text-sm font-medium">
+              API Connect <span className="text-red-500">*</span>
+            </label>
+            <Select 
+              value={selectedApi} 
+              onValueChange={(value) => {
+                console.log("API connection selected:", value);
+                setSelectedApi(value);
+              }}
+              disabled={isLoadingConnections || connections.length === 0}
+            >
+              <SelectTrigger className="w-full bg-background dark:bg-[#1a1a1d] border border-border dark:border-gray-600 rounded-md h-12 text-base">
+                <SelectValue placeholder="API connection name" />
               </SelectTrigger>
-              <SelectContent>
-                {isBrokeragesLoading ? (
+              <SelectContent className="bg-background dark:bg-[#232326]">
+                {isLoadingConnections ? (
                   <SelectItem value="loading" disabled>
-                    Loading...
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading connections...
+                    </div>
                   </SelectItem>
-                ) : brokerages.length === 0 ? (
+                ) : connections.length === 0 ? (
                   <SelectItem value="none" disabled>
-                    No brokerages found
+                    No API connections found
                   </SelectItem>
                 ) : (
-                  brokerages.map((b: any) => (
-                    <SelectItem key={b.id} value={b.id.toString()}>
-                      {b.brokerage_name}
+                  connections.map((connection) => (
+                    <SelectItem key={connection.id} value={connection.id}>
+                      {getPlatformLabel(connection.exchange)}
                     </SelectItem>
                   ))
                 )}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Segment Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Segment <span className="text-red-500">*</span>
+            </label>
+            <Select 
+              value={segment} 
+              onValueChange={(value) => {
+                console.log("Segment selected:", value);
+                setSegment(value);
+              }}
+            >
+              <SelectTrigger className="w-full bg-background dark:bg-[#1a1a1d] border border-border dark:border-gray-600 rounded-md h-12 text-base">
+                <SelectValue placeholder="Select segment" />
+              </SelectTrigger>
+              <SelectContent className="bg-background dark:bg-[#232326]">
+                {SEGMENTS.map((seg) => (
+                  <SelectItem key={seg.value} value={seg.value}>
+                    {seg.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Enter Pair Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Enter Pair <span className="text-red-500">*</span>
+            </label>
+            <Select 
+              value={pair} 
+              onValueChange={(value) => {
+                console.log("Pair selected:", value);
+                setPair(value);
+              }}
+              disabled={isLoadingSymbols || availableSymbols.length === 0 || !selectedApi}
+            >
+              <SelectTrigger className="w-full bg-background dark:bg-[#1a1a1d] border border-border dark:border-gray-600 rounded-md h-12 text-base">
+                <SelectValue placeholder="Select trading pair" />
+              </SelectTrigger>
+              <SelectContent className="bg-background dark:bg-[#232326] max-h-[300px]">
+                {isLoadingSymbols ? (
+                  <SelectItem value="loading" disabled>
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading pairs...
+                    </div>
+                  </SelectItem>
+                ) : availableSymbols.length === 0 ? (
+                  <SelectItem value="none" disabled>
+                    {selectedApi ? "No trading pairs found for this exchange/segment" : "Select API connection first"}
+                  </SelectItem>
+                ) : (
+                  availableSymbols.map((symbol) => (
+                    <SelectItem key={symbol.symbol} value={symbol.symbol}>
+                      {symbol.symbol}
+                      <span className="text-xs text-gray-500 ml-2">
+                        ({symbol.base}/{symbol.quote})
+                      </span>
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {isLoadingSymbols && (
+              <p className="text-xs text-orange-500">Loading trading pairs...</p>
+            )}
+            {!isLoadingSymbols && availableSymbols.length === 0 && selectedApi && (
+              <p className="text-xs text-red-500">
+                No trading pairs available for this combination
+              </p>
+            )}
+            {!isLoadingSymbols && availableSymbols.length > 0 && (
+              <p className="text-xs text-green-500">
+                {availableSymbols.length} pairs available
+              </p>
+            )}
           </div>
         </CardContent>
       </div>
