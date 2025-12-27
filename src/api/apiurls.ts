@@ -18,10 +18,14 @@ export const apiurls = {
     },
     exchangemanagement:{
      getSymbolbyprecision:"/crypto/exchange/symbol-precision?exchange=&tradeType=",
-     getSymbol:"/crypto/exchange/symbol-pairs"
+     getSymbol:"/crypto/exchange/symbol-pairs",
+     getbalance:"/crypto/exchange/get-balances"
     },
     strategies: {
         growthDCA:"/strategy/strategies"
+    },
+    spottrades:{
+        createstrategy:"/crypto/trade/create"
     }
 
 }

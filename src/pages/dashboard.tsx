@@ -20,6 +20,9 @@ import {
   MessageSquare,
   RefreshCw,
   MoreVertical,
+  Settings,
+  Copy,
+  Share2,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -83,6 +86,27 @@ export default function Dashboard() {
   const totalTradesExecuted = 45;
   const netPL = 1250.50;
   const netPLPercentage = 8.5;
+
+  // Referral data
+  const referralId = "12345TH";
+  const referralLink = "https://referralLinknameIdnameStrategy.co";
+  const verifiedReferrals = 238;
+  const pendingReferrals = 23;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(referralLink);
+    // You can add a toast notification here
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Referral Link',
+        text: `Join using my referral ID: ${referralId}`,
+        url: referralLink,
+      });
+    }
+  };
 
   const strategyData: StrategyDataItem[] = [
     {
@@ -247,11 +271,72 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          {/* Right: Referral Card Placeholder */}
+          {/* Right: Referral Card */}
           <div className="flex flex-col w-full md:w-[450px] max-w-[500px] h-[130px]">
-            <Card className="bg-[#FF8C00] text-white h-full flex items-center justify-center">
-              <CardContent>
-                <p className="text-center font-semibold">Referral Card</p>
+            <Card className="bg-gray-100 dark:bg-white border border-gray-200 dark:border-gray-700 h-full">
+              <CardContent className="p-4 h-full flex flex-col justify-between">
+                {/* Header with Referral ID and Settings */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Referral ID:
+                    </span>
+                    <span className="text-base font-bold text-black dark:text-white">
+                      {referralId}
+                    </span>
+                  </div>
+                  <button className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded">
+                    <Settings className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                  </button>
+                </div>
+
+                {/* Referral Link with Copy and Share */}
+                <div className="flex items-center gap-2 mb-3">
+                  <a
+                    href={referralLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate flex-1"
+                  >
+                    {referralLink}
+                  </a>
+                  <button
+                    onClick={handleCopyLink}
+                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                    title="Copy link"
+                  >
+                    <Copy className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                  </button>
+                  <span className="text-gray-400">|</span>
+                  <button
+                    onClick={handleShare}
+                    className="flex items-center gap-1 px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-xs font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    <span>Share on</span>
+                    <Share2 className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Verified and Pending Referrals */}
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Verified Referrals:
+                    </span>
+                    <span className="font-bold text-black dark:text-white">
+                      {verifiedReferrals}
+                    </span>
+                  </div>
+                  <span className="text-gray-400">|</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Pending Referrals:
+                    </span>
+                    <span className="font-bold text-black dark:text-white">
+                      {pendingReferrals}
+                    </span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
