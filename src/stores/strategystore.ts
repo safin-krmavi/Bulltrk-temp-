@@ -39,6 +39,13 @@ export interface SymbolTypeData {
   data: ExchangeData[];
 }
 
+export interface BalanceData {
+  asset: string;
+  free: string;
+  locked: string;
+  total: string;
+}
+
 export interface StrategyState {
   // Strategy State
   strategies: GrowthDCAStrategy[];
@@ -51,6 +58,11 @@ export interface StrategyState {
   isLoadingSymbols: boolean;
   symbolsError: string | null;
   lastFetched: number | null;
+
+  // Balance State
+  balances: BalanceData[];
+  isLoadingBalances: boolean;
+  balancesError: string | null;
 
   // Strategy Actions
   setStrategies: (strategies: GrowthDCAStrategy[]) => void;
@@ -68,6 +80,12 @@ export interface StrategyState {
   setSymbolsError: (error: string | null) => void;
   clearSymbolsError: () => void;
 
+  // Balance Actions
+  setBalances: (balances: BalanceData[]) => void;
+  setLoadingBalances: (loading: boolean) => void;
+  setBalancesError: (error: string | null) => void;
+  clearBalancesError: () => void;
+
   // Strategy API Methods
   fetchStrategies: () => Promise<void>;
   createGrowthDCA: (strategy: Omit<GrowthDCAStrategy, 'strategyType' | 'assetType'>) => Promise<GrowthDCAStrategy>;
@@ -77,6 +95,10 @@ export interface StrategyState {
   // Symbols API Methods
   fetchSymbols: () => Promise<void>;
   getSymbolsByExchange: (exchange: string, segment: string) => Symbol[];
+
+  // Balance API Methods
+  fetchBalances: (exchange: string, type: string) => Promise<void>;
+  getBalanceByAsset: (asset: string) => BalanceData | null;
 }
 
 export const useStrategyStore = create<StrategyState>()(
@@ -93,6 +115,11 @@ export const useStrategyStore = create<StrategyState>()(
       isLoadingSymbols: false,
       symbolsError: null,
       lastFetched: null,
+
+      // Initial Balance State
+      balances: [],
+      isLoadingBalances: false,
+      balancesError: null,
 
       // Strategy State Setters
       setStrategies: (strategies: GrowthDCAStrategy[]) => set({ strategies }),
@@ -111,6 +138,12 @@ export const useStrategyStore = create<StrategyState>()(
       setLoadingSymbols: (loading: boolean) => set({ isLoadingSymbols: loading }),
       setSymbolsError: (error: string | null) => set({ symbolsError: error }),
       clearSymbolsError: () => set({ symbolsError: null }),
+
+      // Balance State Setters
+      setBalances: (balances: BalanceData[]) => set({ balances }),
+      setLoadingBalances: (loading: boolean) => set({ isLoadingBalances: loading }),
+      setBalancesError: (error: string | null) => set({ balancesError: error }),
+      clearBalancesError: () => set({ balancesError: null }),
 
       // Fetch All Strategies
       fetchStrategies: async () => {
@@ -279,6 +312,43 @@ export const useStrategyStore = create<StrategyState>()(
         
         console.log(`Found ${exchangeData.data.length} symbols for ${exchange} ${segment}`);
         return exchangeData.data;
+      },
+
+      // Fetch Balances
+      fetchBalances: async (exchange: string, type: string) => {
+        set({ isLoadingBalances: true, balancesError: null });
+        try {
+          console.log('Fetching balances for:', exchange, type);
+          const response = await apiClient.post(apiurls.exchangemanagement.getbalance, {
+            exchange: exchange.toUpperCase(),
+            type: type.toUpperCase(),
+          });
+
+          console.log('Balances API response:', response.data);
+
+          if (response.data?.data?.balances) {
+            set({ 
+              balances: response.data.data.balances, 
+              isLoadingBalances: false 
+            });
+          } else {
+            set({ balances: [], isLoadingBalances: false });
+          }
+        } catch (error: any) {
+          const errorMessage = error.response?.data?.message || 'Failed to fetch balances';
+          console.error('Failed to fetch balances:', error);
+          set({ 
+            balancesError: errorMessage, 
+            isLoadingBalances: false, 
+            balances: [] 
+          });
+        }
+      },
+
+      // Get Balance by Asset
+      getBalanceByAsset: (asset: string) => {
+        const { balances } = get();
+        return balances.find(b => b.asset.toUpperCase() === asset.toUpperCase()) || null;
       },
     }),
     {

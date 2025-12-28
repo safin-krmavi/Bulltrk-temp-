@@ -97,7 +97,20 @@ export default function GrowthDCA() {
   });
 
   // Get strategy store
-  const { createGrowthDCA, isLoading, error, clearError } = useStrategyStore();
+  const { 
+    createGrowthDCA, 
+    isLoading, 
+    error, 
+    clearError,
+    fetchBalances,
+    getBalanceByAsset,
+    balances,
+    isLoadingBalances,
+    balancesError
+  } = useStrategyStore();
+
+  // Available balance for selected quote asset
+  const [availableBalance, setAvailableBalance] = useState<string>("0");
 
   // Get the state for current frequency
   const getFrequencyState = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') => {
@@ -386,6 +399,40 @@ export default function GrowthDCA() {
     setSymbol(data.pair);
   };
 
+  // Fetch balances when exchange and segment change
+  React.useEffect(() => {
+    if (exchange && segment) {
+      console.log("Fetching balances for:", exchange, segment);
+      fetchBalances(exchange, segment).catch(err => {
+        console.error("Failed to fetch balances:", err);
+      });
+    }
+  }, [exchange, segment, fetchBalances]);
+
+  // Update available balance when symbol or balances change
+  React.useEffect(() => {
+    if (symbol && balances.length > 0) {
+      // Extract quote asset from symbol (e.g., BTCUSDT -> USDT)
+      const quoteAsset = symbol.replace(/^[A-Z]+/, ''); // This is a simple extraction, might need refinement
+      
+      // Try to find the balance for the quote asset
+      const balance = getBalanceByAsset(quoteAsset);
+      
+      if (balance) {
+        setAvailableBalance(parseFloat(balance.free).toFixed(2));
+        console.log(`Available ${quoteAsset} balance:`, balance.free);
+      } else {
+        // Default to USDT if quote asset not found
+        const usdtBalance = getBalanceByAsset('USDT');
+        if (usdtBalance) {
+          setAvailableBalance(parseFloat(usdtBalance.free).toFixed(2));
+        } else {
+          setAvailableBalance("0");
+        }
+      }
+    }
+  }, [symbol, balances, getBalanceByAsset]);
+
   // Debug current state
   React.useEffect(() => {
     console.log("Current state update:", {
@@ -430,7 +477,16 @@ export default function GrowthDCA() {
                   </SelectContent>
                 </Select>
               </div>
-              <p className="text-sm text-orange-500">Avbl: 389 USDT</p>
+              {isLoadingBalances ? (
+                <p className="text-sm text-gray-500 flex items-center gap-2">
+                  <span className="inline-block w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></span>
+                  Loading balance...
+                </p>
+              ) : balancesError ? (
+                <p className="text-sm text-red-500">Failed to load balance</p>
+              ) : (
+                <p className="text-sm text-orange-500">Avbl: {availableBalance} USDT</p>
+              )}
             </div>
 
             <div className="space-y-2">

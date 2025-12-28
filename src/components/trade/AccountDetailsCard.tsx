@@ -177,10 +177,10 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
               }}
               disabled={isLoadingConnections || connections.length === 0}
             >
-              <SelectTrigger className="w-full bg-background dark:bg-[#1a1a1d] border border-border dark:border-gray-600 rounded-md h-12 text-base">
+              <SelectTrigger className="w-full bg-white dark:bg-[#1a1a1d] border border-border dark:border-gray-600 rounded-md h-12 text-base">
                 <SelectValue placeholder="API connection name" />
               </SelectTrigger>
-              <SelectContent className="bg-background dark:bg-[#232326]">
+              <SelectContent className="bg-white dark:bg-[#232326]">
                 {isLoadingConnections ? (
                   <SelectItem value="loading" disabled>
                     <div className="flex items-center gap-2">
@@ -215,10 +215,10 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
                 setSegment(value);
               }}
             >
-              <SelectTrigger className="w-full bg-background dark:bg-[#1a1a1d] border border-border dark:border-gray-600 rounded-md h-12 text-base">
+              <SelectTrigger className="w-full bg-white dark:bg-[#1a1a1d] border border-border dark:border-gray-600 rounded-md h-12 text-base">
                 <SelectValue placeholder="Select segment" />
               </SelectTrigger>
-              <SelectContent className="bg-background dark:bg-[#232326]">
+              <SelectContent className="bg-white dark:bg-[#232326]">
                 {SEGMENTS.map((seg) => (
                   <SelectItem key={seg.value} value={seg.value}>
                     {seg.label}
@@ -241,10 +241,10 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
               }}
               disabled={isLoadingSymbols || availableSymbols.length === 0 || !selectedApi}
             >
-              <SelectTrigger className="w-full bg-background dark:bg-[#1a1a1d] border border-border dark:border-gray-600 rounded-md h-12 text-base">
+              <SelectTrigger className="w-full bg-white dark:bg-[#1a1a1d] border border-border dark:border-gray-600 rounded-md h-12 text-base">
                 <SelectValue placeholder="Select trading pair" />
               </SelectTrigger>
-              <SelectContent className="bg-background dark:bg-[#232326] max-h-[300px]">
+              <SelectContent className="bg-white dark:bg-[#232326] max-h-[300px]">
                 {isLoadingSymbols ? (
                   <SelectItem value="loading" disabled>
                     <div className="flex items-center gap-2">
