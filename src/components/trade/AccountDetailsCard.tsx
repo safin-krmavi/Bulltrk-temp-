@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authstore";
-import { useStrategyStore } from "@/stores/strategyStore";
+import { useStrategyStore } from "../../stores/strategystore";
 import apiClient from "@/api/apiClient";
 import { apiurls } from "@/api/apiurls";
 import { toast } from "sonner";
@@ -45,8 +46,10 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
   const [selectedApi, setSelectedApi] = React.useState("");
   const [segment, setSegment] = React.useState("SPOT");
   const [pair, setPair] = React.useState("");
+  const [pairSearch, setPairSearch] = React.useState("");
   const [connections, setConnections] = useState<BrokerageConnection[]>([]);
   const [isLoadingConnections, setIsLoadingConnections] = useState(false);
+  const [isPairDropdownOpen, setIsPairDropdownOpen] = React.useState(false);
 
   const { user } = useAuthStore();
   const { fetchSymbols, getSymbolsByExchange, isLoadingSymbols } = useStrategyStore();
@@ -60,6 +63,18 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
     
     return getSymbolsByExchange(selectedConnection.exchange, segment);
   }, [selectedApi, segment, connections, getSymbolsByExchange]);
+
+  // Filter symbols based on search query
+  const filteredSymbols = React.useMemo(() => {
+    if (!pairSearch.trim()) return availableSymbols;
+    
+    const searchLower = pairSearch.toLowerCase();
+    return availableSymbols.filter(symbol => 
+      symbol.symbol.toLowerCase().includes(searchLower) ||
+      symbol.base.toLowerCase().includes(searchLower) ||
+      symbol.quote.toLowerCase().includes(searchLower)
+    );
+  }, [availableSymbols, pairSearch]);
 
   // Fetch symbols on mount
   useEffect(() => {
@@ -103,6 +118,13 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
       onDataChange(dataToSend);
     }
   }, [selectedApi, segment, pair, connections, onDataChange]);
+
+  // Reset search when dropdown closes
+  useEffect(() => {
+    if (!isPairDropdownOpen) {
+      setPairSearch("");
+    }
+  }, [isPairDropdownOpen]);
 
   const fetchConnections = async () => {
     setIsLoadingConnections(true);
@@ -228,7 +250,7 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
             </Select>
           </div>
 
-          {/* Enter Pair Field */}
+          {/* Enter Pair Field with Search */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
               Enter Pair <span className="text-red-500">*</span>
@@ -238,34 +260,71 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
               onValueChange={(value) => {
                 console.log("Pair selected:", value);
                 setPair(value);
+                setPairSearch("");
               }}
               disabled={isLoadingSymbols || availableSymbols.length === 0 || !selectedApi}
+              open={isPairDropdownOpen}
+              onOpenChange={setIsPairDropdownOpen}
             >
               <SelectTrigger className="w-full bg-white dark:bg-[#1a1a1d] border border-border dark:border-gray-600 rounded-md h-12 text-base">
                 <SelectValue placeholder="Select trading pair" />
               </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-[#232326] max-h-[300px]">
-                {isLoadingSymbols ? (
-                  <SelectItem value="loading" disabled>
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Loading pairs...
+              <SelectContent className="bg-white dark:bg-[#232326]">
+                {/* Search Input */}
+                {!isLoadingSymbols && availableSymbols.length > 0 && (
+                  <div className="sticky top-0 z-10 bg-white dark:bg-[#232326] p-2 border-b dark:border-gray-700">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search pairs..."
+                        value={pairSearch}
+                        onChange={(e) => setPairSearch(e.target.value)}
+                        className="pl-8 h-9 bg-white dark:bg-[#1a1a1d]"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      />
                     </div>
-                  </SelectItem>
-                ) : availableSymbols.length === 0 ? (
-                  <SelectItem value="none" disabled>
-                    {selectedApi ? "No trading pairs found for this exchange/segment" : "Select API connection first"}
-                  </SelectItem>
-                ) : (
-                  availableSymbols.map((symbol) => (
-                    <SelectItem key={symbol.symbol} value={symbol.symbol}>
-                      {symbol.symbol}
-                      <span className="text-xs text-gray-500 ml-2">
-                        ({symbol.base}/{symbol.quote})
-                      </span>
-                    </SelectItem>
-                  ))
+                    {pairSearch && (
+                      <p className="text-xs text-gray-500 mt-1 px-1">
+                        {filteredSymbols.length} of {availableSymbols.length} pairs
+                      </p>
+                    )}
+                  </div>
                 )}
+
+                {/* Scrollable Content */}
+                <div className="max-h-[250px] overflow-y-auto">
+                  {isLoadingSymbols ? (
+                    <SelectItem value="loading" disabled>
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading pairs...
+                      </div>
+                    </SelectItem>
+                  ) : availableSymbols.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      {selectedApi ? "No trading pairs found for this exchange/segment" : "Select API connection first"}
+                    </SelectItem>
+                  ) : filteredSymbols.length === 0 ? (
+                    <SelectItem value="no-results" disabled>
+                      <div className="text-center py-2">
+                        <p className="text-sm text-gray-500">No pairs found</p>
+                        <p className="text-xs text-gray-400">Try a different search</p>
+                      </div>
+                    </SelectItem>
+                  ) : (
+                    filteredSymbols.map((symbol) => (
+                      <SelectItem key={symbol.symbol} value={symbol.symbol}>
+                        <div className="flex items-center justify-between w-full">
+                          <span className="font-medium">{symbol.symbol}</span>
+                          <span className="text-xs text-gray-500 ml-2">
+                            {symbol.base}/{symbol.quote}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
+                </div>
               </SelectContent>
             </Select>
             {isLoadingSymbols && (

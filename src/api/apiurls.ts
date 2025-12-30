@@ -28,7 +28,7 @@ export const apiurls = {
         createstrategy:"/crypto/trade/create"
     },
     candlechart:{
-        candlegraph:"/crypto/exchange/candles?exchange=&symbol=&interval="
+        candlegraph:"/crypto/exchange/candles"
     }
 
 }

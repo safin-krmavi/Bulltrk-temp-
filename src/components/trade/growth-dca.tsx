@@ -11,9 +11,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox"
 import { useState } from "react"
 import { AccountDetailsCard } from "./AccountDetailsCard"
-import { useStrategyStore } from "@/stores/strategyStore"
+import { useStrategyStore,GrowthDCAStrategy } from "@/stores/strategystore"
 import { toast } from "sonner"
 import { ProceedPopup } from "@/components/dashboard/proceed-popup"
+// 
 
 const WEEKDAYS = [
   { short: 'Sun', full: 'Sunday' },
@@ -27,14 +28,14 @@ const WEEKDAYS = [
 
 const MONTH_DATES = Array.from({ length: 31 }, (_, i) => i + 1);
 
-interface FrequencyTimeState {
-  hour: string;
-  minute: string;
-  period: "AM" | "PM";
-  days: string[];
-  dates: number[]; // For monthly date selection
-  hourInterval?: string; // For hourly frequency
-}
+// interface FrequencyTimeState {
+//   hour: string;
+//   minute: string;
+//   period: "AM" | "PM";
+//   days: string[];
+//   dates: number[];
+//   hourInterval?: string;
+// }
 
 export default function GrowthDCA() {
   const [isOpen, setIsOpen] = React.useState(true)
@@ -59,42 +60,17 @@ export default function GrowthDCA() {
   const [priceStop, setPriceStop] = useState("");
   const [stopLossPct, setStopLossPct] = useState("");
 
-  // Independent state for each frequency
-  const [dailyTime, setDailyTime] = useState<FrequencyTimeState>({
+  // Shared time state for DAILY, WEEKLY, and MONTHLY
+  const [sharedTime, setSharedTime] = useState({
     hour: "12",
     minute: "00",
-    period: "AM",
-    days: [],
-    dates: [],
-    hourInterval: "1"
+    period: "AM" as "AM" | "PM"
   });
-  
-  const [weeklyTime, setWeeklyTime] = useState<FrequencyTimeState>({
-    hour: "12",
-    minute: "00",
-    period: "AM",
-    days: [],
-    dates: [],
-    hourInterval: "1"
-  });
-  
-  const [monthlyTime, setMonthlyTime] = useState<FrequencyTimeState>({
-    hour: "12",
-    minute: "00",
-    period: "AM",
-    days: [],
-    dates: [],
-    hourInterval: "1"
-  });
-  
-  const [hourlyTime, setHourlyTime] = useState<FrequencyTimeState>({
-    hour: "12",
-    minute: "00",
-    period: "AM",
-    days: [],
-    dates: [],
-    hourInterval: "1"
-  });
+
+  // Separate state for frequency-specific selections
+  const [weeklyDays, setWeeklyDays] = useState<string[]>([]);
+  const [monthlyDates, setMonthlyDates] = useState<number[]>([]);
+  const [hourInterval, setHourInterval] = useState<string>("1");
 
   // Get strategy store
   const { 
@@ -112,74 +88,131 @@ export default function GrowthDCA() {
   // Available balance for selected quote asset
   const [availableBalance, setAvailableBalance] = useState<string>("0");
 
-  // Get the state for current frequency
-  const getFrequencyState = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') => {
-    switch(freq) {
-      case 'DAILY': return dailyTime;
-      case 'WEEKLY': return weeklyTime;
-      case 'MONTHLY': return monthlyTime;
-      case 'HOURLY': return hourlyTime;
+  // Convert 12-hour time to 24-hour format
+  const convertTo24Hour = (hour: string, minute: string, period: "AM" | "PM") => {
+    let hour24 = parseInt(hour) || 12;
+    
+    if (period === "AM") {
+      if (hour24 === 12) hour24 = 0;
+    } else {
+      if (hour24 !== 12) hour24 += 12;
     }
+    
+    const min = parseInt(minute) || 0;
+    return `${hour24.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
   };
 
-  // Set the state for current frequency
-  const setFrequencyState = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY', state: FrequencyTimeState) => {
-    switch(freq) {
-      case 'DAILY': setDailyTime(state); break;
-      case 'WEEKLY': setWeeklyTime(state); break;
-      case 'MONTHLY': setMonthlyTime(state); break;
-      case 'HOURLY': setHourlyTime(state); break;
+  // Build frequency data object for API - with explicit return type
+  const buildFrequencyData = (): GrowthDCAStrategy['frequency'] | null => {
+    const time24 = convertTo24Hour(sharedTime.hour, sharedTime.minute, sharedTime.period);
+
+    switch(frequency) {
+      case 'DAILY':
+        return {
+          type: 'DAILY' as const,
+          time: time24,
+        };
+      
+      case 'WEEKLY':
+        if (weeklyDays.length === 0) {
+          toast.error("Please select at least one day for weekly frequency");
+          return null;
+        }
+        return {
+          type: 'WEEKLY' as const,
+          days: weeklyDays,
+          time: time24,
+        };
+      
+      case 'MONTHLY':
+        if (monthlyDates.length === 0) {
+          toast.error("Please select at least one date for monthly frequency");
+          return null;
+        }
+        return {
+          type: 'MONTHLY' as const,
+          dates: monthlyDates.sort((a, b) => a - b),
+          time: time24,
+        };
+      
+      case 'HOURLY':
+        const interval = parseInt(hourInterval || "1");
+        if (interval < 1 || interval > 24) {
+          toast.error("Hour interval must be between 1 and 24");
+          return null;
+        }
+        return {
+          type: 'HOURLY' as const,
+          intervalHours: interval,
+        };
+      
+      default:
+        return null;
     }
   };
 
   // Format time display
-  const getFormattedTime = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') => {
-    const state = getFrequencyState(freq);
-    const hour = state.hour.padStart(2, '0');
-    const minute = state.minute.padStart(2, '0');
-    return `${hour}:${minute} ${state.period}`;
+  const getFormattedTime = () => {
+    const hour = sharedTime.hour.padStart(2, '0');
+    const minute = sharedTime.minute.padStart(2, '0');
+    return `${hour}:${minute} ${sharedTime.period}`;
   };
 
   // Get input display value - show values for all frequencies
-  const getInputDisplayValue = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') => {
-    const state = getFrequencyState(freq);
-    
-    // For the active frequency, show detailed info
-    if (frequency === freq) {
-      if (freq === 'WEEKLY' && state.days.length > 0) {
-        return `${state.days.join(', ')}`;
-      }
-      if (freq === 'MONTHLY' && state.dates.length > 0) {
-        return `${state.dates.sort((a, b) => a - b).join(', ')}`;
-      }
-      if (freq === 'HOURLY' && state.hourInterval) {
-        return `Every ${state.hourInterval} hour(s)`;
-      }
-      return getFormattedTime(freq);
+const getInputDisplayValue = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') => {
+  // DAILY input - show time if configured, otherwise empty for placeholder
+  if (freq === 'DAILY') {
+    // Only show time if it's not the default values
+    if (sharedTime.hour !== "12" || sharedTime.minute !== "00" || sharedTime.period !== "AM") {
+      return getFormattedTime();
     }
-    
-    // For inactive frequencies, show if they have data configured
-    if (freq === 'WEEKLY' && state.days.length > 0) {
-      return `${state.days.length} days`;
-    }
-    if (freq === 'MONTHLY' && state.dates.length > 0) {
-      return `${state.dates.length} dates`;
-    }
-    if (freq === 'HOURLY' && state.hourInterval && state.hourInterval !== "1") {
-      return `${state.hourInterval}h`;
-    }
-    if (freq === 'DAILY' && (state.hour !== "12" || state.minute !== "00")) {
-      return getFormattedTime(freq);
-    }
-    
     return '';
-  };
+  }
+  
+  // WEEKLY input shows only selected days when active
+  if (freq === 'WEEKLY') {
+    if (frequency === 'WEEKLY' && weeklyDays.length > 0) {
+      return weeklyDays.join(', ');
+    }
+    // When not active, show count if days are selected
+    if (weeklyDays.length > 0) {
+      return `${weeklyDays.length} days`;
+    }
+    return '';
+  }
+  
+  // MONTHLY input shows only selected dates when active
+  if (freq === 'MONTHLY') {
+    if (frequency === 'MONTHLY' && monthlyDates.length > 0) {
+      return monthlyDates.sort((a, b) => a - b).join(', ');
+    }
+    // When not active, show count if dates are selected
+    if (monthlyDates.length > 0) {
+      return `${monthlyDates.length} dates`;
+    }
+    return '';
+  }
+  
+  // HOURLY input shows interval
+  if (freq === 'HOURLY') {
+    // Only show if interval is not default value
+    if (hourInterval && hourInterval !== "1") {
+      if (frequency === 'HOURLY') {
+        return `Every ${hourInterval}h`;
+      }
+      return `${hourInterval}h`;
+    }
+    return '';
+  }
+  
+  return '';
+};
 
   // Frequency input handler
   const handleFrequencyClick = (val: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') => {
     setFrequency(val);
     setActiveFrequencyPopover(val);
-    setIsDaysDropdownOpen(false); // Close days dropdown when switching frequency
+    setIsDaysDropdownOpen(false);
   };
 
   // Close popover handler
@@ -188,46 +221,42 @@ export default function GrowthDCA() {
     setIsDaysDropdownOpen(false);
   };
 
-  // Update hour for specific frequency
-  const updateHour = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY', value: string) => {
-    const state = getFrequencyState(freq);
-    setFrequencyState(freq, { ...state, hour: value });
+  // Update hour (shared across DAILY, WEEKLY, MONTHLY)
+  const updateHour = (value: string) => {
+    setSharedTime(prev => ({ ...prev, hour: value }));
   };
 
-  // Update minute for specific frequency
-  const updateMinute = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY', value: string) => {
-    const state = getFrequencyState(freq);
-    setFrequencyState(freq, { ...state, minute: value });
+  // Update minute (shared across DAILY, WEEKLY, MONTHLY)
+  const updateMinute = (value: string) => {
+    setSharedTime(prev => ({ ...prev, minute: value }));
   };
 
-  // Update period for specific frequency
-  const updatePeriod = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY', value: "AM" | "PM") => {
-    const state = getFrequencyState(freq);
-    setFrequencyState(freq, { ...state, period: value });
+  // Update period (shared across DAILY, WEEKLY, MONTHLY)
+  const updatePeriod = (value: "AM" | "PM") => {
+    setSharedTime(prev => ({ ...prev, period: value }));
   };
 
-  // Toggle day selection for specific frequency
-  const toggleDay = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY', day: string) => {
-    const state = getFrequencyState(freq);
-    const newDays = state.days.includes(day) 
-      ? state.days.filter(d => d !== day)
-      : [...state.days, day];
-    setFrequencyState(freq, { ...state, days: newDays });
+  // Toggle day selection for weekly frequency
+  const toggleDay = (day: string) => {
+    setWeeklyDays(prev => 
+      prev.includes(day) 
+        ? prev.filter(d => d !== day)
+        : [...prev, day]
+    );
   };
 
   // Toggle date selection for monthly frequency
-  const toggleDate = (freq: 'MONTHLY', date: number) => {
-    const state = getFrequencyState(freq);
-    const newDates = state.dates.includes(date) 
-      ? state.dates.filter(d => d !== date)
-      : [...state.dates, date];
-    setFrequencyState(freq, { ...state, dates: newDates });
+  const toggleDate = (date: number) => {
+    setMonthlyDates(prev => 
+      prev.includes(date) 
+        ? prev.filter(d => d !== date)
+        : [...prev, date]
+    );
   };
 
   // Update hour interval for hourly frequency
   const updateHourInterval = (value: string) => {
-    const state = getFrequencyState('HOURLY');
-    setFrequencyState('HOURLY', { ...state, hourInterval: value });
+    setHourInterval(value);
   };
 
   // Validation
@@ -243,7 +272,8 @@ export default function GrowthDCA() {
       takeProfitPct,
       priceStart,
       priceStop,
-      stopLossPct
+      stopLossPct,
+      frequency
     });
 
     if (!selectedApiId) {
@@ -290,24 +320,47 @@ export default function GrowthDCA() {
       toast.error("Please enter a valid stop loss percentage");
       return false;
     }
+
+    // Validate frequency-specific data
+    if (frequency === 'WEEKLY' && weeklyDays.length === 0) {
+      toast.error("Please select at least one day for weekly frequency");
+      return false;
+    }
+    if (frequency === 'MONTHLY' && monthlyDates.length === 0) {
+      toast.error("Please select at least one date for monthly frequency");
+      return false;
+    }
+    if (frequency === 'HOURLY') {
+      const interval = parseInt(hourInterval || "0");
+      if (interval < 1 || interval > 24) {
+        toast.error("Hour interval must be between 1 and 24");
+        return false;
+      }
+    }
+
     return true;
   };
 
   // Prepare strategy data for popup
-  const getStrategyData = () => ({
-    selectedApi: selectedApiId,
-    exchange: exchange,
-    segment: segment,
-    pair: symbol,
-    name: strategyName,
-    investmentPerRun: Number(investmentPerRun),
-    investmentCap: Number(investmentCap),
-    frequency: frequency,
-    takeProfitPct: Number(takeProfitPct),
-    priceStart: Number(priceStart),
-    priceStop: Number(priceStop),
-    stopLossPct: Number(stopLossPct),
-  });
+  const getStrategyData = () => {
+    const frequencyData = buildFrequencyData();
+    
+    return {
+      selectedApi: selectedApiId,
+      exchange: exchange,
+      segment: segment,
+      pair: symbol,
+      name: strategyName,
+      investmentPerRun: Number(investmentPerRun),
+      investmentCap: Number(investmentCap),
+      frequency: frequency,
+      frequencyData: frequencyData,
+      takeProfitPct: Number(takeProfitPct),
+      priceStart: Number(priceStart),
+      priceStop: Number(priceStop),
+      stopLossPct: Number(stopLossPct),
+    };
+  };
 
   // Show popup when Proceed is clicked
   const handleProceed = (e: React.MouseEvent) => {
@@ -331,14 +384,21 @@ export default function GrowthDCA() {
     console.log("=== CONFIRM BUTTON CLICKED IN POPUP ===");
     
     try {
-      const strategyData = {
+      const frequencyData = buildFrequencyData();
+      
+      if (!frequencyData) {
+        console.log("Frequency data validation failed");
+        return;
+      }
+
+      const strategyData: Omit<GrowthDCAStrategy, 'strategyType' | 'assetType'> = {
         name: strategyName,
         exchange: exchange,
         segment: segment,
         symbol: symbol,
         investmentPerRun: Number(investmentPerRun),
         investmentCap: Number(investmentCap),
-        frequency: frequency,
+        frequency: frequencyData,
         takeProfitPct: Number(takeProfitPct),
         stopLossPct: Number(stopLossPct),
         priceStart: Number(priceStart),
@@ -376,11 +436,11 @@ export default function GrowthDCA() {
     setPriceStop("");
     setStopLossPct("");
     
-    // Reset all frequency states
-    setDailyTime({ hour: "12", minute: "00", period: "AM", days: [], dates: [], hourInterval: "1" });
-    setWeeklyTime({ hour: "12", minute: "00", period: "AM", days: [], dates: [], hourInterval: "1" });
-    setMonthlyTime({ hour: "12", minute: "00", period: "AM", days: [], dates: [], hourInterval: "1" });
-    setHourlyTime({ hour: "12", minute: "00", period: "AM", days: [], dates: [], hourInterval: "1" });
+    // Reset shared time and frequency-specific states
+    setSharedTime({ hour: "12", minute: "00", period: "AM" });
+    setWeeklyDays([]);
+    setMonthlyDates([]);
+    setHourInterval("1");
     
     clearError();
   };
@@ -412,17 +472,13 @@ export default function GrowthDCA() {
   // Update available balance when symbol or balances change
   React.useEffect(() => {
     if (symbol && balances.length > 0) {
-      // Extract quote asset from symbol (e.g., BTCUSDT -> USDT)
-      const quoteAsset = symbol.replace(/^[A-Z]+/, ''); // This is a simple extraction, might need refinement
-      
-      // Try to find the balance for the quote asset
+      const quoteAsset = symbol.replace(/^[A-Z]+/, '');
       const balance = getBalanceByAsset(quoteAsset);
       
       if (balance) {
         setAvailableBalance(parseFloat(balance.free).toFixed(2));
         console.log(`Available ${quoteAsset} balance:`, balance.free);
       } else {
-        // Default to USDT if quote asset not found
         const usdtBalance = getBalanceByAsset('USDT');
         if (usdtBalance) {
           setAvailableBalance(parseFloat(usdtBalance.free).toFixed(2));
@@ -432,16 +488,6 @@ export default function GrowthDCA() {
       }
     }
   }, [symbol, balances, getBalanceByAsset]);
-
-  // Debug current state
-  React.useEffect(() => {
-    console.log("Current state update:", {
-      selectedApiId,
-      exchange,
-      segment,
-      symbol
-    });
-  }, [selectedApiId, exchange, segment, symbol]);
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -514,7 +560,6 @@ export default function GrowthDCA() {
               </Label>
               <div className="grid grid-cols-4 gap-2">
                 {(['DAILY', 'WEEKLY', 'MONTHLY', 'HOURLY'] as const).map(val => {
-                  const state = getFrequencyState(val);
                   const displayValue = getInputDisplayValue(val);
                   const placeholderText = val.charAt(0) + val.slice(1).toLowerCase();
                   
@@ -543,14 +588,12 @@ export default function GrowthDCA() {
                         className="w-56 p-3 bg-white dark:bg-[#232326]" 
                         align="start"
                         onInteractOutside={(e) => {
-                          // Prevent closing when clicking inside
                           if ((e.target as HTMLElement).closest('.popover-content')) {
                             e.preventDefault();
                           }
                         }}
                       >
                         <div className="space-y-2.5 popover-content">
-                          {/* Close button */}
                           <div className="flex justify-between items-center mb-2">
                             <h3 className="font-semibold text-sm">{placeholderText} Settings</h3>
                             <button
@@ -562,7 +605,6 @@ export default function GrowthDCA() {
                             </button>
                           </div>
 
-                          {/* Select Days - only for Weekly with dropdown */}
                           {val === 'WEEKLY' && (
                             <div className="space-y-1.5">
                               <h4 className="font-medium text-xs">Select Days</h4>
@@ -576,7 +618,7 @@ export default function GrowthDCA() {
                                   className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs border rounded-md bg-white dark:bg-[#1a1a1d] hover:bg-gray-50 dark:hover:bg-[#2a2a2d]"
                                 >
                                   <span>
-                                    {state.days.length > 0 ? `${state.days.length} day(s)` : 'Days'}
+                                    {weeklyDays.length > 0 ? `${weeklyDays.length} day(s)` : 'Days'}
                                   </span>
                                   {isDaysDropdownOpen ? (
                                     <ChevronUp className="h-3 w-3" />
@@ -594,8 +636,8 @@ export default function GrowthDCA() {
                                         onClick={(e) => e.stopPropagation()}
                                       >
                                         <Checkbox
-                                          checked={state.days.includes(day.short)}
-                                          onCheckedChange={() => toggleDay(val, day.short)}
+                                          checked={weeklyDays.includes(day.short)}
+                                          onCheckedChange={() => toggleDay(day.short)}
                                           className="h-3.5 w-3.5"
                                         />
                                         <span className="text-xs">{day.full}</span>
@@ -607,7 +649,6 @@ export default function GrowthDCA() {
                             </div>
                           )}
 
-                          {/* Select Dates - only for Monthly with calendar */}
                           {val === 'MONTHLY' && (
                             <div className="space-y-1.5">
                               <h4 className="font-medium text-xs">Select Dates</h4>
@@ -618,10 +659,10 @@ export default function GrowthDCA() {
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      toggleDate('MONTHLY', date);
+                                      toggleDate(date);
                                     }}
                                     className={`h-7 w-7 text-xs rounded-md flex items-center justify-center transition-colors ${
-                                      state.dates.includes(date)
+                                      monthlyDates.includes(date)
                                         ? 'bg-orange-500 text-white hover:bg-orange-600'
                                         : 'bg-gray-100 dark:bg-[#1a1a1d] hover:bg-gray-200 dark:hover:bg-[#2a2a2d]'
                                     }`}
@@ -633,7 +674,6 @@ export default function GrowthDCA() {
                             </div>
                           )}
 
-                          {/* Hourly - Select number of hours */}
                           {val === 'HOURLY' && (
                             <div className="space-y-1.5">
                               <h4 className="font-medium text-xs">Run Every</h4>
@@ -641,7 +681,7 @@ export default function GrowthDCA() {
                                 <Input
                                   type="number"
                                   placeholder="1"
-                                  value={state.hourInterval}
+                                  value={hourInterval}
                                   onChange={(e) => {
                                     const value = e.target.value;
                                     if (value === '' || (/^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 24)) {
@@ -658,7 +698,6 @@ export default function GrowthDCA() {
                             </div>
                           )}
 
-                          {/* Repeats On - Hide for Hourly */}
                           {val !== 'HOURLY' && (
                             <div className="space-y-1.5">
                               <h4 className="font-medium text-xs">Repeats On</h4>
@@ -667,11 +706,11 @@ export default function GrowthDCA() {
                                   <Input
                                     type="text"
                                     placeholder="HH"
-                                    value={state.hour}
+                                    value={sharedTime.hour}
                                     onChange={(e) => {
                                       const value = e.target.value;
                                       if (value === '' || (/^\d{0,2}$/.test(value) && Number(value) >= 1 && Number(value) <= 12)) {
-                                        updateHour(val, value);
+                                        updateHour(value);
                                       }
                                     }}
                                     onClick={(e) => e.stopPropagation()}
@@ -682,11 +721,11 @@ export default function GrowthDCA() {
                                   <Input
                                     type="text"
                                     placeholder="MM"
-                                    value={state.minute}
+                                    value={sharedTime.minute}
                                     onChange={(e) => {
                                       const value = e.target.value;
                                       if (value === '' || (/^\d{0,2}$/.test(value) && Number(value) <= 59)) {
-                                        updateMinute(val, value);
+                                        updateMinute(value);
                                       }
                                     }}
                                     onClick={(e) => e.stopPropagation()}
@@ -694,7 +733,7 @@ export default function GrowthDCA() {
                                     maxLength={2}
                                   />
                                 </div>
-                                <Select value={state.period} onValueChange={(value) => updatePeriod(val, value as "AM" | "PM")}>
+                                <Select value={sharedTime.period} onValueChange={(value) => updatePeriod(value as "AM" | "PM")}>
                                   <SelectTrigger className="w-16 h-8 text-xs">
                                     <SelectValue />
                                   </SelectTrigger>
@@ -776,7 +815,6 @@ export default function GrowthDCA() {
         </div>
       </form>
 
-      {/* Proceed Popup */}
       {showProceedPopup && (
         <ProceedPopup
           strategyData={getStrategyData()}

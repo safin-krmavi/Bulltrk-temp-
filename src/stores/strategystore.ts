@@ -3,8 +3,35 @@ import { persist } from 'zustand/middleware';
 import apiClient from '@/api/apiClient';
 import { apiurls } from '@/api/apiurls';
 
+// Internal interface for frontend state management
 export interface GrowthDCAStrategy {
   id?: string;
+  name: string;
+  strategyType: 'GROWTH_DCA';
+  assetType: 'CRYPTO';
+  exchange: string;
+  segment: string;
+  symbol: string;
+  investmentPerRun: number;
+  investmentCap: number;
+  frequency: {
+    type: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY';
+    time?: string;
+    days?: string[];
+    dates?: number[];
+    intervalHours?: number;
+  };
+  takeProfitPct: number;
+  stopLossPct: number;
+  priceStart: number;
+  priceStop: number;
+  status?: 'active' | 'paused' | 'stopped';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// API payload interface - matches the CURL structure
+interface GrowthDCAApiPayload {
   name: string;
   strategyType: 'GROWTH_DCA';
   assetType: 'CRYPTO';
@@ -18,9 +45,10 @@ export interface GrowthDCAStrategy {
   stopLossPct: number;
   priceStart: number;
   priceStop: number;
-  status?: 'active' | 'paused' | 'stopped';
-  createdAt?: string;
-  updatedAt?: string;
+  time?: string;
+  hourInterval?: number;
+  daysOfWeek?: number[];
+  datesOfMonth?: number[];
 }
 
 export interface Symbol {
@@ -101,6 +129,67 @@ export interface StrategyState {
   getBalanceByAsset: (asset: string) => BalanceData | null;
 }
 
+// Helper function to convert day short names to numbers
+const dayToNumber = (day: string): number => {
+  const dayMap: { [key: string]: number } = {
+    'Sun': 0,
+    'Mon': 1,
+    'Tue': 2,
+    'Wed': 3,
+    'Thu': 4,
+    'Fri': 5,
+    'Sat': 6
+  };
+  return dayMap[day] ?? 0;
+};
+
+// Helper function to convert frontend strategy to API payload
+const convertToApiPayload = (strategy: GrowthDCAStrategy): GrowthDCAApiPayload => {
+  const payload: GrowthDCAApiPayload = {
+    name: strategy.name,
+    strategyType: 'GROWTH_DCA',
+    assetType: 'CRYPTO',
+    exchange: strategy.exchange.toUpperCase(),
+    segment: strategy.segment.toUpperCase(),
+    symbol: strategy.symbol.toUpperCase(),
+    investmentPerRun: strategy.investmentPerRun,
+    investmentCap: strategy.investmentCap,
+    frequency: strategy.frequency.type.toUpperCase() as 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY',
+    takeProfitPct: strategy.takeProfitPct,
+    stopLossPct: strategy.stopLossPct,
+    priceStart: strategy.priceStart,
+    priceStop: strategy.priceStop,
+  };
+
+  // Add frequency-specific fields based on type
+  switch (strategy.frequency.type) {
+    case 'DAILY':
+    case 'WEEKLY':
+    case 'MONTHLY':
+      if (strategy.frequency.time) {
+        payload.time = strategy.frequency.time;
+      }
+      break;
+    case 'HOURLY':
+      if (strategy.frequency.intervalHours) {
+        payload.hourInterval = strategy.frequency.intervalHours;
+      }
+      break;
+  }
+
+  // Add days for weekly
+  if (strategy.frequency.type === 'WEEKLY' && strategy.frequency.days) {
+    payload.daysOfWeek = strategy.frequency.days.map(dayToNumber);
+  }
+
+  // Add dates for monthly
+  if (strategy.frequency.type === 'MONTHLY' && strategy.frequency.dates) {
+    payload.datesOfMonth = strategy.frequency.dates;
+  }
+
+  return payload;
+};
+
 export const useStrategyStore = create<StrategyState>()(
   persist(
     (set, get) => ({
@@ -173,11 +262,17 @@ export const useStrategyStore = create<StrategyState>()(
             assetType: 'CRYPTO',
           };
 
-          console.log("Complete strategy object:", strategy);
+          console.log("Frontend strategy object:", JSON.stringify(strategy, null, 2));
+
+          // Convert to API payload format
+          const apiPayload = convertToApiPayload(strategy);
+
+          console.log("=== API PAYLOAD ===");
+          console.log(JSON.stringify(apiPayload, null, 2));
           console.log("API URL:", apiurls.strategies.growthDCA);
           console.log("Making POST request...");
 
-          const response = await apiClient.post(apiurls.strategies.growthDCA, strategy);
+          const response = await apiClient.post(apiurls.strategies.growthDCA, apiPayload);
 
           console.log("API Response:", response.data);
 
