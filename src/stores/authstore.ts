@@ -16,7 +16,7 @@ export interface User {
 export interface BrokerageConnection {
   id: string;
   userId: string;
-  exchange: string;
+  exchange: string; 
   apiKey: string;
   apiSecret: string;
   apiPassphrase?: string;
@@ -33,6 +33,7 @@ export interface AuthState {
   isAuthenticated: boolean; 
   isLoading: boolean;
   error: string | null;
+  hasSelectedPlan: boolean; // New field to track if user has selected a plan
 
   // Actions
   setToken: (token: string) => void;
@@ -44,6 +45,7 @@ export interface AuthState {
   setApiConnections: (connections: BrokerageConnection[]) => void;
   addApiConnection: (connection: BrokerageConnection) => void;
   removeApiConnection: (id: string) => void;
+  setHasSelectedPlan: (hasSelected: boolean) => void; // New action
   
   // Auth Methods
   login: (email: string, password: string) => Promise<void>;
@@ -69,6 +71,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      hasSelectedPlan: false,
 
       // State Setters
       setToken: (token: string) => {
@@ -109,6 +112,11 @@ export const useAuthStore = create<AuthState>()(
       removeApiConnection: (id: string) => set((state) => ({ 
         apiConnections: state.apiConnections.filter(conn => conn.id !== id) 
       })),
+
+      setHasSelectedPlan: (hasSelected: boolean) => {
+        set({ hasSelectedPlan: hasSelected });
+        localStorage.setItem('hasSelectedPlan', JSON.stringify(hasSelected));
+      },
 
       // Login Action
       login: async (email: string, password: string) => {
@@ -196,16 +204,19 @@ export const useAuthStore = create<AuthState>()(
           user: null,
           apiConnections: [],
           isAuthenticated: false,
+          hasSelectedPlan: false,
           error: null,
         });
         localStorage.removeItem('AUTH_TOKEN');
         localStorage.removeItem('user');
+        localStorage.removeItem('hasSelectedPlan');
       },
 
       // Hydrate from localStorage on app start
       hydrate: () => {
         const token = localStorage.getItem('AUTH_TOKEN');
         const userStr = localStorage.getItem('user');
+        const hasSelectedPlanStr = localStorage.getItem('hasSelectedPlan');
         
         if (token) {
           set({ token, isAuthenticated: true });
@@ -217,6 +228,14 @@ export const useAuthStore = create<AuthState>()(
               console.error('Failed to parse user from storage:', e);
             }
           }
+          if (hasSelectedPlanStr) {
+            try {
+              const hasSelectedPlan = JSON.parse(hasSelectedPlanStr);
+              set({ hasSelectedPlan });
+            } catch (e) {
+              console.error('Failed to parse hasSelectedPlan from storage:', e);
+            }
+          }
         }
       },
     }),
@@ -226,6 +245,7 @@ export const useAuthStore = create<AuthState>()(
         token: state.token,
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        hasSelectedPlan: state.hasSelectedPlan,
       }),
     }
   )

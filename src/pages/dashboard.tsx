@@ -24,26 +24,26 @@ import { useState, useEffect } from "react";
 import { useStrategyStore, Strategy } from "@/stores/strategystore";
 import { toast } from "sonner";
 
-interface StrategyDataItem {
-  id: number;
-  broker: string;
-  api: string;
-  strategy: string;
-  assetSymbol: string;
-  quantity: number;
-  direction: string;
-  runTime: string;
-  availableInvestment: number;
-  frozenInvestment: number;
-  unrealizedPL: number;
-  netPL: number;
-  netPLPercentage: number;
-  tradesExecuted: number;
-  status: "Active" | "Inactive";
-  botName: string;
-  botMode: string;
-  botExecutionType: string;
-}
+// interface StrategyDataItem {
+//   id: number;
+//   broker: string;
+//   api: string;
+//   strategy: string;
+//   assetSymbol: string;
+//   quantity: number;
+//   direction: string;
+//   runTime: string;
+//   availableInvestment: number;
+//   frozenInvestment: number;
+//   unrealizedPL: number;
+//   netPL: number;
+//   netPLPercentage: number;
+//   tradesExecuted: number;
+//   status: "Active" | "Inactive";
+//   botName: string;
+//   botMode: string;
+//   botExecutionType: string;
+// }
 
 interface ScannerData {
   name: string;

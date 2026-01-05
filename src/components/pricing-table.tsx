@@ -5,9 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Minus, Plus } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '@/stores/authstore'
+import { toast } from 'sonner'
 
 export default function Component() {
   const [selectedTab, setSelectedTab] = useState('trader')
+  const [billingCycle, setBillingCycle] = useState('monthly')
+  const navigate = useNavigate()
+  const { isAuthenticated, setHasSelectedPlan } = useAuthStore()
+
   const strategies = [
     'API Connect per Exchange',
     'Strategy 1',
@@ -21,6 +28,29 @@ export default function Component() {
     'Backtesting'
   ]
 
+  const handlePlanSelection = (planName: string) => {
+    if (!isAuthenticated) {
+      toast.error("Please login first", {
+        description: "You need to be logged in to select a plan"
+      })
+      navigate('/login')
+      return
+    }
+
+    // Show success message
+    toast.success(`${planName} plan selected!`, {
+      description: "Redirecting to dashboard..."
+    })
+
+    // Mark that user has selected a plan
+    setHasSelectedPlan(true)
+
+    // Redirect to dashboard after a short delay
+    setTimeout(() => {
+      navigate('/dashboard')
+    }, 1000)
+  }
+
   const renderContent = () => {
     if (selectedTab === 'market-place' || selectedTab === 'affiliate') {
       return (
@@ -28,7 +58,10 @@ export default function Component() {
           <CardHeader>
             <CardTitle className="text-xl text-center">Seller</CardTitle>
             <div className="text-3xl font-bold text-center">₹ 1400/-</div>
-            <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
+            <Button 
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+              onClick={() => handlePlanSelection('Seller')}
+            >
               Register
             </Button>
           </CardHeader>
@@ -50,9 +83,14 @@ export default function Component() {
           <Card key={tier} className="bg-[#5D1725] text-white">
             <CardHeader>
               <CardTitle className="text-xl text-center">{tier}</CardTitle>
-              <div className="text-3xl font-bold text-center">₹ 1400/-</div>
-              <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
-                Register
+              <div className="text-3xl font-bold text-center">
+                ₹ {billingCycle === 'monthly' ? '1400' : '14000'}/-
+              </div>
+              <Button 
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={() => handlePlanSelection(tier)}
+              >
+                {isAuthenticated ? 'Select Plan' : 'Register'}
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -77,7 +115,6 @@ export default function Component() {
                   ) : (
                     <div className="flex items-center justify-center w-full gap-2">
                       <Check className="h-5 w-5 text-orange-500" />
-                      
                     </div>
                   )}
                 </div>
@@ -113,11 +150,11 @@ export default function Component() {
       </div>
 
      <div className="flex gap-10">
-     <div className="flex flex-col gap-4">
+       <div className="flex flex-col gap-4">
         <div className="flex justify-center mb-8 mt-10">
-            <Tabs defaultValue="monthly"  className="w-48">
+            <Tabs value={billingCycle} onValueChange={setBillingCycle} className="w-48">
             <TabsList className="grid w-full grid-cols-2 bg-[#5D1725] ">
-                <TabsTrigger value="monthly" className="data-[state=active]:bg-white data-[state=active]:text-black text-white"  >Monthly</TabsTrigger>
+                <TabsTrigger value="monthly" className="data-[state=active]:bg-white data-[state=active]:text-black text-white">Monthly</TabsTrigger>
                 <TabsTrigger value="yearly" className="data-[state=active]:bg-white data-[state=active]:text-black text-white">Yearly</TabsTrigger>
             </TabsList>
             </Tabs>
@@ -130,7 +167,7 @@ export default function Component() {
                 </div>
             ))
         }
-     </div>
+       </div>
 
       {renderContent()}
      </div>

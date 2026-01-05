@@ -1,4 +1,3 @@
-// import apiClient from "@/api/apiClient";
 import { loginUser, registerUser } from "@/api/auth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -38,8 +37,12 @@ export function useAuth() {
       }
 
       setAuthData(token, user);
-      toast.success("Login successful");
-      navigate("/dashboard");
+      toast.success("Login successful! Redirecting to pricing...", {
+        description: "Please select your plan to continue"
+      });
+      
+      // Redirect to pricing page instead of dashboard
+      navigate("/pricing");
       queryClient.invalidateQueries({ queryKey: ["userProfile"] });
     },
     onError: (error: any) => {
