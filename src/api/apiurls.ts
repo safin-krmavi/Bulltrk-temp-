@@ -1,4 +1,3 @@
-
 export const apiurls = {
 
     userAuth: { 
@@ -22,7 +21,11 @@ export const apiurls = {
      getbalance:"/crypto/exchange/get-balances"
     },
     strategies: {
-        growthDCA:"/strategy/strategies"
+        growthDCA: "/strategy/strategies",
+        getAll: "/strategy/strategies",
+        getById: "/strategy/strategies/:id",
+        update: "/strategy/strategies/:id",
+        delete: "/strategy/strategies/:id"
     },
     spottrades:{
         createstrategy:"/crypto/trade/create"

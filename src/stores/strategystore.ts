@@ -3,6 +3,31 @@ import { persist } from 'zustand/middleware';
 import apiClient from '@/api/apiClient';
 import { apiurls } from '@/api/apiurls';
 
+// Strategy interface that matches API response
+export interface Strategy {
+  id: string;
+  name: string;
+  strategyType: 'GROWTH_DCA' | 'GRID' | 'CUSTOM';
+  assetType: 'CRYPTO' | 'STOCK';
+  exchange: string;
+  segment: string;
+  symbol: string;
+  investmentPerRun: number;
+  investmentCap: number;
+  frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY';
+  time?: string;
+  daysOfWeek?: number[];
+  datesOfMonth?: number[];
+  hourInterval?: number;
+  takeProfitPct: number;
+  stopLossPct: number;
+  priceStart?: number;
+  priceStop?: number;
+  status: 'ACTIVE' | 'PAUSED' | 'STOPPED';
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Internal interface for frontend state management
 export interface GrowthDCAStrategy {
   id?: string;
@@ -76,7 +101,8 @@ export interface BalanceData {
 
 export interface StrategyState {
   // Strategy State
-  strategies: GrowthDCAStrategy[];
+  strategies: Strategy[];
+  growthDCAStrategies: GrowthDCAStrategy[];
   currentStrategy: GrowthDCAStrategy | null;
   isLoading: boolean;
   error: string | null;
@@ -93,10 +119,10 @@ export interface StrategyState {
   balancesError: string | null;
 
   // Strategy Actions
-  setStrategies: (strategies: GrowthDCAStrategy[]) => void;
+  setStrategies: (strategies: Strategy[]) => void;
   setCurrentStrategy: (strategy: GrowthDCAStrategy | null) => void;
   addStrategy: (strategy: GrowthDCAStrategy) => void;
-  updateStrategy: (id: string, updates: Partial<GrowthDCAStrategy>) => void;
+  updateStrategy: (id: string, updates: Partial<Strategy>) => void;
   removeStrategy: (id: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
@@ -116,9 +142,10 @@ export interface StrategyState {
 
   // Strategy API Methods
   fetchStrategies: () => Promise<void>;
+  fetchStrategyById: (id: string) => Promise<Strategy>;
   createGrowthDCA: (strategy: Omit<GrowthDCAStrategy, 'strategyType' | 'assetType'>) => Promise<GrowthDCAStrategy>;
-  updateGrowthDCA: (id: string, updates: Partial<GrowthDCAStrategy>) => Promise<void>;
-  deleteStrategy: (id: string) => Promise<void>;
+  updateStrategyById: (id: string, updates: Partial<Strategy>) => Promise<Strategy>;
+  deleteStrategyById: (id: string) => Promise<void>;
 
   // Symbols API Methods
   fetchSymbols: () => Promise<void>;
@@ -193,8 +220,9 @@ const convertToApiPayload = (strategy: GrowthDCAStrategy): GrowthDCAApiPayload =
 export const useStrategyStore = create<StrategyState>()(
   persist(
     (set, get) => ({
-      // Initial Strategy State
+      // Initial State
       strategies: [],
+      growthDCAStrategies: [],
       currentStrategy: null,
       isLoading: false,
       error: null,
@@ -211,13 +239,17 @@ export const useStrategyStore = create<StrategyState>()(
       balancesError: null,
 
       // Strategy State Setters
-      setStrategies: (strategies: GrowthDCAStrategy[]) => set({ strategies }),
+      setStrategies: (strategies: Strategy[]) => set({ strategies }),
       setCurrentStrategy: (strategy: GrowthDCAStrategy | null) => set({ currentStrategy: strategy }),
-      addStrategy: (strategy: GrowthDCAStrategy) => set((state) => ({ strategies: [...state.strategies, strategy] })),
-      updateStrategy: (id: string, updates: Partial<GrowthDCAStrategy>) => set((state) => ({
+      addStrategy: (strategy: GrowthDCAStrategy) => set((state) => ({ 
+        growthDCAStrategies: [...state.growthDCAStrategies, strategy] 
+      })),
+      updateStrategy: (id: string, updates: Partial<Strategy>) => set((state) => ({
         strategies: state.strategies.map((s) => s.id === id ? { ...s, ...updates } : s),
       })),
-      removeStrategy: (id: string) => set((state) => ({ strategies: state.strategies.filter((s) => s.id !== id) })),
+      removeStrategy: (id: string) => set((state) => ({ 
+        strategies: state.strategies.filter((s) => s.id !== id) 
+      })),
       setLoading: (loading: boolean) => set({ isLoading: loading }),
       setError: (error: string | null) => set({ error }),
       clearError: () => set({ error: null }),
@@ -238,21 +270,56 @@ export const useStrategyStore = create<StrategyState>()(
       fetchStrategies: async () => {
         set({ isLoading: true, error: null });
         try {
-          const response = await apiClient.get(apiurls.strategies.growthDCA);
-          const strategiesData = Array.isArray(response.data?.data) ? response.data.data : [];
-          set({ strategies: strategiesData, isLoading: false });
+          console.log("Fetching all strategies...");
+          const response = await apiClient.get(apiurls.strategies.getAll);
+          
+          console.log("Strategies API response:", response.data);
+          
+          if (response.data?.data) {
+            const strategiesData = Array.isArray(response.data.data) 
+              ? response.data.data 
+              : [response.data.data];
+            
+            set({ strategies: strategiesData, isLoading: false });
+            console.log("Strategies loaded:", strategiesData.length);
+          } else {
+            set({ strategies: [], isLoading: false });
+          }
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || 'Failed to fetch strategies';
+          console.error("Failed to fetch strategies:", error);
           set({ error: errorMessage, isLoading: false, strategies: [] });
+          throw new Error(errorMessage);
+        }
+      },
+
+      // Fetch Strategy by ID
+      fetchStrategyById: async (id: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const url = apiurls.strategies.getById.replace(':id', id);
+          console.log("Fetching strategy:", url);
+          
+          const response = await apiClient.get(url);
+          
+          if (response.data?.data) {
+            const strategy = response.data.data as Strategy;
+            set({ isLoading: false });
+            return strategy;
+          }
+          
+          throw new Error('Invalid response from server');
+        } catch (error: any) {
+          const errorMessage = error.response?.data?.message || 'Failed to fetch strategy';
+          console.error("Failed to fetch strategy:", error);
+          set({ error: errorMessage, isLoading: false });
           throw new Error(errorMessage);
         }
       },
 
       // Create Growth DCA Strategy
       createGrowthDCA: async (strategyInput: Omit<GrowthDCAStrategy, 'strategyType' | 'assetType'>) => {
-        console.log("=== STRATEGY STORE: createGrowthDCA called ===");
-        console.log("Input:", strategyInput);
-        
+        console.log("=== Creating Growth DCA Strategy ===");
         set({ isLoading: true, error: null });
         
         try {
@@ -262,67 +329,81 @@ export const useStrategyStore = create<StrategyState>()(
             assetType: 'CRYPTO',
           };
 
-          console.log("Frontend strategy object:", JSON.stringify(strategy, null, 2));
-
-          // Convert to API payload format
           const apiPayload = convertToApiPayload(strategy);
-
-          console.log("=== API PAYLOAD ===");
-          console.log(JSON.stringify(apiPayload, null, 2));
-          console.log("API URL:", apiurls.strategies.growthDCA);
-          console.log("Making POST request...");
+          console.log("API Payload:", apiPayload);
 
           const response = await apiClient.post(apiurls.strategies.growthDCA, apiPayload);
-
-          console.log("API Response:", response.data);
 
           if (response.data?.data) {
             const newStrategy = response.data.data as GrowthDCAStrategy;
             get().addStrategy(newStrategy);
             set({ isLoading: false });
-            console.log("Strategy created successfully:", newStrategy);
+            
+            // Refresh strategies list
+            await get().fetchStrategies();
+            
             return newStrategy;
           }
 
           throw new Error('Invalid response from server');
         } catch (error: any) {
-          console.error("=== STRATEGY STORE: ERROR ===");
-          console.error("Error:", error);
-          console.error("Response data:", error.response?.data);
-          console.error("Response status:", error.response?.status);
-          
           const errorMessage = error.response?.data?.message || 'Failed to create strategy';
+          console.error("Failed to create strategy:", error);
           set({ error: errorMessage, isLoading: false });
           throw new Error(errorMessage);
         }
       },
 
-      // Update Growth DCA Strategy
-      updateGrowthDCA: async (id: string, updates: Partial<GrowthDCAStrategy>) => {
+      // Update Strategy by ID
+      updateStrategyById: async (id: string, updates: Partial<Strategy>) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await apiClient.put(`${apiurls.strategies.growthDCA}/${id}`, updates);
+          const url = apiurls.strategies.update.replace(':id', id);
+          console.log("Updating strategy:", url);
+          console.log("Update payload:", updates);
+
+          const response = await apiClient.put(url, updates);
+
           if (response.data?.data) {
-            const updatedStrategy = response.data.data as GrowthDCAStrategy;
+            const updatedStrategy = response.data.data as Strategy;
             get().updateStrategy(id, updatedStrategy);
             set({ isLoading: false });
+            
+            // Refresh strategies list
+            await get().fetchStrategies();
+            
+            console.log("Strategy updated successfully:", updatedStrategy);
+            return updatedStrategy;
           }
+
+          throw new Error('Invalid response from server');
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || 'Failed to update strategy';
+          console.error("Failed to update strategy:", error);
           set({ error: errorMessage, isLoading: false });
           throw new Error(errorMessage);
         }
       },
 
-      // Delete Strategy
-      deleteStrategy: async (id: string) => {
+      // Delete Strategy by ID
+      deleteStrategyById: async (id: string) => {
         set({ isLoading: true, error: null });
         try {
-          await apiClient.delete(`${apiurls.strategies.growthDCA}/${id}`);
+          const url = apiurls.strategies.delete.replace(':id', id);
+          console.log("Deleting strategy:", url);
+
+          await apiClient.delete(url);
+          
           get().removeStrategy(id);
           set({ isLoading: false });
+          
+          // Refresh strategies list
+          await get().fetchStrategies();
+          
+          console.log("Strategy deleted successfully");
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || 'Failed to delete strategy';
+          console.error("Failed to delete strategy:", error);
           set({ error: errorMessage, isLoading: false });
           throw new Error(errorMessage);
         }
@@ -340,34 +421,20 @@ export const useStrategyStore = create<StrategyState>()(
 
         set({ isLoadingSymbols: true, symbolsError: null });
         try {
-          console.log("Fetching symbols from:", apiurls.exchangemanagement.getSymbol);
           const response = await apiClient.get(apiurls.exchangemanagement.getSymbol);
-          
-          console.log("Symbols API response:", response.data);
           
           if (response.data?.data) {
             const symbolsData = Array.isArray(response.data.data) 
               ? response.data.data 
               : [response.data.data];
             
-            set({ 
-              symbolsData, 
-              isLoadingSymbols: false, 
-              lastFetched: Date.now() 
-            });
-            
-            console.log("Symbols loaded successfully:", symbolsData.length, "types");
+            set({ symbolsData, isLoadingSymbols: false, lastFetched: Date.now() });
           } else {
             set({ symbolsData: [], isLoadingSymbols: false });
           }
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || 'Failed to fetch symbols';
-          console.error("Failed to fetch symbols:", error);
-          set({ 
-            symbolsError: errorMessage, 
-            isLoadingSymbols: false, 
-            symbolsData: [] 
-          });
+          set({ symbolsError: errorMessage, isLoadingSymbols: false, symbolsData: [] });
           throw new Error(errorMessage);
         }
       },
@@ -376,7 +443,6 @@ export const useStrategyStore = create<StrategyState>()(
       getSymbolsByExchange: (exchange: string, segment: string) => {
         const { symbolsData } = get();
         
-        // Map segment to type format (e.g., "SPOT" -> "CRYPTO_SPOT")
         const segmentTypeMap: { [key: string]: string } = {
           'SPOT': 'CRYPTO_SPOT',
           'FUTURES': 'CRYPTO_FUTURES',
@@ -384,28 +450,16 @@ export const useStrategyStore = create<StrategyState>()(
         };
         
         const typeToFind = segmentTypeMap[segment.toUpperCase()] || `CRYPTO_${segment.toUpperCase()}`;
-        
-        console.log("Looking for symbols:", { exchange, segment, typeToFind });
-        
-        // Find the type data (e.g., CRYPTO_SPOT)
         const typeData = symbolsData.find(td => td.type === typeToFind);
         
-        if (!typeData) {
-          console.log("Type not found:", typeToFind);
-          return [];
-        }
+        if (!typeData) return [];
         
-        // Find the exchange data within that type
         const exchangeData = typeData.data.find(
           ed => ed.exchange.toUpperCase() === exchange.toUpperCase()
         );
         
-        if (!exchangeData) {
-          console.log("Exchange not found:", exchange);
-          return [];
-        }
+        if (!exchangeData) return [];
         
-        console.log(`Found ${exchangeData.data.length} symbols for ${exchange} ${segment}`);
         return exchangeData.data;
       },
 
@@ -413,30 +467,19 @@ export const useStrategyStore = create<StrategyState>()(
       fetchBalances: async (exchange: string, type: string) => {
         set({ isLoadingBalances: true, balancesError: null });
         try {
-          console.log('Fetching balances for:', exchange, type);
           const response = await apiClient.post(apiurls.exchangemanagement.getbalance, {
             exchange: exchange.toUpperCase(),
             type: type.toUpperCase(),
           });
 
-          console.log('Balances API response:', response.data);
-
           if (response.data?.data?.balances) {
-            set({ 
-              balances: response.data.data.balances, 
-              isLoadingBalances: false 
-            });
+            set({ balances: response.data.data.balances, isLoadingBalances: false });
           } else {
             set({ balances: [], isLoadingBalances: false });
           }
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || 'Failed to fetch balances';
-          console.error('Failed to fetch balances:', error);
-          set({ 
-            balancesError: errorMessage, 
-            isLoadingBalances: false, 
-            balances: [] 
-          });
+          set({ balancesError: errorMessage, isLoadingBalances: false, balances: [] });
         }
       },
 
@@ -450,6 +493,7 @@ export const useStrategyStore = create<StrategyState>()(
       name: 'strategy-storage',
       partialize: (state) => ({
         strategies: state.strategies,
+        growthDCAStrategies: state.growthDCAStrategies,
         currentStrategy: state.currentStrategy,
         symbolsData: state.symbolsData,
         lastFetched: state.lastFetched,

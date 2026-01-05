@@ -1,20 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ApiConnect } from "@/components/account/ApiConnect";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ChevronDown,
   MessageSquare,
@@ -23,8 +16,13 @@ import {
   Settings,
   Copy,
   Share2,
+  Edit,
+  Trash2,
+  Loader2
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useStrategyStore, Strategy } from "@/stores/strategystore";
+import { toast } from "sonner";
 
 interface StrategyDataItem {
   id: number;
@@ -78,11 +76,27 @@ export default function Dashboard() {
   const strategiesPerPage = 4;
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const [showApiModal, setShowApiModal] = useState(false);
+  
+  // Edit Strategy Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingStrategy, setEditingStrategy] = useState<Strategy | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<Strategy>>({});
+
+  // Get strategy store
+  const { 
+    strategies, 
+    isLoading, 
+    error,
+    fetchStrategies,
+    updateStrategyById,
+    deleteStrategyById,
+    clearError
+  } = useStrategyStore();
 
   // Static data
   const userName = "User";
   const platformsAdded = 2;
-  const strategiesActive = 3;
+  const strategiesActive = strategies.filter(s => s.status === 'ACTIVE').length;
   const totalTradesExecuted = 45;
   const netPL = 1250.50;
   const netPLPercentage = 8.5;
@@ -93,11 +107,33 @@ export default function Dashboard() {
   const verifiedReferrals = 238;
   const pendingReferrals = 23;
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(referralLink);
-    // You can add a toast notification here
+  const scanners: ScannerData[] = [];
+  const supportTickets: SupportTicketData[] = [];
+
+  const plan: PlanData = {
+    name: "Gold Membership",
+    duration: "24 Months",
+    renewalDate: "12 July 2025",
   };
 
+  // Fetch strategies on component mount
+  useEffect(() => {
+    console.log("Dashboard mounted, fetching strategies...");
+    fetchStrategies().catch(err => {
+      console.error("Failed to load strategies:", err);
+      toast.error("Failed to load strategies", {
+        description: "Unable to fetch your strategies"
+      });
+    });
+  }, []);
+
+  // Handle copy link
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(referralLink);
+    toast.success("Referral link copied!");
+  };
+
+  // Handle share
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
@@ -108,78 +144,6 @@ export default function Dashboard() {
     }
   };
 
-  const strategyData: StrategyDataItem[] = [
-    {
-      id: 1,
-      broker: "Binance",
-      api: "REST API",
-      strategy: "RSI < 30 AND MACD > 0",
-      assetSymbol: "BTCUSDT",
-      quantity: 0.5,
-      direction: "Buy",
-      runTime: "2 Hrs",
-      availableInvestment: 5000,
-      frozenInvestment: 2000,
-      unrealizedPL: 350,
-      netPL: 450,
-      netPLPercentage: 9.0,
-      tradesExecuted: 15,
-      status: "Active",
-      botName: "BTC Bot 1",
-      botMode: "Live",
-      botExecutionType: "Auto",
-    },
-    {
-      id: 2,
-      broker: "Binance",
-      api: "REST API",
-      strategy: "SMA 50 > SMA 200",
-      assetSymbol: "ETHUSDT",
-      quantity: 2,
-      direction: "Buy",
-      runTime: "4 Hrs",
-      availableInvestment: 3000,
-      frozenInvestment: 1500,
-      unrealizedPL: 200,
-      netPL: 300,
-      netPLPercentage: 10.0,
-      tradesExecuted: 20,
-      status: "Active",
-      botName: "ETH Bot 1",
-      botMode: "Live",
-      botExecutionType: "Auto",
-    },
-    {
-      id: 3,
-      broker: "Binance",
-      api: "REST API",
-      strategy: "Bollinger Bands Breakout",
-      assetSymbol: "BNBUSDT",
-      quantity: 5,
-      direction: "Sell",
-      runTime: "1 Hr",
-      availableInvestment: 2000,
-      frozenInvestment: 800,
-      unrealizedPL: -50,
-      netPL: 100,
-      netPLPercentage: 5.0,
-      tradesExecuted: 10,
-      status: "Inactive",
-      botName: "BNB Bot 1",
-      botMode: "Paper",
-      botExecutionType: "Manual",
-    },
-  ];
-
-  const scanners: ScannerData[] = [];
-  const supportTickets: SupportTicketData[] = [];
-
-  const plan: PlanData = {
-    name: "Gold Membership",
-    duration: "24 Months",
-    renewalDate: "12 July 2025",
-  };
-
   const toggleSection = (section: string) => {
     setOpenSections((prev) => ({
       ...prev,
@@ -187,14 +151,96 @@ export default function Dashboard() {
     }));
   };
 
+  // Open edit modal
+  const handleEditStrategy = (strategy: Strategy) => {
+    setEditingStrategy(strategy);
+    setEditFormData({
+      name: strategy.name,
+      investmentPerRun: strategy.investmentPerRun,
+      investmentCap: strategy.investmentCap,
+      takeProfitPct: strategy.takeProfitPct,
+      stopLossPct: strategy.stopLossPct,
+      frequency: strategy.frequency,
+      time: strategy.time,
+      daysOfWeek: strategy.daysOfWeek,
+      datesOfMonth: strategy.datesOfMonth,
+      hourInterval: strategy.hourInterval,
+    });
+    setIsEditModalOpen(true);
+    setOpenMenuIndex(null);
+  };
+
+  // Handle form field change
+  const handleEditFormChange = (field: keyof Strategy, value: any) => {
+    setEditFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Save edited strategy
+  const handleSaveStrategy = async () => {
+    if (!editingStrategy) return;
+
+    const toastId = toast.loading("Updating strategy...");
+
+    try {
+      await updateStrategyById(editingStrategy.id, editFormData);
+      
+      toast.success("Strategy updated successfully!", {
+        id: toastId,
+        description: `${editFormData.name || editingStrategy.name} has been updated`
+      });
+      
+      setIsEditModalOpen(false);
+      setEditingStrategy(null);
+      setEditFormData({});
+    } catch (error: any) {
+      toast.error("Failed to update strategy", {
+        id: toastId,
+        description: error.message || "Please try again"
+      });
+    }
+  };
+
+  // Delete strategy
+  const handleDeleteStrategy = async (strategy: Strategy) => {
+    if (!confirm(`Are you sure you want to delete "${strategy.name}"?`)) {
+      return;
+    }
+
+    const toastId = toast.loading("Deleting strategy...");
+    setOpenMenuIndex(null);
+
+    try {
+      await deleteStrategyById(strategy.id);
+      
+      toast.success("Strategy deleted successfully!", {
+        id: toastId,
+        description: `${strategy.name} has been removed`
+      });
+    } catch (error: any) {
+      toast.error("Failed to delete strategy", {
+        id: toastId,
+        description: error.message || "Please try again"
+      });
+    }
+  };
+
+  // Refresh strategies
+  const handleRefreshStrategies = async () => {
+    const toastId = toast.loading("Refreshing strategies...");
+    
+    try {
+      await fetchStrategies();
+      toast.success("Strategies refreshed!", { id: toastId });
+    } catch (error) {
+      toast.error("Failed to refresh", { id: toastId });
+    }
+  };
+
   // Pagination
   const indexOfLastStrategy = currentPage * strategiesPerPage;
   const indexOfFirstStrategy = indexOfLastStrategy - strategiesPerPage;
-  const currentStrategies = strategyData.slice(
-    indexOfFirstStrategy,
-    indexOfLastStrategy
-  );
-  const totalPages = Math.ceil(strategyData.length / strategiesPerPage);
+  const currentStrategies = strategies.slice(indexOfFirstStrategy, indexOfLastStrategy);
+  const totalPages = Math.ceil(strategies.length / strategiesPerPage);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -300,18 +346,11 @@ export default function Dashboard() {
                   >
                     {referralLink}
                   </a>
-                  <button
-                    onClick={handleCopyLink}
-                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-                    title="Copy link"
-                  >
+                  <button onClick={handleCopyLink} className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded" title="Copy link">
                     <Copy className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                   </button>
                   <span className="text-gray-400">|</span>
-                  <button
-                    onClick={handleShare}
-                    className="flex items-center gap-1 px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-xs font-medium text-gray-700 dark:text-gray-300"
-                  >
+                  <button onClick={handleShare} className="flex items-center gap-1 px-2 py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-xs font-medium text-gray-700 dark:text-gray-300">
                     <span>Share on</span>
                     <Share2 className="h-4 w-4" />
                   </button>
@@ -355,7 +394,13 @@ export default function Dashboard() {
                   <CardTitle className="text-lg font-medium">
                     Strategy Summary
                   </CardTitle>
-                  <RefreshCw className="h-4 w-4" />
+                  <button 
+                    onClick={handleRefreshStrategies}
+                    disabled={isLoading}
+                    className="p-1 hover:bg-white/10 rounded disabled:opacity-50"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  </button>
                 </div>
                 <CollapsibleTrigger>
                   <ChevronDown className="h-4 w-4" />
@@ -364,144 +409,251 @@ export default function Dashboard() {
             </CardHeader>
             <CollapsibleContent>
               <CardContent className="p-0 overflow-visible">
-                <Table className="bg-card dark:bg-[#232326] text-foreground dark:text-white transition-colors duration-300 relative">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-foreground dark:text-white">
-                        Broker/Exchange
-                      </TableHead>
-                      <TableHead className="text-foreground dark:text-white">
-                        Strategy Rule
-                      </TableHead>
-                      <TableHead className="text-foreground dark:text-white">
-                        Asset
-                      </TableHead>
-                      <TableHead className="text-foreground dark:text-white">
-                        Quantity
-                      </TableHead>
-                      <TableHead className="text-foreground dark:text-white">
-                        Direction
-                      </TableHead>
-                      <TableHead className="text-foreground dark:text-white">
-                        Bot
-                      </TableHead>
-                      <TableHead className="text-foreground dark:text-white">
-                        Status
-                      </TableHead>
-                      <TableHead className="text-foreground dark:text-white">
-                        Actions
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody className="relative">
-                    {currentStrategies.map((strategy, i) => (
-                      <TableRow
-                        key={strategy.id}
-                        className="border-border dark:text-white"
-                      >
-                        <TableCell className="text-foreground dark:text-white">
-                          {strategy.broker}
-                        </TableCell>
-                        <TableCell className="text-foreground dark:text-white">
-                          {strategy.strategy}
-                        </TableCell>
-                        <TableCell className="text-foreground dark:text-white">
-                          {strategy.assetSymbol}
-                        </TableCell>
-                        <TableCell className="text-foreground dark:text-white">
-                          {strategy.quantity}
-                        </TableCell>
-                        <TableCell className="text-foreground dark:text-white">
-                          {strategy.direction}
-                        </TableCell>
-                        <TableCell className="text-foreground dark:text-white">
-                          {strategy.botName}
-                        </TableCell>
-                        <TableCell className="text-foreground dark:text-white">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`h-2 w-2 rounded-full ${
-                                strategy.status === "Active"
-                                  ? "bg-green-500"
-                                  : "bg-red-500"
-                              }`}
-                            />
-                            {strategy.status}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-foreground dark:text-white relative">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              setOpenMenuIndex(
-                                openMenuIndex === i ? null : i
-                              )
-                            }
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                          {openMenuIndex === i && (
-                            <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-10">
-                              <button className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white">
-                                Edit
-                              </button>
-                              <button className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-red-400">
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <div className="p-4 flex items-center justify-between text-sm">
-                  <div>
-                    {indexOfFirstStrategy + 1}-
-                    {Math.min(indexOfLastStrategy, strategyData.length)} of{" "}
-                    {strategyData.length} entries
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage === 1}
-                      onClick={() => handlePageChange(currentPage - 1)}
-                    >
-                      Previous
-                    </Button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (page) => (
+                ) : strategies.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <p>No strategies found</p>
+                    <p className="text-sm mt-2">Create your first strategy to get started</p>
+                  </div>
+                ) : (
+                  <>
+                    <Table className="bg-card dark:bg-[#232326] text-foreground dark:text-white transition-colors duration-300 relative">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-foreground dark:text-white">Exchange</TableHead>
+                          <TableHead className="text-foreground dark:text-white">Strategy</TableHead>
+                          <TableHead className="text-foreground dark:text-white">Symbol</TableHead>
+                          <TableHead className="text-foreground dark:text-white">Frequency</TableHead>
+                          <TableHead className="text-foreground dark:text-white">Investment/Run</TableHead>
+                          <TableHead className="text-foreground dark:text-white">Status</TableHead>
+                          <TableHead className="text-foreground dark:text-white">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="relative">
+                        {currentStrategies.map((strategy, i) => (
+                          <TableRow key={strategy.id} className="border-border dark:text-white">
+                            <TableCell className="text-foreground dark:text-white">
+                              {strategy.exchange}
+                            </TableCell>
+                            <TableCell className="text-foreground dark:text-white">
+                              <div>
+                                <div className="font-medium">{strategy.name}</div>
+                                <div className="text-xs text-gray-500">{strategy.strategyType}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-foreground dark:text-white">
+                              {strategy.symbol}
+                            </TableCell>
+                            <TableCell className="text-foreground dark:text-white">
+                              <div>
+                                <div>{strategy.frequency}</div>
+                                {strategy.time && (
+                                  <div className="text-xs text-gray-500">{strategy.time}</div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-foreground dark:text-white">
+                              ${strategy.investmentPerRun}
+                            </TableCell>
+                            <TableCell className="text-foreground dark:text-white">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`h-2 w-2 rounded-full ${
+                                    strategy.status === "ACTIVE"
+                                      ? "bg-green-500"
+                                      : strategy.status === "PAUSED"
+                                      ? "bg-yellow-500"
+                                      : "bg-red-500"
+                                  }`}
+                                />
+                                {strategy.status}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-foreground dark:text-white relative">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setOpenMenuIndex(openMenuIndex === i ? null : i)}
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                              {openMenuIndex === i && (
+                                <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-10">
+                                  <button
+                                    onClick={() => handleEditStrategy(strategy)}
+                                    className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteStrategy(strategy)}
+                                    className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-red-400"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    <div className="p-4 flex items-center justify-between text-sm">
+                      <div>
+                        {indexOfFirstStrategy + 1}-{Math.min(indexOfLastStrategy, strategies.length)} of{" "}
+                        {strategies.length} entries
+                      </div>
+                      <div className="flex items-center gap-2">
                         <Button
-                          key={page}
                           variant="outline"
                           size="sm"
-                          className={
-                            currentPage === page
-                              ? "bg-[#4A0D0D] text-white"
-                              : ""
-                          }
-                          onClick={() => handlePageChange(page)}
+                          disabled={currentPage === 1}
+                          onClick={() => handlePageChange(currentPage - 1)}
                         >
-                          {page}
+                          Previous
                         </Button>
-                      )
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage === totalPages}
-                      onClick={() => handlePageChange(currentPage + 1)}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                          <Button
+                            key={page}
+                            variant="outline"
+                            size="sm"
+                            className={currentPage === page ? "bg-[#4A0D0D] text-white" : ""}
+                            onClick={() => handlePageChange(page)}
+                          >
+                            {page}
+                          </Button>
+                        ))}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={currentPage === totalPages}
+                          onClick={() => handlePageChange(currentPage + 1)}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </CollapsibleContent>
           </Card>
         </Collapsible>
+
+        {/* Edit Strategy Modal */}
+        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+          <DialogContent className="sm:max-w-[600px] bg-white dark:bg-[#232326]">
+            <DialogHeader>
+              <DialogTitle>Edit Strategy</DialogTitle>
+            </DialogHeader>
+            {editingStrategy && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Strategy Name</Label>
+                  <Input
+                    value={editFormData.name || ''}
+                    onChange={(e) => handleEditFormChange('name', e.target.value)}
+                    placeholder="Enter strategy name"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Investment Per Run</Label>
+                    <Input
+                      type="number"
+                      value={editFormData.investmentPerRun || ''}
+                      onChange={(e) => handleEditFormChange('investmentPerRun', Number(e.target.value))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Investment Cap</Label>
+                    <Input
+                      type="number"
+                      value={editFormData.investmentCap || ''}
+                      onChange={(e) => handleEditFormChange('investmentCap', Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Take Profit %</Label>
+                    <Input
+                      type="number"
+                      value={editFormData.takeProfitPct || ''}
+                      onChange={(e) => handleEditFormChange('takeProfitPct', Number(e.target.value))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Stop Loss %</Label>
+                    <Input
+                      type="number"
+                      value={editFormData.stopLossPct || ''}
+                      onChange={(e) => handleEditFormChange('stopLossPct', Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Frequency</Label>
+                  <Select
+                    value={editFormData.frequency}
+                    onValueChange={(value) => handleEditFormChange('frequency', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DAILY">Daily</SelectItem>
+                      <SelectItem value="WEEKLY">Weekly</SelectItem>
+                      <SelectItem value="MONTHLY">Monthly</SelectItem>
+                      <SelectItem value="HOURLY">Hourly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {editFormData.frequency !== 'HOURLY' && (
+                  <div className="space-y-2">
+                    <Label>Time</Label>
+                    <Input
+                      type="time"
+                      value={editFormData.time || ''}
+                      onChange={(e) => handleEditFormChange('time', e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsEditModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-[#4A0D0D] hover:bg-[#3A0808]"
+                onClick={handleSaveStrategy}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           {/* Smart Scanner Summary */}

@@ -11,10 +11,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox"
 import { useState } from "react"
 import { AccountDetailsCard } from "./AccountDetailsCard"
-import { useStrategyStore,GrowthDCAStrategy } from "@/stores/strategystore"
+import { useStrategyStore, GrowthDCAStrategy } from "@/stores/strategystore"
 import { toast } from "sonner"
 import { ProceedPopup } from "@/components/dashboard/proceed-popup"
-// 
 
 const WEEKDAYS = [
   { short: 'Sun', full: 'Sunday' },
@@ -27,15 +26,6 @@ const WEEKDAYS = [
 ];
 
 const MONTH_DATES = Array.from({ length: 31 }, (_, i) => i + 1);
-
-// interface FrequencyTimeState {
-//   hour: string;
-//   minute: string;
-//   period: "AM" | "PM";
-//   days: string[];
-//   dates: number[];
-//   hourInterval?: string;
-// }
 
 export default function GrowthDCA() {
   const [isOpen, setIsOpen] = React.useState(true)
@@ -159,54 +149,54 @@ export default function GrowthDCA() {
   };
 
   // Get input display value - show values for all frequencies
-const getInputDisplayValue = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') => {
-  // DAILY input - show time if configured, otherwise empty for placeholder
-  if (freq === 'DAILY') {
-    // Only show time if it's not the default values
-    if (sharedTime.hour !== "12" || sharedTime.minute !== "00" || sharedTime.period !== "AM") {
-      return getFormattedTime();
-    }
-    return '';
-  }
-  
-  // WEEKLY input shows only selected days when active
-  if (freq === 'WEEKLY') {
-    if (frequency === 'WEEKLY' && weeklyDays.length > 0) {
-      return weeklyDays.join(', ');
-    }
-    // When not active, show count if days are selected
-    if (weeklyDays.length > 0) {
-      return `${weeklyDays.length} days`;
-    }
-    return '';
-  }
-  
-  // MONTHLY input shows only selected dates when active
-  if (freq === 'MONTHLY') {
-    if (frequency === 'MONTHLY' && monthlyDates.length > 0) {
-      return monthlyDates.sort((a, b) => a - b).join(', ');
-    }
-    // When not active, show count if dates are selected
-    if (monthlyDates.length > 0) {
-      return `${monthlyDates.length} dates`;
-    }
-    return '';
-  }
-  
-  // HOURLY input shows interval
-  if (freq === 'HOURLY') {
-    // Only show if interval is not default value
-    if (hourInterval && hourInterval !== "1") {
-      if (frequency === 'HOURLY') {
-        return `Every ${hourInterval}h`;
+  const getInputDisplayValue = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') => {
+    // DAILY input - show time if configured, otherwise empty for placeholder
+    if (freq === 'DAILY') {
+      // Only show time if it's not the default values
+      if (sharedTime.hour !== "12" || sharedTime.minute !== "00" || sharedTime.period !== "AM") {
+        return getFormattedTime();
       }
-      return `${hourInterval}h`;
+      return '';
     }
+    
+    // WEEKLY input shows only selected days when active
+    if (freq === 'WEEKLY') {
+      if (frequency === 'WEEKLY' && weeklyDays.length > 0) {
+        return weeklyDays.join(', ');
+      }
+      // When not active, show count if days are selected
+      if (weeklyDays.length > 0) {
+        return `${weeklyDays.length} days`;
+      }
+      return '';
+    }
+    
+    // MONTHLY input shows only selected dates when active
+    if (freq === 'MONTHLY') {
+      if (frequency === 'MONTHLY' && monthlyDates.length > 0) {
+        return monthlyDates.sort((a, b) => a - b).join(', ');
+      }
+      // When not active, show count if dates are selected
+      if (monthlyDates.length > 0) {
+        return `${monthlyDates.length} dates`;
+      }
+      return '';
+    }
+    
+    // HOURLY input shows interval
+    if (freq === 'HOURLY') {
+      // Only show if interval is not default value
+      if (hourInterval && hourInterval !== "1") {
+        if (frequency === 'HOURLY') {
+          return `Every ${hourInterval}h`;
+        }
+        return `${hourInterval}h`;
+      }
+      return '';
+    }
+    
     return '';
-  }
-  
-  return '';
-};
+  };
 
   // Frequency input handler
   const handleFrequencyClick = (val: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') => {
@@ -261,79 +251,92 @@ const getInputDisplayValue = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') =
 
   // Validation
   const validateForm = () => {
-    console.log("Validating form with data:", {
-      selectedApiId,
-      exchange,
-      segment,
-      symbol,
-      strategyName,
-      investmentPerRun,
-      investmentCap,
-      takeProfitPct,
-      priceStart,
-      priceStop,
-      stopLossPct,
-      frequency
-    });
-
     if (!selectedApiId) {
-      toast.error("Please select an API connection");
+      toast.error("Please select an API connection", {
+        description: "You need to connect an API to create strategies"
+      });
       return false;
     }
     if (!exchange) {
-      toast.error("Exchange not available");
+      toast.error("Exchange not available", {
+        description: "Please select a valid exchange"
+      });
       return false;
     }
     if (!segment) {
-      toast.error("Please select a segment");
+      toast.error("Please select a segment", {
+        description: "Choose between Spot, Futures, or Margin"
+      });
       return false;
     }
     if (!symbol) {
-      toast.error("Please select a trading pair");
+      toast.error("Please select a trading pair", {
+        description: "Choose a trading pair like BTC/USDT"
+      });
       return false;
     }
     if (!strategyName.trim()) {
-      toast.error("Please enter a strategy name");
+      toast.error("Please enter a strategy name", {
+        description: "Give your strategy a unique name"
+      });
       return false;
     }
     if (!investmentPerRun || Number(investmentPerRun) <= 0) {
-      toast.error("Please enter a valid investment per run amount");
+      toast.error("Invalid investment per run", {
+        description: "Enter a valid amount greater than 0"
+      });
       return false;
     }
     if (!investmentCap || Number(investmentCap) <= 0) {
-      toast.error("Please enter a valid investment cap");
+      toast.error("Invalid investment cap", {
+        description: "Enter a valid cap amount greater than 0"
+      });
       return false;
     }
     if (!takeProfitPct || Number(takeProfitPct) <= 0) {
-      toast.error("Please enter a valid take profit percentage");
+      toast.error("Invalid take profit percentage", {
+        description: "Enter a valid percentage greater than 0"
+      });
       return false;
     }
     if (!priceStart || Number(priceStart) <= 0) {
-      toast.error("Please enter a valid price start");
+      toast.error("Invalid price start", {
+        description: "Enter a valid starting price"
+      });
       return false;
     }
     if (!priceStop || Number(priceStop) <= 0) {
-      toast.error("Please enter a valid price stop");
+      toast.error("Invalid price stop", {
+        description: "Enter a valid stopping price"
+      });
       return false;
     }
     if (!stopLossPct || Number(stopLossPct) <= 0) {
-      toast.error("Please enter a valid stop loss percentage");
+      toast.error("Invalid stop loss percentage", {
+        description: "Enter a valid percentage greater than 0"
+      });
       return false;
     }
 
     // Validate frequency-specific data
     if (frequency === 'WEEKLY' && weeklyDays.length === 0) {
-      toast.error("Please select at least one day for weekly frequency");
+      toast.error("No days selected for weekly frequency", {
+        description: "Please select at least one day"
+      });
       return false;
     }
     if (frequency === 'MONTHLY' && monthlyDates.length === 0) {
-      toast.error("Please select at least one date for monthly frequency");
+      toast.error("No dates selected for monthly frequency", {
+        description: "Please select at least one date"
+      });
       return false;
     }
     if (frequency === 'HOURLY') {
       const interval = parseInt(hourInterval || "0");
       if (interval < 1 || interval > 24) {
-        toast.error("Hour interval must be between 1 and 24");
+        toast.error("Invalid hour interval", {
+          description: "Hour interval must be between 1 and 24"
+        });
         return false;
       }
     }
@@ -364,30 +367,32 @@ const getInputDisplayValue = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') =
 
   // Show popup when Proceed is clicked
   const handleProceed = (e: React.MouseEvent) => {
-    console.log("=== PROCEED BUTTON CLICKED ===");
     e.preventDefault();
     e.stopPropagation();
     
     clearError();
 
     if (!validateForm()) {
-      console.log("Validation failed, stopping...");
       return;
     }
 
-    console.log("Validation passed, showing popup...");
+    toast.info("Review your strategy", {
+      description: "Please confirm the details before creating"
+    });
     setShowProceedPopup(true);
   };
 
   // API call when user confirms in popup
   const handleConfirmStrategy = async () => {
-    console.log("=== CONFIRM BUTTON CLICKED IN POPUP ===");
+    const toastId = toast.loading("Creating strategy...", {
+      description: "Please wait while we process your request"
+    });
     
     try {
       const frequencyData = buildFrequencyData();
       
       if (!frequencyData) {
-        console.log("Frequency data validation failed");
+        toast.dismiss(toastId);
         return;
       }
 
@@ -405,24 +410,24 @@ const getInputDisplayValue = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') =
         priceStop: Number(priceStop),
       };
 
-      console.log("=== SENDING TO API ===");
-      console.log("Strategy Data:", JSON.stringify(strategyData, null, 2));
-
       const result = await createGrowthDCA(strategyData);
       
-      console.log("=== API SUCCESS ===");
-      console.log("Result:", result);
+      toast.success("Strategy created successfully! 🎉", {
+        id: toastId,
+        description: `${strategyName} is now active and running`,
+        duration: 5000
+      });
       
-      toast.success("Growth DCA strategy created successfully!");
       setShowProceedPopup(false);
       handleReset();
     } catch (err: any) {
-      console.error("=== API ERROR ===");
-      console.error("Error object:", err);
-      console.error("Error message:", err.message);
-      console.error("Error response:", err.response?.data);
+      console.error("Strategy creation error:", err);
       
-      toast.error(err.message || "Failed to create strategy");
+      toast.error("Failed to create strategy", {
+        id: toastId,
+        description: err.message || "Please check your inputs and try again",
+        duration: 5000
+      });
     }
   };
 
@@ -443,6 +448,10 @@ const getInputDisplayValue = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') =
     setHourInterval("1");
     
     clearError();
+    
+    toast.success("Form reset", {
+      description: "All fields have been cleared"
+    });
   };
 
   // Callback to receive data from AccountDetailsCard
@@ -452,7 +461,6 @@ const getInputDisplayValue = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') =
     segment: string;
     pair: string;
   }) => {
-    console.log("Account details changed:", data);
     setSelectedApiId(data.selectedApi);
     setExchange(data.exchange);
     setSegment(data.segment);
@@ -462,9 +470,11 @@ const getInputDisplayValue = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') =
   // Fetch balances when exchange and segment change
   React.useEffect(() => {
     if (exchange && segment) {
-      console.log("Fetching balances for:", exchange, segment);
       fetchBalances(exchange, segment).catch(err => {
         console.error("Failed to fetch balances:", err);
+        toast.error("Failed to load balance", {
+          description: "Unable to fetch account balance"
+        });
       });
     }
   }, [exchange, segment, fetchBalances]);
@@ -477,7 +487,6 @@ const getInputDisplayValue = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') =
       
       if (balance) {
         setAvailableBalance(parseFloat(balance.free).toFixed(2));
-        console.log(`Available ${quoteAsset} balance:`, balance.free);
       } else {
         const usdtBalance = getBalanceByAsset('USDT');
         if (usdtBalance) {

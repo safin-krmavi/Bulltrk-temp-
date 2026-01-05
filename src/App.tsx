@@ -20,7 +20,7 @@ import { TradersComparison } from "./pages/traders-comparison"
 import TradingReportsPage from "./pages/trading-reports"
 import StrategyBuilderPage from "./pages/strategy-builder"
 import ResetPasswordPage from "./pages/reset-password"
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "sonner";
 import { useEffect, useState, createContext, useContext } from "react";
 import Scanner from "./pages/scanner";
 import Trends from "./pages/trends";
@@ -46,8 +46,9 @@ const AppRouter = ({ theme }: { theme: string }) => {
   }, [theme, isAuthPage]);
 
   return (
-    <div className="relative min-h-screen bg-background transition-colors duration-300">
-      <Toaster position="top-center" />
+
+      <div className="relative min-h-screen bg-background transition-colors duration-300">
+         <Toaster position="top-center" richColors theme={theme as "light" | "dark"} />
       <Routes>
         <Route path="/" element={<AuthLayout children={<LoginPage />} />} />
         <Route path="/login" element={<AuthLayout children={<LoginPage /> } />} />

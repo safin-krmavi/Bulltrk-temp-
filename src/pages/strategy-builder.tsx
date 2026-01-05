@@ -37,7 +37,6 @@ export default function InstantTrade() {
     segment: string;
     pair: string;
   }) => {
-    console.log("Account details changed:", data);
     setSelectedApiId(data.selectedApi);
     setExchange(data.exchange);
     setSegment(data.segment);
@@ -46,29 +45,41 @@ export default function InstantTrade() {
 
   // Instant Trade Creation
   const handleCreateInstantTrade = async () => {
-    console.log("CREATING INSTANT TRADE");
-    
+    // Validation
     if (!selectedApiId || !exchange || !symbol) {
-      toast.error("Please select API connection and trading pair");
+      toast.error("Missing required fields", {
+        description: "Please select API connection and trading pair"
+      });
       return;
     }
 
     if (!quantity || Number(quantity) <= 0) {
-      toast.error("Please enter a valid quantity");
+      toast.error("Invalid quantity", {
+        description: "Please enter a valid quantity greater than 0"
+      });
       return;
     }
 
     if (orderType === 'LIMIT' && (!limitPrice || Number(limitPrice) <= 0)) {
-      toast.error("Please enter a valid limit price");
+      toast.error("Invalid limit price", {
+        description: "Please enter a valid limit price"
+      });
       return;
     }
+
+    const toastId = toast.loading(`Placing ${side} order...`, {
+      description: `${orderType} order for ${quantity} ${symbol}`
+    });
 
     setIsLoading(true);
 
     try {
       const token = localStorage.getItem('AUTH_TOKEN');
       if (!token) {
-        toast.error("Authentication required. Please login again.");
+        toast.error("Authentication required", {
+          id: toastId,
+          description: "Please login again to continue"
+        });
         return;
       }
 
@@ -90,30 +101,31 @@ export default function InstantTrade() {
         payload: payload
       };
 
-      console.log("Request body:", JSON.stringify(requestBody, null, 2));
-
       const response = await apiClient.post(
         apiurls.spottrades.createstrategy,
         requestBody
       );
 
-      console.log("=== TRADE CREATED SUCCESSFULLY ===");
-      console.log("Response:", response.data);
-
-      toast.success(`${side} order placed successfully!`);
+      toast.success(`${side} order placed successfully! 🎉`, {
+        id: toastId,
+        description: `${orderType} order for ${quantity} ${symbol} at ${exchange}`,
+        duration: 5000
+      });
       
       handleResetInstantTrade();
     } catch (error: any) {
-      console.error("=== TRADE CREATION ERROR ===");
-      console.error("Error:", error);
-      console.error("Error response:", error.response?.data);
+      console.error("Trade creation error:", error);
       
       const errorMessage = 
         error.response?.data?.message || 
         error.message || 
-        "Failed to create trade";
+        "Failed to place order";
       
-      toast.error(errorMessage);
+      toast.error("Order failed", {
+        id: toastId,
+        description: errorMessage,
+        duration: 5000
+      });
     } finally {
       setIsLoading(false);
     }
@@ -125,6 +137,10 @@ export default function InstantTrade() {
     setLimitPrice("");
     setLeverage("1");
     setSide('BUY');
+    
+    toast.success("Form reset", {
+      description: "All fields have been cleared"
+    });
   };
 
   return (
