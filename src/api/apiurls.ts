@@ -2,6 +2,7 @@ export const apiurls = {
 
     userAuth: { 
         login: "/crypto/user/login",
+
         googleLogin: "/user/googlelogin",
         signup: "/crypto/user/signup",
         verifyEmail: "/crypto/user/verify",
