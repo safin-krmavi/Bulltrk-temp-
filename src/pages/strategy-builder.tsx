@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState } from "react"
 import { AccountDetailsCard } from "../components/trade/AccountDetailsCard"
 import { toast } from "sonner"
+import { apiClient } from "@/lib/apiClient"
+import { apiurls } from "@/api/apiurls"
 // import apiClient from "@/api/apiClient"
 // import { apiurls } from "@/api/apiurls"
 
@@ -19,9 +21,9 @@ type OrderType =
   | 'LIMIT' 
   | 'STOP_LIMIT' 
   | 'STOP_MARKET' 
-  | 'TAKE_PROFIT_LIMIT' 
-  | 'TAKE_PROFIT_MARKET'
-  | 'TAKE_PROFIT'  // Added this
+  // | 'TAKE_PROFIT_LIMIT' 
+  // | 'TAKE_PROFIT_MARKET'
+  // | 'TAKE_PROFIT'  // Added this
   | 'STOP'
   | 'STOP_LOSS'
   | 'STOP_LOSS_LIMIT';
@@ -82,7 +84,32 @@ export default function InstantTrade() {
   const isBinance = exchangeUpper === 'BINANCE';
   const isCoinDCX = exchangeUpper === 'COINDCX';
   const isKuCoin = exchangeUpper === 'KUCOIN';
+  const formatSymbolForExchange = (symbol: string, exchange: string): string => {
+  if (!symbol) return symbol;
 
+  const ex = exchange.toUpperCase();
+
+  // CoinDCX format → B-BASE_QUOTE (e.g. POLUSDT → B-POL_USDT)
+  if (ex === 'COINDCX') {
+    // already formatted
+    if (symbol.startsWith('B-') && symbol.includes('_')) {
+      return symbol;
+    }
+
+    const knownQuotes = ['USDT', 'INR', 'BTC', 'ETH'];
+
+    for (const quote of knownQuotes) {
+      if (symbol.endsWith(quote)) {
+        const base = symbol.replace(quote, '');
+        return `B-${base}_${quote}`;
+      }
+    }
+
+    console.warn('CoinDCX: Unable to auto-format symbol:', symbol);
+  }
+
+  return symbol;
+};
   // Get available order types based on exchange and segment
   const getOrderTypes = (): { value: OrderType; label: string }[] => {
     // CoinDCX
@@ -92,8 +119,8 @@ export default function InstantTrade() {
         { value: 'LIMIT', label: 'LIMIT' },
         { value: 'STOP_LIMIT', label: 'STOP LIMIT' },
         { value: 'STOP_MARKET', label: 'STOP MARKET' },
-        { value: 'TAKE_PROFIT_LIMIT', label: 'TAKE PROFIT LIMIT' },
-        { value: 'TAKE_PROFIT_MARKET', label: 'TAKE PROFIT MARKET' },
+        // { value: 'TAKE_PROFIT_LIMIT', label: 'TAKE PROFIT LIMIT' },
+        // { value: 'TAKE_PROFIT_MARKET', label: 'TAKE PROFIT MARKET' },
       ];
     }
     
@@ -104,8 +131,8 @@ export default function InstantTrade() {
         { value: 'LIMIT', label: 'LIMIT' },
         { value: 'STOP', label: 'STOP' },
         { value: 'STOP_MARKET', label: 'STOP MARKET' },
-        { value: 'TAKE_PROFIT', label: 'TAKE PROFIT' },
-        { value: 'TAKE_PROFIT_MARKET', label: 'TAKE PROFIT MARKET' },
+        // { value: 'TAKE_PROFIT', label: 'TAKE PROFIT' },
+        // { value: 'TAKE_PROFIT_MARKET', label: 'TAKE PROFIT MARKET' },
       ];
     }
     
@@ -116,7 +143,7 @@ export default function InstantTrade() {
         { value: 'LIMIT', label: 'LIMIT' },
         { value: 'STOP_LOSS', label: 'STOP LOSS' },
         { value: 'STOP_LOSS_LIMIT', label: 'STOP LOSS LIMIT' },
-        { value: 'TAKE_PROFIT_LIMIT', label: 'TAKE PROFIT LIMIT' },
+        // { value: 'TAKE_PROFIT_LIMIT', label: 'TAKE PROFIT LIMIT' },
       ];
     }
 
@@ -125,6 +152,8 @@ export default function InstantTrade() {
       return [
         { value: 'MARKET', label: 'MARKET' },
         { value: 'LIMIT', label: 'LIMIT' },
+        { value: 'STOP_LOSS', label: 'STOP LOSS' },
+        { value: 'STOP_LOSS_LIMIT', label: 'STOP LOSS LIMIT' },
       ];
     }
     
@@ -139,8 +168,6 @@ export default function InstantTrade() {
   const requiresLimitPrice = [
     'LIMIT', 
     'STOP_LIMIT', 
-    'TAKE_PROFIT_LIMIT',
-    'TAKE_PROFIT',  // Added this
     'STOP_LOSS_LIMIT'
   ].includes(orderType);
 
@@ -148,9 +175,6 @@ export default function InstantTrade() {
   const requiresStopPrice = [
     'STOP_LIMIT', 
     'STOP_MARKET', 
-    'TAKE_PROFIT_LIMIT', 
-    'TAKE_PROFIT_MARKET',
-    'TAKE_PROFIT',  // Added this
     'STOP',
     'STOP_LOSS',
     'STOP_LOSS_LIMIT'
@@ -158,6 +182,9 @@ export default function InstantTrade() {
 
   // Check if order type allows TP/SL
   const allowsTPSL = ['MARKET', 'LIMIT'].includes(orderType) && !isKuCoin;
+
+  // Check if order type is STOP_LOSS or STOP_LOSS_LIMIT (these orders require TP/SL fields)
+  const requiresTPSLForStop = ['STOP_LOSS', 'STOP_LOSS_LIMIT'].includes(orderType) && !isKuCoin;
 
   // Instant Trade Creation
   const handleCreateInstantTrade = async () => {
@@ -209,12 +236,14 @@ export default function InstantTrade() {
       }
 
       // Build payload based on exchange and order type
-      const payload: any = {
-        symbol: symbol,
-        side: side,
-        quantity: quantity,
-        orderType: orderType,
-      };
+const formattedSymbol = formatSymbolForExchange(symbol, exchange);
+
+const payload: any = {
+  symbol: formattedSymbol,
+  side: side,
+  quantity: quantity,
+  orderType: orderType,
+};
 
       // Add leverage for futures
       if (segment === 'FUTURES') {
@@ -261,10 +290,10 @@ export default function InstantTrade() {
 
       console.log("Order payload:", requestBody);
 
-      // const response = await apiClient.post(
-      //   apiurls.spottrades.createstrategy,
-      //   requestBody
-      // );
+      const response = await apiClient.post(
+        apiurls.spottrades.createstrategy,
+        requestBody
+      );
 
       toast.success(`${side} order placed successfully! 🎉`, {
         id: toastId,
@@ -370,7 +399,7 @@ export default function InstantTrade() {
               />
             </div>
 
-            {/* Limit Price */}
+            {/* Limit Price - Only show for orders that require it */}
             {requiresLimitPrice && (
               <div className="space-y-2">
                 <Label>Limit Price <span className="text-red-500">*</span></Label>
@@ -387,7 +416,7 @@ export default function InstantTrade() {
               </div>
             )}
 
-            {/* Stop Price */}
+            {/* Stop Price - Only show for orders that require it */}
             {requiresStopPrice && (
               <div className="space-y-2">
                 <Label>Stop Price <span className="text-red-500">*</span></Label>
@@ -476,8 +505,8 @@ export default function InstantTrade() {
               </>
             )}
 
-            {/* Take Profit & Stop Loss - Only for MARKET and LIMIT orders (non-KuCoin) */}
-            {allowsTPSL && (
+            {/* Take Profit & Stop Loss - Only for STOP_LOSS and STOP_LOSS_LIMIT orders (non-KuCoin) */}
+            {requiresTPSLForStop && (
               <>
                 <div className="border-t pt-4 space-y-4">
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">

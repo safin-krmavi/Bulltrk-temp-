@@ -1,8 +1,6 @@
 import axios from "axios";
 
-const baseURL =
-  (import.meta as any)?.env?.VITE_API_BASE_URL?.replace(/\/+$/, "") ||
-  "http://localhost:5000/api/v1";
+const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
 
 const apiClient = axios.create({
   baseURL,
@@ -33,7 +31,7 @@ apiClient.interceptors.request.use(
     // console.log("API Request:", {
     //   url: config.url,
     //   method: config.method,
-    //   headers: config.headers,
+    //   headhttps://xkw0wblf-5000.inc1.devtunnels.ms/ers: config.headers,
     // });
     return config;
   },
