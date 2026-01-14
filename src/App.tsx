@@ -10,7 +10,6 @@ import LoginPage from "./pages/login"
 import MarketPlacePage from "./pages/market-pace"
 import PaymentPage from "./pages/payment"
 import PricingPage from "./pages/pricing"
-// import RecoverPasswordPage from "./pages/recover-password"
 import RegisterPage from "./pages/register"
 import SmartCopyPage from "./pages/smart-copy"
 import SupportPage from "./pages/support"
@@ -21,40 +20,29 @@ import TradingReportsPage from "./pages/trading-reports"
 import StrategyBuilderPage from "./pages/strategy-builder"
 import ResetPasswordPage from "./pages/reset-password"
 import { Toaster } from "sonner";
-import { useEffect, useState, createContext, useContext } from "react";
+import { useEffect} from "react";
 import Scanner from "./pages/scanner";
 import Trends from "./pages/trends";
 import NotificationsPage from "./pages/notifications";
 import { NotificationProvider } from "./contexts/NotificationContext";
 
-// Theme context and hook
-const ThemeContext = createContext<{theme: string, toggleTheme: () => void}>({ theme: 'light', toggleTheme: () => {} });
-export const useTheme = () => useContext(ThemeContext);
-
-const AppRouter = ({ theme }: { theme: string }) => {
+const AppRouter = () => {
   const location = useLocation();
-  const isAuthPage = location.pathname === "/login" || location.pathname === "/register";
 
   useEffect(() => {
-    if (!isAuthPage) {
-      document.documentElement.classList.remove('light', 'dark');
-      document.documentElement.classList.add(theme);
-      localStorage.setItem('theme', theme);
-    } else {
-      document.documentElement.classList.remove('light', 'dark');
-    }
-  }, [theme, isAuthPage]);
+    // Always use light theme
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add('light');
+  }, [location]);
 
   return (
-
-      <div className="relative min-h-screen bg-background transition-colors duration-300">
-         <Toaster position="top-center" richColors theme={theme as "light" | "dark"} />
+    <div className="relative min-h-screen bg-background transition-colors duration-300">
+      <Toaster position="top-center" richColors theme="light" />
       <Routes>
         <Route path="/" element={<AuthLayout children={<LoginPage />} />} />
         <Route path="/login" element={<AuthLayout children={<LoginPage /> } />} />
         <Route path="/register" element={<AuthLayout children={<RegisterPage /> } />} />
         <Route path="/authentication" element={<AuthLayout children={<AuthenticationPage /> } />} />
-        {/* <Route path="/recover-password" element={<AuthLayout children={<RecoverPasswordPage  /> } />} /> */}
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/dashboard" element={<GenericLayout children={<DashboardPage />} />} />
@@ -90,23 +78,12 @@ const AppRouter = ({ theme }: { theme: string }) => {
 };
 
 const App = () => {
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'light' : 'light');
-    }
-    return 'light';
-  });
-
-  const toggleTheme = () => setTheme(theme === 'light' ? 'light' : 'light');
-
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <NotificationProvider>
-        <Router>
-          <AppRouter theme={theme} />
-        </Router>
-      </NotificationProvider>
-    </ThemeContext.Provider>
+    <NotificationProvider>
+      <Router>
+        <AppRouter />
+      </Router>
+    </NotificationProvider>
   );
 }
 
