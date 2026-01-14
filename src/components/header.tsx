@@ -2,7 +2,7 @@ import React from "react";
 import { Button } from "./ui/button";
 import { Bell, HelpCircle, ChevronDown } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useTheme } from "@/App";
+// import { useTheme } from "@/App";
 import { useNotifications } from "@/contexts/NotificationContext";
 
 const navDropdowns = [

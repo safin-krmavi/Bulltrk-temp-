@@ -409,8 +409,7 @@ export default function GrowthDCA() {
         priceStart: Number(priceStart),
         priceStop: Number(priceStop),
       };
-
-      const result = await createGrowthDCA(strategyData);
+      await createGrowthDCA(strategyData);
       
       toast.success("Strategy created successfully! 🎉", {
         id: toastId,

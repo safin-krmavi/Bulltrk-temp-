@@ -1,9 +1,9 @@
 import GrowthDCA from "@/components/trade/growth-dca";
-import HumanGrid from "@/components/trade/human-grid";
-import IndyLESI from "@/components/trade/indie-lesi";
-import IndyTrend from "@/components/trade/indy-trend";
-import PriceAction from "@/components/trade/price-action";
-import SmartGrid from "@/components/trade/smart-grid";
+// import HumanGrid from "@/components/trade/human-grid";
+// import IndyLESI from "@/components/trade/indie-lesi";
+// import IndyTrend from "@/components/trade/indy-trend";
+// import PriceAction from "@/components/trade/price-action";
+// import SmartGrid from "@/components/trade/smart-grid";
 import { TradeConfirmationDialog } from "@/components/trade/trade-confirmation-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -400,12 +400,12 @@ export default function TradePage() {
       )}
       {pathName !== "/trade" && (
         <div className="max-w-[400px] w-full h-full mx-auto p-4 space-y-4">
-          {pathName === "/indie-trend" && <IndyTrend />}
+          {/* {pathName === "/indie-trend" && <IndyTrend />} */}
           {pathName === "/growth-dca" && <GrowthDCA />}
-          {pathName === "/indie-lesi" && <IndyLESI />}
-          {pathName === "/price-action" && <PriceAction />}
-          {pathName === "/human-grid" && <HumanGrid />}
-          {pathName === "/smart-grid" && <SmartGrid />}
+          {/* {pathName === "/indie-lesi" && <IndyLESI />} */}
+          {/* {pathName === "/price-action" && <PriceAction />} */}
+          {/* {pathName === "/human-grid" && <HumanGrid />} */}
+          {/* {pathName === "/smart-grid" && <SmartGrid />} */}
         </div>
       )}
     </div>

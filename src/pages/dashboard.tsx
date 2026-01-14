@@ -86,11 +86,11 @@ export default function Dashboard() {
   const { 
     strategies, 
     isLoading, 
-    error,
+    // error,
     fetchStrategies,
     updateStrategyById,
     deleteStrategyById,
-    clearError
+    // clearError
   } = useStrategyStore();
 
   // Static data

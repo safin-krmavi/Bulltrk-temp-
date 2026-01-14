@@ -101,7 +101,7 @@ export default function AccountPage() {
     }
 
     try {
-      const response = await apiClient.put(apiurls.userAuth.updateprofile, {
+       await apiClient.put(apiurls.userAuth.updateprofile, {
         currentPassword: currentPassword,
         newPassword: newPassword
       })

@@ -17,13 +17,13 @@ import { format } from "date-fns";
 import { BrokerageConnection, brokerageService } from "@/api/brokerage";
 import { CandlestickChart } from "@/components/chart/CandlestickChart";
 import { ChartControls } from "@/components/chart/ChartControls";
-import HumanGrid from "@/components/trade/human-grid";
-import IndyLESI from "@/components/trade/indie-lesi";
-import IndyTrend from "@/components/trade/indy-trend";
-import PriceAction from "@/components/trade/price-action";
-import SmartGrid from "@/components/trade/smart-grid";
+// import HumanGrid from "@/components/trade/human-grid";
+// import IndyLESI from "@/components/trade/indie-lesi";
+// import IndyTrend from "@/components/trade/indy-trend";
+// import PriceAction from "@/components/trade/price-action";
+// import SmartGrid from "@/components/trade/smart-grid";
 import { TradeConfirmationDialog } from "@/components/trade/trade-confirmation-dialog";
-import IndyUTC from "@/components/trade/indy-UTC";
+// import IndyUTC from "@/components/trade/indy-UTC";
 
 export default function TradePage() {
   const [sections, setSections] = useState({
@@ -276,13 +276,13 @@ export default function TradePage() {
 
       {pathName !== "/trade" && (
         <div className="w-[400px] flex-shrink-0 space-y-4 overflow-y-auto">
-          {pathName === "/indie-trend" && <IndyTrend />}
+          {/* {pathName === "/indie-trend" && <IndyTrend />} */}
           {pathName === "/growth-dca" && <GrowthDCA />}
-          {pathName === "/indie-lesi" && <IndyLESI />}
-          {pathName === "/indy-utc" && <IndyUTC />}
-          {pathName === "/price-action" && <PriceAction />}
-          {pathName === "/human-grid" && <HumanGrid />}
-          {pathName === "/smart-grid" && <SmartGrid />}
+          {/* {pathName === "/indie-lesi" && <IndyLESI />} */}
+          {/* {pathName === "/indy-utc" && <IndyUTC />} */}
+          {/* {pathName === "/price-action" && <PriceAction />} */}
+          {/* {pathName === "/human-grid" && <HumanGrid />} */}
+          {/* {pathName === "/smart-grid" && <SmartGrid />} */}
         </div>
       )}
     </div>

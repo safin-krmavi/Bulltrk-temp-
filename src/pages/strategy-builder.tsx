@@ -290,7 +290,7 @@ const payload: any = {
 
       console.log("Order payload:", requestBody);
 
-      const response = await apiClient.post(
+      await apiClient.post(
         apiurls.spottrades.createstrategy,
         requestBody
       );
