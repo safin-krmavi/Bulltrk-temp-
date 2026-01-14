@@ -17,7 +17,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { RegisterInput, registerSchema } from "../schema"
 
 const ROLES = [
-  { id: "1f0279f4-7164-4beb-abf0-60ea4c3c0b0a", name: "Trader" },
+  { id: "1f0279f4-7164-4beb-abf0-60ea4c3cb0", name: "Trader" },
   { id: "2", name: "Follower" },
 ]
 

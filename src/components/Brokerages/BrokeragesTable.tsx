@@ -366,7 +366,7 @@ export function BrokeragesTable() {
                             className="w-4 h-4 rounded-full flex-shrink-0" 
                             style={{ backgroundColor: color.value }} 
                           />
-                          <span>{color.label}</span>
+                        <span>{color.label}</span>
                         </div>
                       </SelectItem>
                     ))}
