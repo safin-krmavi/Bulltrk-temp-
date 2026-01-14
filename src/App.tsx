@@ -97,7 +97,7 @@ const App = () => {
     return 'light';
   });
 
-  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
+  const toggleTheme = () => setTheme(theme === 'light' ? 'light' : 'light');
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
