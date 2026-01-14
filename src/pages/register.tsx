@@ -18,7 +18,9 @@ import { RegisterInput, registerSchema } from "../schema"
 
 const ROLES = [
   { id: "1f0279f4-7164-4beb-abf0-60ea4c3cb0", name: "Trader" },
-  { id: "2", name: "Follower" },
+  { id: "3640bdca-70bc-409e-b0a8-bd3dee850a7b", name: "COPY_TRADER" },
+  { id: "70621233-91b8-4190-b907-ef1264e5109d", name: "CRYPTO_TRADER" },
+
 ]
 
 const RegisterPage = () => {
