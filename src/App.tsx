@@ -37,7 +37,7 @@ const AppRouter = () => {
 
   return (
     <div className="relative min-h-screen bg-background transition-colors duration-300">
-      <Toaster position="top-center" richColors theme="light" />
+      <Toaster position="top-center"/>
       <Routes>
         <Route path="/" element={<AuthLayout children={<LoginPage />} />} />
         <Route path="/login" element={<AuthLayout children={<LoginPage /> } />} />
