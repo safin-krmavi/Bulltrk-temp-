@@ -41,10 +41,9 @@ interface BrokerageConnection {
 }
 
 const PLATFORMS = [
-  { value: "binance", label: "Binance" },
-  { value: "zerodha", label: "Zerodha" },
-  { value: "kucoin", label: "KuCoin" },
-  { value: "okx", label: "OKX" },
+  { value: "BINANCE", label: "Binance" },
+  { value: "COINDCX", label: "CoinDcx" },
+  { value: "KUCOIN", label: "KuCoin" },
 ];
 
 const API_KEY_VERSION = "v3"; // Constant version

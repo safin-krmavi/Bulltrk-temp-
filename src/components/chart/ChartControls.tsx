@@ -5,7 +5,6 @@ import { useChartStore } from '@/stores/chartStore';
 const EXCHANGES = [
   { value: 'BINANCE', label: 'Binance' },
   { value: 'KUCOIN', label: 'KuCoin' },
-  { value: 'OKX', label: 'OKX' },
 ];
 
 const INTERVALS = [
