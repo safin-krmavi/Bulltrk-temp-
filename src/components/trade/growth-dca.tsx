@@ -299,19 +299,21 @@ export default function GrowthDCA() {
       });
       return false;
     }
-    if (!priceStart || Number(priceStart) <= 0) {
+
+    // ✅ Make advanced fields optional - only validate if provided
+    if (priceStart && Number(priceStart) <= 0) {
       toast.error("Invalid price start", {
         description: "Enter a valid starting price"
       });
       return false;
     }
-    if (!priceStop || Number(priceStop) <= 0) {
+    if (priceStop && Number(priceStop) <= 0) {
       toast.error("Invalid price stop", {
         description: "Enter a valid stopping price"
       });
       return false;
     }
-    if (!stopLossPct || Number(stopLossPct) <= 0) {
+    if (stopLossPct && Number(stopLossPct) <= 0) {
       toast.error("Invalid stop loss percentage", {
         description: "Enter a valid percentage greater than 0"
       });
@@ -405,15 +407,21 @@ export default function GrowthDCA() {
         investmentCap: Number(investmentCap),
         frequency: frequencyData,
         takeProfitPct: Number(takeProfitPct),
-        stopLossPct: Number(stopLossPct),
-        priceStart: Number(priceStart),
-        priceStop: Number(priceStop),
+        executionMode: "LIVE",
+        
+        // ✅ Only add optional fields if they have values
+        ...(stopLossPct && { stopLossPct: Number(stopLossPct) }),
+        ...(priceStart && { priceStart: Number(priceStart) }),
+        ...(priceStop && { priceStop: Number(priceStop) }),
       };
+      
+      console.log("Strategy data being sent:", strategyData);
+      
       await createGrowthDCA(strategyData);
       
       toast.success("Strategy created successfully! 🎉", {
         id: toastId,
-        description: `${strategyName} is now active and running`,
+        description: `${strategyName} is now active and running in LIVE mode`,
         duration: 5000
       });
       
@@ -683,28 +691,92 @@ export default function GrowthDCA() {
                           )}
 
                           {val === 'HOURLY' && (
-                            <div className="space-y-1.5">
-                              <h4 className="font-medium text-xs">Run Every</h4>
-                              <div className="flex items-center gap-2">
-                                <Input
-                                  type="number"
-                                  placeholder="1"
-                                  value={hourInterval}
-                                  onChange={(e) => {
-                                    const value = e.target.value;
-                                    if (value === '' || (/^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 24)) {
-                                      updateHourInterval(value);
-                                    }
-                                  }}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="w-20 h-8 text-center text-xs"
-                                  min="1"
-                                  max="24"
-                                />
-                                <span className="text-xs">hour(s)</span>
+                            <div className="space-y-3">
+                              {/* Interval */}
+                              <div className="space-y-1.5">
+                                <h4 className="font-medium text-xs">Run Every</h4>
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    type="number"
+                                    placeholder="1"
+                                    value={hourInterval}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      if (
+                                        value === '' ||
+                                        (/^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 24)
+                                      ) {
+                                        updateHourInterval(value);
+                                      }
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="w-20 h-8 text-center text-xs"
+                                    min="1"
+                                    max="24"
+                                  />
+                                  <span className="text-xs">hour(s)</span>
+                                </div>
+                              </div>
+
+                              {/* Start Time */}
+                              <div className="space-y-1.5">
+                                <h4 className="font-medium text-xs">Start Time</h4>
+                                <div className="flex items-center gap-1.5">
+                                  <div className="flex items-center gap-0.5">
+                                    <Input
+                                      type="text"
+                                      placeholder="HH"
+                                      value={sharedTime.hour}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (
+                                          value === '' ||
+                                          (/^\d{0,2}$/.test(value) && Number(value) >= 1 && Number(value) <= 12)
+                                        ) {
+                                          updateHour(value);
+                                        }
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="w-10 h-8 text-center text-xs"
+                                      maxLength={2}
+                                    />
+                                    <span className="text-sm">:</span>
+                                    <Input
+                                      type="text"
+                                      placeholder="MM"
+                                      value={sharedTime.minute}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (
+                                          value === '' ||
+                                          (/^\d{0,2}$/.test(value) && Number(value) <= 59)
+                                        ) {
+                                          updateMinute(value);
+                                        }
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="w-10 h-8 text-center text-xs"
+                                      maxLength={2}
+                                    />
+                                  </div>
+
+                                  <Select
+                                    value={sharedTime.period}
+                                    onValueChange={(value) => updatePeriod(value as "AM" | "PM")}
+                                  >
+                                    <SelectTrigger className="w-16 h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="AM" className="text-xs">AM</SelectItem>
+                                      <SelectItem value="PM" className="text-xs">PM</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                               </div>
                             </div>
                           )}
+
 
                           {val !== 'HOURLY' && (
                             <div className="space-y-1.5">

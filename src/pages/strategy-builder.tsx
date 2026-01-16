@@ -66,6 +66,9 @@ export default function InstantTrade() {
   const [stopType, setStopType] = useState<StopType>('down');
   const [stopPriceType, setStopPriceType] = useState<StopPriceType>('TP');
 
+  // Add price state
+  const [price, setPrice] = useState("");
+
   // Callback to receive data from AccountDetailsCard
   const handleAccountDetailsChange = (data: {
     selectedApi: string;
@@ -186,6 +189,9 @@ export default function InstantTrade() {
   // Check if order type is STOP_LOSS or STOP_LOSS_LIMIT (these orders require TP/SL fields)
   const requiresTPSLForStop = ['STOP_LOSS', 'STOP_LOSS_LIMIT'].includes(orderType) && !isKuCoin;
 
+  // Update the condition to check if price is required for STOP orders on Binance Futures
+  const requiresPrice = ['STOP', 'STOP_MARKET'].includes(orderType) && isBinance && segment === 'FUTURES';
+
   // Instant Trade Creation
   const handleCreateInstantTrade = async () => {
     // Validation
@@ -219,6 +225,14 @@ export default function InstantTrade() {
       return;
     }
 
+    // ✅ Add validation for price field
+    if (requiresPrice && (!price || Number(price) <= 0)) {
+      toast.error("Invalid price", {
+        description: `${orderType} order on Binance Futures requires a valid price`
+      });
+      return;
+    }
+
     const toastId = toast.loading(`Placing ${side} order...`, {
       description: `${orderType} order for ${quantity} ${symbol}`
     });
@@ -236,14 +250,14 @@ export default function InstantTrade() {
       }
 
       // Build payload based on exchange and order type
-const formattedSymbol = formatSymbolForExchange(symbol, exchange);
+      const formattedSymbol = formatSymbolForExchange(symbol, exchange);
 
-const payload: any = {
-  symbol: formattedSymbol,
-  side: side,
-  quantity: quantity,
-  orderType: orderType,
-};
+      const payload: any = {
+        symbol: formattedSymbol,
+        side: side,
+        quantity: quantity,
+        orderType: orderType,
+      };
 
       // Add leverage for futures
       if (segment === 'FUTURES') {
@@ -253,6 +267,11 @@ const payload: any = {
       // Add limit price if required
       if (requiresLimitPrice) {
         payload.price = Number(limitPrice);
+      }
+
+      // ✅ Add price for STOP and STOP_MARKET on Binance Futures
+      if (requiresPrice) {
+        payload.price = Number(price);
       }
 
       // Add stop price if required
@@ -320,10 +339,12 @@ const payload: any = {
     }
   };
 
+  // Update reset handler
   const handleResetInstantTrade = () => {
     setQuantity("");
     setOrderType('MARKET');
     setLimitPrice("");
+    setPrice("");  // ✅ Reset price
     setStopPrice("");
     setTakeProfitPrice("");
     setStopLossPrice("");
@@ -415,6 +436,21 @@ const payload: any = {
                 </p>
               </div>
             )}
+             {requiresPrice && (
+                <div className="space-y-2">
+                  <Label>Price <span className="text-red-500">*</span></Label>
+                  <Input 
+                    placeholder="Enter price" 
+                    value={price} 
+                    onChange={e => setPrice(e.target.value)} 
+                    type="number"
+                    step="0.00000001"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Price for {orderType} order on Binance Futures
+                  </p>
+                </div>
+              )}
 
             {/* Stop Price - Only show for orders that require it */}
             {requiresStopPrice && (
@@ -570,6 +606,11 @@ const payload: any = {
                   Limit Price: {limitPrice}
                 </p>
               )}
+                {requiresPrice && price && (
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    Price: {price}
+                  </p>
+                )}
               {requiresStopPrice && stopPrice && (
                 <p className="text-xs text-gray-600 dark:text-gray-400">
                   Stop Price: {stopPrice}

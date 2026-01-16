@@ -47,9 +47,10 @@ export interface GrowthDCAStrategy {
     intervalHours?: number;
   };
   takeProfitPct: number;
-  stopLossPct: number;
-  priceStart: number;
-  priceStop: number;
+  stopLossPct?: number;  // ✅ Optional
+  priceStart?: number;   // ✅ Optional
+  priceStop?: number;    // ✅ Optional
+  executionMode?: 'LIVE' | 'PAPER';
   status?: 'active' | 'paused' | 'stopped';
   createdAt?: string;
   updatedAt?: string;
@@ -67,14 +68,16 @@ interface GrowthDCAApiPayload {
   investmentCap: number;
   frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY';
   takeProfitPct: number;
-  stopLossPct: number;
-  priceStart: number;
-  priceStop: number;
+  stopLossPct?: number;  // ✅ Optional
+  priceStart?: number;   // ✅ Optional
+  priceStop?: number;    // ✅ Optional
+  executionMode: 'LIVE' | 'PAPER';
   time?: string;
   hourInterval?: number;
   daysOfWeek?: number[];
   datesOfMonth?: number[];
 }
+
 
 export interface Symbol {
   symbol: string;
@@ -183,10 +186,21 @@ const convertToApiPayload = (strategy: GrowthDCAStrategy): GrowthDCAApiPayload =
     investmentCap: strategy.investmentCap,
     frequency: strategy.frequency.type.toUpperCase() as 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY',
     takeProfitPct: strategy.takeProfitPct,
-    stopLossPct: strategy.stopLossPct,
-    priceStart: strategy.priceStart,
-    priceStop: strategy.priceStop,
+    executionMode: strategy.executionMode || 'LIVE',
   };
+
+if (strategy.stopLossPct != null) {
+  payload.stopLossPct = strategy.stopLossPct;
+}
+
+if (strategy.priceStart != null) {
+  payload.priceStart = strategy.priceStart;
+}
+
+if (strategy.priceStop != null) {
+  payload.priceStop = strategy.priceStop;
+}
+
 
   // Add frequency-specific fields based on type
   switch (strategy.frequency.type) {

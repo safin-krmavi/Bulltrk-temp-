@@ -23,7 +23,7 @@ interface AccountDetailsCardProps {
 const SEGMENTS = [
   { value: "SPOT", label: "Spot" },
   { value: "FUTURES", label: "Futures" },
-  { value: "MARGIN", label: "Margin" },
+  // { value: "MARGIN", label: "Margin" },
 ];
 
 interface BrokerageConnection {
