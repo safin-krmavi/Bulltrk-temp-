@@ -64,7 +64,7 @@ export default function InstantTrade() {
   // KuCoin specific fields
   const [positionMarginType, setPositionMarginType] = useState<PositionMarginType>('isolated');
   const [stopType, setStopType] = useState<StopType>('down');
-  const [stopPriceType, setStopPriceType] = useState<StopPriceType>('TP');
+  const [stopPriceType, setStopPriceType] = useState<StopPriceType>('MP');
 
   // Add price state
   const [price, setPrice] = useState("");
@@ -151,14 +151,20 @@ export default function InstantTrade() {
     }
 
     // KuCoin Futures
-    if (isKuCoin && segment === 'FUTURES') {
-      return [
-        { value: 'MARKET', label: 'MARKET' },
-        { value: 'LIMIT', label: 'LIMIT' },
-        { value: 'STOP_LOSS', label: 'STOP LOSS' },
-        { value: 'STOP_LOSS_LIMIT', label: 'STOP LOSS LIMIT' },
-      ];
-    }
+  if (isKuCoin && segment === 'SPOT') {
+    return [
+      { value: 'MARKET', label: 'MARKET' },
+      { value: 'LIMIT', label: 'LIMIT' },
+    ];
+  }
+
+  // KuCoin Futures
+  if (isKuCoin && segment === 'FUTURES') {
+    return [
+      { value: 'MARKET', label: 'MARKET' },
+      { value: 'LIMIT', label: 'LIMIT' },
+    ];
+  }
     
     // Default order types for other exchanges
     return [
@@ -167,14 +173,14 @@ export default function InstantTrade() {
     ];
   };
 
-  // Check if order type requires limit price - UPDATED
+  // Check if order type requires limit price
   const requiresLimitPrice = [
     'LIMIT', 
     'STOP_LIMIT', 
     'STOP_LOSS_LIMIT'
   ].includes(orderType);
 
-  // Check if order type requires stop price - UPDATED
+  // Check if order type requires stop price
   const requiresStopPrice = [
     'STOP_LIMIT', 
     'STOP_MARKET', 
@@ -182,6 +188,10 @@ export default function InstantTrade() {
     'STOP_LOSS',
     'STOP_LOSS_LIMIT'
   ].includes(orderType);
+
+  // ✅ Hide leverage, TP/SL fields for KuCoin Spot
+  const showLeverageField = segment === 'FUTURES';
+  const showTPSLFields = !isKuCoin || segment === 'FUTURES';
 
   // Check if order type allows TP/SL
   const allowsTPSL = ['MARKET', 'LIMIT'].includes(orderType) && !isKuCoin;
@@ -209,30 +219,6 @@ export default function InstantTrade() {
       return;
     }
 
-    // Validate limit price for orders that require it
-    if (requiresLimitPrice && (!limitPrice || Number(limitPrice) <= 0)) {
-      toast.error("Invalid limit price", {
-        description: `${orderType} order requires a valid limit price`
-      });
-      return;
-    }
-
-    // Validate stop price for orders that require it
-    if (requiresStopPrice && (!stopPrice || Number(stopPrice) <= 0)) {
-      toast.error("Invalid stop price", {
-        description: `${orderType} order requires a valid stop price`
-      });
-      return;
-    }
-
-    // ✅ Add validation for price field
-    if (requiresPrice && (!price || Number(price) <= 0)) {
-      toast.error("Invalid price", {
-        description: `${orderType} order on Binance Futures requires a valid price`
-      });
-      return;
-    }
-
     const toastId = toast.loading(`Placing ${side} order...`, {
       description: `${orderType} order for ${quantity} ${symbol}`
     });
@@ -255,28 +241,162 @@ export default function InstantTrade() {
       const payload: any = {
         symbol: formattedSymbol,
         side: side,
-        quantity: quantity,
+        quantity: Number(quantity),
         orderType: orderType,
       };
 
       // Add leverage for futures
       if (segment === 'FUTURES') {
-        payload.leverage = leverage;
+        payload.leverage = Number(leverage);
       }
 
-      // Add limit price if required
-      if (requiresLimitPrice) {
-        payload.price = Number(limitPrice);
+      // ✅ Build price and stopPrice based on order type and exchange/segment
+    
+      // For BINANCE SPOT
+      if (isBinance && segment === 'SPOT') {
+        switch (orderType) {
+          case 'MARKET':
+            // MARKET: no price or stopPrice needed
+            break;
+          
+          case 'LIMIT':
+            // LIMIT: requires price
+            if (!limitPrice || Number(limitPrice) <= 0) {
+              toast.error("Invalid limit price", {
+                description: "LIMIT order requires a valid limit price"
+              });
+              return;
+            }
+            payload.price = Number(limitPrice);
+            break;
+          
+          case 'STOP_LOSS':
+            // STOP_LOSS: requires stopPrice
+            if (!stopPrice || Number(stopPrice) <= 0) {
+              toast.error("Invalid stop price", {
+                description: "STOP_LOSS order requires a valid stop price"
+              });
+              return;
+            }
+            payload.stopPrice = Number(stopPrice);
+            break;
+          
+          case 'STOP_LOSS_LIMIT':
+            // STOP_LOSS_LIMIT: requires both price and stopPrice
+            if (!limitPrice || Number(limitPrice) <= 0) {
+              toast.error("Invalid limit price", {
+                description: "STOP_LOSS_LIMIT order requires a valid limit price"
+              });
+              return;
+            }
+            if (!stopPrice || Number(stopPrice) <= 0) {
+              toast.error("Invalid stop price", {
+                description: "STOP_LOSS_LIMIT order requires a valid stop price"
+              });
+              return;
+            }
+            payload.price = Number(limitPrice);
+            payload.stopPrice = Number(stopPrice);
+            break;
+        }
       }
-
-      // ✅ Add price for STOP and STOP_MARKET on Binance Futures
-      if (requiresPrice) {
-        payload.price = Number(price);
+      // For BINANCE FUTURES
+else if (isBinance && segment === 'FUTURES') {
+  switch (orderType) {
+    case 'MARKET':
+      // MARKET: no price or stopPrice needed
+      break;
+    
+    case 'LIMIT':
+      // LIMIT: requires price (limit price)
+      if (!limitPrice || Number(limitPrice) <= 0) {
+        toast.error("Invalid limit price", {
+          description: "LIMIT order requires a valid limit price"
+        });
+        return;
       }
+      payload.price = Number(limitPrice);
+      break;
+    
+    case 'STOP':
+      // STOP: requires both price and stopPrice ✅ UPDATED
+      if (!price || Number(price) <= 0) {
+        toast.error("Invalid price", {
+          description: "STOP order requires a valid price"
+        });
+        return;
+      }
+      if (!stopPrice || Number(stopPrice) <= 0) {
+        toast.error("Invalid stop price", {
+          description: "STOP order requires a valid stop price"
+        });
+        return;
+      }
+      payload.price = Number(price);
+      payload.stopPrice = Number(stopPrice);
+      break;
+    
+    case 'STOP_MARKET':
+      // STOP_MARKET: requires stopPrice (trigger price)
+      if (!stopPrice || Number(stopPrice) <= 0) {
+        toast.error("Invalid stop price", {
+          description: "STOP_MARKET order requires a valid stop price (trigger price)"
+        });
+        return;
+      }
+      payload.stopPrice = Number(stopPrice);
+      break;
+  }
+}
+else if (isKuCoin && segment === 'SPOT') {
+  switch (orderType) {
+    case 'MARKET':
+      // MARKET: only requires quantity
+      if (!quantity || Number(quantity) <= 0) {
+        toast.error("Invalid quantity", {
+          description: "MARKET order requires a valid quantity"
+        });
+        return;
+      }
+      payload.quantity = Number(quantity);
+      break;
+    
+    case 'LIMIT':
+      // LIMIT: requires both price and quantity
+      if (!limitPrice || Number(limitPrice) <= 0) {
+        toast.error("Invalid limit price", {
+          description: "LIMIT order requires a valid limit price"
+        });
+        return;
+      }
+      if (!quantity || Number(quantity) <= 0) {
+        toast.error("Invalid quantity", {
+          description: "LIMIT order requires a valid quantity"
+        });
+        return;
+      }
+      payload.price = Number(limitPrice);
+      payload.quantity = Number(quantity);
+      break;
+  }
+}
 
-      // Add stop price if required
-      if (requiresStopPrice) {
-        payload.stopPrice = Number(stopPrice);
+      // For other exchanges (CoinDCX, KuCoin)
+      else {
+        // Add limit price if required
+        if (requiresLimitPrice) {
+          payload.price = Number(limitPrice);
+        }
+
+        // Add price for STOP and STOP_MARKET on Binance Futures
+        if (requiresPrice) {
+          payload.price = Number(price);
+        }
+
+        // Add stop price if required
+        if (requiresStopPrice) {
+          payload.stopPrice = Number(stopPrice);
+        }
       }
 
       // Add TP/SL for MARKET and LIMIT orders (not for KuCoin)
@@ -344,7 +464,7 @@ export default function InstantTrade() {
     setQuantity("");
     setOrderType('MARKET');
     setLimitPrice("");
-    setPrice("");  // ✅ Reset price
+    setPrice(""); 
     setStopPrice("");
     setTakeProfitPrice("");
     setStopLossPrice("");
@@ -352,7 +472,7 @@ export default function InstantTrade() {
     setSide('BUY');
     setPositionMarginType('isolated');
     setStopType('down');
-    setStopPriceType('TP');
+    setStopPriceType('MP');
     
     toast.success("Form reset", {
       description: "All fields have been cleared"
@@ -423,7 +543,11 @@ export default function InstantTrade() {
             {/* Limit Price - Only show for orders that require it */}
             {requiresLimitPrice && (
               <div className="space-y-2">
-                <Label>Limit Price <span className="text-red-500">*</span></Label>
+                <Label>
+                  Limit Price 
+                  {(isBinance && segment === 'FUTURES' && orderType === 'LIMIT') && ' (Limit Price)'}
+                  <span className="text-red-500">*</span>
+                </Label>
                 <Input 
                   placeholder="Enter limit price" 
                   value={limitPrice} 
@@ -432,40 +556,60 @@ export default function InstantTrade() {
                   step="0.00000001"
                 />
                 <p className="text-xs text-gray-500">
-                  Price at which the order will be executed
+                  {isBinance && segment === 'FUTURES' 
+                    ? 'Limit price at which the order will be executed'
+                    : 'Price at which the order will be executed'
+                  }
                 </p>
               </div>
             )}
-             {requiresPrice && (
-                <div className="space-y-2">
-                  <Label>Price <span className="text-red-500">*</span></Label>
-                  <Input 
-                    placeholder="Enter price" 
-                    value={price} 
-                    onChange={e => setPrice(e.target.value)} 
-                    type="number"
-                    step="0.00000001"
-                  />
-                  <p className="text-xs text-gray-500">
-                    Price for {orderType} order on Binance Futures
-                  </p>
-                </div>
-              )}
+            {/* Price - Only for Binance Futures STOP orders */}
+            {isBinance && segment === 'FUTURES' && orderType === 'STOP' && (
+              <div className="space-y-2">
+                <Label>
+                  Price
+                  <span className="text-red-500">*</span>
+                </Label>
+                <Input 
+                  placeholder="Enter price" 
+                  value={price} 
+                  onChange={e => setPrice(e.target.value)} 
+                  type="number"
+                  step="0.00000001"
+                />
+                <p className="text-xs text-gray-500">
+                  Price for STOP order on Binance Futures
+                </p>
+              </div>
+            )}
+
 
             {/* Stop Price - Only show for orders that require it */}
             {requiresStopPrice && (
               <div className="space-y-2">
-                <Label>Stop Price <span className="text-red-500">*</span></Label>
+                <Label>
+                  {isBinance && segment === 'FUTURES' && (orderType === 'STOP' || orderType === 'STOP_MARKET')
+                    ? 'Stop Price (Trigger Price)'
+                    : 'Stop Price'
+                  }
+                  <span className="text-red-500">*</span>
+                </Label>
                 <Input 
-                  placeholder="Enter stop/trigger price" 
+                  placeholder={
+                    isBinance && segment === 'FUTURES' && (orderType === 'STOP' || orderType === 'STOP_MARKET')
+                      ? "Enter trigger price"
+                      : "Enter stop price"
+                  }
                   value={stopPrice} 
                   onChange={e => setStopPrice(e.target.value)} 
                   type="number"
                   step="0.00000001"
                 />
                 <p className="text-xs text-gray-500">
-                  {isBinance && 'Price at which the order will be triggered (mandatory for STOP orders)'}
-                  {!isBinance && 'Price at which the order will be triggered'}
+                  {isBinance && segment === 'FUTURES' && (orderType === 'STOP' || orderType === 'STOP_MARKET')
+                    ? 'Trigger price at which the order will be executed'
+                    : 'Price at which the order will be triggered'
+                  }
                 </p>
               </div>
             )}
@@ -501,7 +645,7 @@ export default function InstantTrade() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="up">Up (Take Profit)</SelectItem>
+                        {/* <SelectItem value="up">Up (Take Profit)</SelectItem> */}
                         <SelectItem value="down">Down (Stop Loss)</SelectItem>
                       </SelectContent>
                     </Select>
@@ -545,12 +689,8 @@ export default function InstantTrade() {
             {requiresTPSLForStop && (
               <>
                 <div className="border-t pt-4 space-y-4">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Optional: Set Take Profit & Stop Loss
-                  </p>
-                  
-                  <div className="space-y-2">
-                    <Label>Take Profit Price (Optional)</Label>
+                  {/* <div className="space-y-2">
+                    <Label>Price</Label>
                     <Input 
                       placeholder="Enter take profit price" 
                       value={takeProfitPrice} 
@@ -561,9 +701,9 @@ export default function InstantTrade() {
                     <p className="text-xs text-gray-500">
                       Automatically sell when price reaches this level
                     </p>
-                  </div>
+                  </div> */}
 
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label>Stop Loss Price (Optional)</Label>
                     <Input 
                       placeholder="Enter stop loss price" 
@@ -575,13 +715,13 @@ export default function InstantTrade() {
                     <p className="text-xs text-gray-500">
                       Automatically sell to limit losses if price drops
                     </p>
-                  </div>
+                  </div> */}
                 </div>
               </>
             )}
 
             {/* Leverage - only show for FUTURES */}
-            {segment === 'FUTURES' && (
+            {showLeverageField && (
               <div className="space-y-2">
                 <Label>Leverage</Label>
                 <Input 
@@ -596,54 +736,42 @@ export default function InstantTrade() {
             )}
 
             {/* Order Summary */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-1">
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Order Summary:</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                {side} {quantity || '0'} {symbol || 'Asset'} @ {orderType}
+           <div className="bg-gray-50 rounded-lg p-3 space-y-1">
+            <p className="text-xs font-medium text-gray-700">Order Summary:</p>
+            <p className="text-xs text-gray-600">
+              {side} {quantity || '0'} {symbol || 'Asset'} @ {orderType}
+            </p>
+            {requiresLimitPrice && limitPrice && (
+              <p className="text-xs text-gray-600">
+                Limit Price: {limitPrice}
               </p>
-              {requiresLimitPrice && limitPrice && (
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Limit Price: {limitPrice}
-                </p>
-              )}
-                {requiresPrice && price && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Price: {price}
-                  </p>
-                )}
-              {requiresStopPrice && stopPrice && (
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Stop Price: {stopPrice}
-                </p>
-              )}
-              {isKuCoin && segment === 'FUTURES' && (
-                <>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Margin: {positionMarginType}
-                  </p>
-                  {stopPrice && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      Stop: {stopType} @ {stopPriceType}
-                    </p>
-                  )}
-                </>
-              )}
-              {takeProfitPrice && (
-                <p className="text-xs text-green-600 dark:text-green-400">
-                  Take Profit: {takeProfitPrice}
-                </p>
-              )}
-              {stopLossPrice && (
-                <p className="text-xs text-red-600 dark:text-red-400">
-                  Stop Loss: {stopLossPrice}
-                </p>
-              )}
-              {segment === 'FUTURES' && leverage && (
-                <p className="text-xs text-blue-600 dark:text-blue-400">
-                  Leverage: {leverage}x
-                </p>
-              )}
-            </div>
+            )}
+            {isBinance && segment === 'FUTURES' && orderType === 'STOP' && price && (
+              <p className="text-xs text-gray-600">
+                Price: {price}
+              </p>
+            )}
+            {requiresStopPrice && stopPrice && (
+              <p className="text-xs text-gray-600">
+                Stop Price: {stopPrice}
+              </p>
+            )}
+            {takeProfitPrice && (
+              <p className="text-xs text-green-600">
+                Take Profit: {takeProfitPrice}
+              </p>
+            )}
+            {stopLossPrice && (
+              <p className="text-xs text-red-600">
+                Stop Loss: {stopLossPrice}
+              </p>
+            )}
+            {segment === 'FUTURES' && leverage && (
+              <p className="text-xs text-blue-600">
+                Leverage: {leverage}x
+              </p>
+            )}
+          </div>
           </CollapsibleContent>
         </Collapsible>
 
