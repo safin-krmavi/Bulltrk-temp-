@@ -191,7 +191,6 @@ export default function InstantTrade() {
 
   // ✅ Hide leverage, TP/SL fields for KuCoin Spot
   const showLeverageField = segment === 'FUTURES';
-  const showTPSLFields = !isKuCoin || segment === 'FUTURES';
 
   // Check if order type allows TP/SL
   const allowsTPSL = ['MARKET', 'LIMIT'].includes(orderType) && !isKuCoin;
