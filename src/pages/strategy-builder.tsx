@@ -10,10 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState } from "react"
 import { AccountDetailsCard } from "../components/trade/AccountDetailsCard"
 import { toast } from "sonner"
-import { apiClient } from "@/lib/apiClient"
+// import { apiClient } from "@/lib/apiClient"
+import apiClient from "@/api/apiClient"
 import { apiurls } from "@/api/apiurls"
-// import apiClient from "@/api/apiClient"
-// import { apiurls } from "@/api/apiurls"
 
 // Order types for different exchanges - FIXED: Added missing types
 type OrderType = 
