@@ -385,7 +385,7 @@ export default function GrowthDCA() {
   };
 
   // API call when user confirms in popup
-  const handleConfirmStrategy = async () => {
+  const handleConfirmStrategy = async (executionMode: 'LIVE' | 'PUBLISHED') => {
     const toastId = toast.loading("Creating strategy...", {
       description: "Please wait while we process your request"
     });
@@ -407,7 +407,7 @@ export default function GrowthDCA() {
         investmentCap: Number(investmentCap),
         frequency: frequencyData,
         takeProfitPct: Number(takeProfitPct),
-        executionMode: "LIVE",
+        executionMode: executionMode,
         
         // ✅ Only add optional fields if they have values
         ...(stopLossPct && { stopLossPct: Number(stopLossPct) }),

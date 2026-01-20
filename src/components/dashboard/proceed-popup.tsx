@@ -27,7 +27,7 @@ interface StrategyData {
 interface ProceedPopupProps {
   strategyData: StrategyData;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (executionMode: 'LIVE' | 'PUBLISHED') => void;
   isLoading?: boolean;
 }
 
@@ -125,7 +125,7 @@ export function ProceedPopup({
             <div className="flex gap-3 pt-2">
               <Button 
                 className="flex-1 bg-[#5D1D21] hover:bg-[#4D1721] text-white h-9 text-sm"
-                onClick={onConfirm}
+                onClick={() => onConfirm('LIVE')}
                 disabled={!agreedToTerms || isLoading}
               >
                 {isLoading ? "Processing..." : "Run On Live Market"}
@@ -139,7 +139,8 @@ export function ProceedPopup({
               </Button>
               <Button 
                 className="flex-1 bg-[#5D1D21] hover:bg-[#4D1721] text-white h-9 text-sm"
-                disabled={true}
+                onClick={() => onConfirm('PUBLISHED')}
+                disabled={!agreedToTerms || isLoading}
               >
                 Publish
               </Button>

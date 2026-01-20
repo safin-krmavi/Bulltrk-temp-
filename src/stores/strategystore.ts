@@ -50,7 +50,7 @@ export interface GrowthDCAStrategy {
   stopLossPct?: number;  // ✅ Optional
   priceStart?: number;   // ✅ Optional
   priceStop?: number;    // ✅ Optional
-  executionMode?: 'LIVE' | 'PAPER';
+  executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED'; 
   status?: 'active' | 'paused' | 'stopped';
   createdAt?: string;
   updatedAt?: string;
@@ -71,7 +71,7 @@ interface GrowthDCAApiPayload {
   stopLossPct?: number;  // ✅ Optional
   priceStart?: number;   // ✅ Optional
   priceStop?: number;    // ✅ Optional
-  executionMode: 'LIVE' | 'PAPER';
+  executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED'; 
   time?: string;
   hourInterval?: number;
   daysOfWeek?: number[];

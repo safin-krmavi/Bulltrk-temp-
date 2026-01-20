@@ -2,7 +2,6 @@ export const apiurls = {
 
     userAuth: { 
         login: "/crypto/user/login",
-
         googleLogin: "/user/googlelogin",
         signup: "/crypto/user/signup",
         verifyEmail: "/crypto/user/verify",
@@ -30,6 +29,12 @@ export const apiurls = {
     },
     spottrades:{
         createstrategy:"/crypto/trade/create"
+    },
+    Copytrade:{
+        getallstratgies:"strategy/strategies/published",
+        subscribestrategy:"/strategy/strategies/:id/subscribe",
+        getsubscribedstrategies:"/strategy/strategies/subscriptions/me",
+        unsubscribestrategy:"/strategies/subscription/:id"
     },
     candlechart:{
         candlegraph:"/crypto/exchange/candles"
