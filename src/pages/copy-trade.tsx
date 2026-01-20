@@ -10,7 +10,7 @@ import { ScrollButtons } from "@/components/scroll-buttons"
 import { useCopyTradeStore, PublishedStrategy } from "@/stores/copytradestote"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 
 // Transform API data to match TradingCard props
@@ -24,7 +24,7 @@ const transformStrategyToCard = (strategy: PublishedStrategy) => {
 
   // Extract take profit percentage from config
   const takeProfitPct = strategy.config?.exit?.bookProfit?.percentage || 0
-  const stopLossPct = strategy.config?.risk?.stopLoss?.percentage || 0
+  // const stopLossPct = strategy.config?.risk?.stopLoss?.percentage || 0
   const maxCapital = strategy.config?.capital?.maxCapital || 0
   const perOrderAmount = strategy.config?.capital?.perOrderAmount || 0
 
