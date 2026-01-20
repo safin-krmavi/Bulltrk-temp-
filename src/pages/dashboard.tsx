@@ -18,32 +18,15 @@ import {
   Share2,
   Edit,
   Trash2,
-  Loader2
+  Loader2,
+  Users,
+  Pause,
+  Play
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useStrategyStore, Strategy } from "@/stores/strategystore";
+import { useCopyTradeStore, SubscribedStrategy } from "@/stores/copytradestote";
 import { toast } from "sonner";
-
-// interface StrategyDataItem {
-//   id: number;
-//   broker: string;
-//   api: string;
-//   strategy: string;
-//   assetSymbol: string;
-//   quantity: number;
-//   direction: string;
-//   runTime: string;
-//   availableInvestment: number;
-//   frozenInvestment: number;
-//   unrealizedPL: number;
-//   netPL: number;
-//   netPLPercentage: number;
-//   tradesExecuted: number;
-//   status: "Active" | "Inactive";
-//   botName: string;
-//   botMode: string;
-//   botExecutionType: string;
-// }
 
 interface ScannerData {
   name: string;
@@ -64,6 +47,11 @@ interface PlanData {
   renewalDate: string;
 }
 
+// Combined strategy type for display
+type CombinedStrategy = (Strategy | SubscribedStrategy) & {
+  isCopyTrade?: boolean;
+};
+
 export default function Dashboard() {
   const [openSections, setOpenSections] = useState({
     strategy: true,
@@ -82,21 +70,40 @@ export default function Dashboard() {
   const [editingStrategy, setEditingStrategy] = useState<Strategy | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<Strategy>>({});
 
-  // Get strategy store
+  // Get strategy stores
   const { 
     strategies, 
-    isLoading, 
-    // error,
+    isLoading: isLoadingStrategies, 
     fetchStrategies,
     updateStrategyById,
     deleteStrategyById,
-    // clearError
   } = useStrategyStore();
+
+  // Get copy trade store
+  const {
+    subscribedStrategies,
+    isLoadingSubscribed,
+    fetchSubscribedStrategies,
+    unsubscribeFromStrategy,
+    pauseSubscription,
+    resumeSubscription,
+    isUnsubscribing,
+  } = useCopyTradeStore();
+
+  // Combine loading states
+  const isLoading = isLoadingStrategies || isLoadingSubscribed;
 
   // Static data
   const userName = "User";
   const platformsAdded = 2;
-  const strategiesActive = strategies.filter(s => s.status === 'ACTIVE').length;
+  
+  // Combine strategies for counting
+  const allStrategies: CombinedStrategy[] = [
+    ...strategies.map(s => ({ ...s, isCopyTrade: false })),
+    ...subscribedStrategies.map(s => ({ ...s, isCopyTrade: true }))
+  ];
+  
+  const strategiesActive = allStrategies.filter(s => s.status === 'ACTIVE').length;
   const totalTradesExecuted = 45;
   const netPL = 1250.50;
   const netPLPercentage = 8.5;
@@ -116,16 +123,20 @@ export default function Dashboard() {
     renewalDate: "12 July 2025",
   };
 
-  // Fetch strategies on component mount
+  // Fetch both user strategies and subscribed strategies on component mount
   useEffect(() => {
     console.log("Dashboard mounted, fetching strategies...");
-    fetchStrategies().catch(err => {
+    
+    Promise.all([
+      fetchStrategies(),
+      fetchSubscribedStrategies()
+    ]).catch(err => {
       console.error("Failed to load strategies:", err);
       toast.error("Failed to load strategies", {
         description: "Unable to fetch your strategies"
       });
     });
-  }, []);
+  }, [fetchStrategies, fetchSubscribedStrategies]);
 
   // Handle copy link
   const handleCopyLink = () => {
@@ -151,7 +162,7 @@ export default function Dashboard() {
     }));
   };
 
-  // Open edit modal
+  // Open edit modal (only for user-created strategies)
   const handleEditStrategy = (strategy: Strategy) => {
     setEditingStrategy(strategy);
     setEditFormData({
@@ -200,7 +211,7 @@ export default function Dashboard() {
     }
   };
 
-  // Delete strategy
+  // Delete strategy (only for user-created strategies)
   const handleDeleteStrategy = async (strategy: Strategy) => {
     if (!confirm(`Are you sure you want to delete "${strategy.name}"?`)) {
       return;
@@ -224,12 +235,57 @@ export default function Dashboard() {
     }
   };
 
-  // Refresh strategies
+  // Handle copy-trade subscription actions
+  const handlePauseSubscription = async (subscription: SubscribedStrategy) => {
+    setOpenMenuIndex(null);
+    try {
+      await pauseSubscription(subscription.subscriptionId);
+    } catch (error) {
+      console.error("Failed to pause subscription:", error);
+    }
+  };
+
+  const handleResumeSubscription = async (subscription: SubscribedStrategy) => {
+    setOpenMenuIndex(null);
+    try {
+      await resumeSubscription(subscription.subscriptionId);
+    } catch (error) {
+      console.error("Failed to resume subscription:", error);
+    }
+  };
+
+  const handleUnsubscribe = async (subscription: SubscribedStrategy) => {
+    if (!confirm(`Are you sure you want to unsubscribe from "${subscription.name}"?`)) {
+      return;
+    }
+
+    const toastId = toast.loading("Unsubscribing...");
+    setOpenMenuIndex(null);
+
+    try {
+      await unsubscribeFromStrategy(subscription.subscriptionId);
+      
+      toast.success("Unsubscribed successfully!", {
+        id: toastId,
+        description: `You've been unsubscribed from ${subscription.name}`
+      });
+    } catch (error: any) {
+      toast.error("Failed to unsubscribe", {
+        id: toastId,
+        description: error.message || "Please try again"
+      });
+    }
+  };
+
+  // Refresh all strategies
   const handleRefreshStrategies = async () => {
     const toastId = toast.loading("Refreshing strategies...");
     
     try {
-      await fetchStrategies();
+      await Promise.all([
+        fetchStrategies(),
+        fetchSubscribedStrategies()
+      ]);
       toast.success("Strategies refreshed!", { id: toastId });
     } catch (error) {
       toast.error("Failed to refresh", { id: toastId });
@@ -239,11 +295,29 @@ export default function Dashboard() {
   // Pagination
   const indexOfLastStrategy = currentPage * strategiesPerPage;
   const indexOfFirstStrategy = indexOfLastStrategy - strategiesPerPage;
-  const currentStrategies = strategies.slice(indexOfFirstStrategy, indexOfLastStrategy);
-  const totalPages = Math.ceil(strategies.length / strategiesPerPage);
+  const currentStrategies = allStrategies.slice(indexOfFirstStrategy, indexOfLastStrategy);
+  const totalPages = Math.ceil(allStrategies.length / strategiesPerPage);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  // Helper to get frequency display for copy-trade strategies
+  const getFrequencyDisplay = (strategy: CombinedStrategy) => {
+    if ('isCopyTrade' in strategy && strategy.isCopyTrade) {
+      const sub = strategy as SubscribedStrategy;
+      return sub.config?.schedule?.frequency || 'N/A';
+    }
+    return (strategy as Strategy).frequency || 'N/A';
+  };
+
+  // Helper to get time display for copy-trade strategies
+  const getTimeDisplay = (strategy: CombinedStrategy) => {
+    if ('isCopyTrade' in strategy && strategy.isCopyTrade) {
+      const sub = strategy as SubscribedStrategy;
+      return sub.config?.schedule?.weekly?.time || '';
+    }
+    return (strategy as Strategy).time || '';
   };
 
   return (
@@ -381,7 +455,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Strategy Summary */}
+        {/* Strategy Summary - Combined User + Copy Trade Strategies */}
         <Collapsible
           open={openSections.strategy}
           onOpenChange={() => toggleSection("strategy")}
@@ -394,6 +468,9 @@ export default function Dashboard() {
                   <CardTitle className="text-lg font-medium">
                     Strategy Summary
                   </CardTitle>
+                  <Badge variant="outline" className="text-xs border-white/30 text-white">
+                    {strategies.length} Created • {subscribedStrategies.length} Subscribed
+                  </Badge>
                   <button 
                     onClick={handleRefreshStrategies}
                     disabled={isLoading}
@@ -413,100 +490,159 @@ export default function Dashboard() {
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                   </div>
-                ) : strategies.length === 0 ? (
+                ) : allStrategies.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <p>No strategies found</p>
-                    <p className="text-sm mt-2">Create your first strategy to get started</p>
+                    <p className="text-sm mt-2">Create or subscribe to strategies to get started</p>
                   </div>
                 ) : (
                   <>
                     <Table className="bg-card dark:bg-[#232326] text-foreground dark:text-white transition-colors duration-300 relative">
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="text-foreground dark:text-white">Type</TableHead>
                           <TableHead className="text-foreground dark:text-white">Exchange</TableHead>
                           <TableHead className="text-foreground dark:text-white">Strategy</TableHead>
                           <TableHead className="text-foreground dark:text-white">Symbol</TableHead>
                           <TableHead className="text-foreground dark:text-white">Frequency</TableHead>
-                          <TableHead className="text-foreground dark:text-white">Investment/Run</TableHead>
+                          <TableHead className="text-foreground dark:text-white">Investment</TableHead>
                           <TableHead className="text-foreground dark:text-white">Status</TableHead>
                           <TableHead className="text-foreground dark:text-white">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody className="relative">
-                        {currentStrategies.map((strategy, i) => (
-                          <TableRow key={strategy.id} className="border-border dark:text-white">
-                            <TableCell className="text-foreground dark:text-white">
-                              {strategy.exchange}
-                            </TableCell>
-                            <TableCell className="text-foreground dark:text-white">
-                              <div>
-                                <div className="font-medium">{strategy.name}</div>
-                                <div className="text-xs text-gray-500">{strategy.strategyType}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-foreground dark:text-white">
-                              {strategy.symbol}
-                            </TableCell>
-                            <TableCell className="text-foreground dark:text-white">
-                              <div>
-                                <div>{strategy.frequency}</div>
-                                {strategy.time && (
-                                  <div className="text-xs text-gray-500">{strategy.time}</div>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-foreground dark:text-white">
-                              ${strategy.investmentPerRun}
-                            </TableCell>
-                            <TableCell className="text-foreground dark:text-white">
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className={`h-2 w-2 rounded-full ${
-                                    strategy.status === "ACTIVE"
-                                      ? "bg-green-500"
-                                      : strategy.status === "PAUSED"
-                                      ? "bg-yellow-500"
-                                      : "bg-red-500"
-                                  }`}
-                                />
-                                {strategy.status}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-foreground dark:text-white relative">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setOpenMenuIndex(openMenuIndex === i ? null : i)}
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                              {openMenuIndex === i && (
-                                <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-10">
-                                  <button
-                                    onClick={() => handleEditStrategy(strategy)}
-                                    className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteStrategy(strategy)}
-                                    className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-red-400"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                    Delete
-                                  </button>
+                        {currentStrategies.map((strategy, i) => {
+                          const isCopyTrade = 'isCopyTrade' in strategy && strategy.isCopyTrade;
+                          const investmentAmount = isCopyTrade 
+                            ? (strategy as SubscribedStrategy).allocation 
+                            : (strategy as Strategy).investmentPerRun;
+
+                          return (
+                            <TableRow key={strategy.id} className="border-border dark:text-white">
+                              <TableCell className="text-foreground dark:text-white">
+                                <div className="flex items-center gap-1">
+                                  {isCopyTrade ? (
+                                    <>
+                                      <Users className="h-4 w-4 text-orange-500" />
+                                      <span className="text-xs">Copy</span>
+                                    </>
+                                  ) : (
+                                    <span className="text-xs">Own</span>
+                                  )}
                                 </div>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                              </TableCell>
+                              <TableCell className="text-foreground dark:text-white">
+                                {strategy.exchange}
+                              </TableCell>
+                              <TableCell className="text-foreground dark:text-white">
+                                <div>
+                                  <div className="font-medium">{strategy.name}</div>
+                                  <div className="text-xs text-gray-500">{strategy.strategyType || 'GROWTH_DCA'}</div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-foreground dark:text-white">
+                                {strategy.symbol}
+                              </TableCell>
+                              <TableCell className="text-foreground dark:text-white">
+                                <div>
+                                  <div>{getFrequencyDisplay(strategy)}</div>
+                                  {getTimeDisplay(strategy) && (
+                                    <div className="text-xs text-gray-500">{getTimeDisplay(strategy)}</div>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-foreground dark:text-white">
+                                ${investmentAmount || 0}
+                                {isCopyTrade && (
+                                  <div className="text-xs text-gray-500">Allocated</div>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-foreground dark:text-white">
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className={`h-2 w-2 rounded-full ${
+                                      strategy.status === "ACTIVE"
+                                        ? "bg-green-500"
+                                        : strategy.status === "PAUSED"
+                                        ? "bg-yellow-500"
+                                        : "bg-red-500"
+                                    }`}
+                                  />
+                                  {strategy.status}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-foreground dark:text-white relative">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setOpenMenuIndex(openMenuIndex === i ? null : i)}
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                                {openMenuIndex === i && (
+                                  <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-10">
+                                    {isCopyTrade ? (
+                                      // Copy-trade subscription actions
+                                      <>
+                                        {strategy.status === 'ACTIVE' ? (
+                                          <button
+                                            onClick={() => handlePauseSubscription(strategy as SubscribedStrategy)}
+                                            disabled={isUnsubscribing}
+                                            className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
+                                          >
+                                            <Pause className="h-4 w-4" />
+                                            Pause
+                                          </button>
+                                        ) : (
+                                          <button
+                                            onClick={() => handleResumeSubscription(strategy as SubscribedStrategy)}
+                                            disabled={isUnsubscribing}
+                                            className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
+                                          >
+                                            <Play className="h-4 w-4" />
+                                            Resume
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={() => handleUnsubscribe(strategy as SubscribedStrategy)}
+                                          disabled={isUnsubscribing}
+                                          className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-red-400"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                          Unsubscribe
+                                        </button>
+                                      </>
+                                    ) : (
+                                      // User-created strategy actions
+                                      <>
+                                        <button
+                                          onClick={() => handleEditStrategy(strategy as Strategy)}
+                                          className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
+                                        >
+                                          <Edit className="h-4 w-4" />
+                                          Edit
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteStrategy(strategy as Strategy)}
+                                          className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-red-400"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                          Delete
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                     <div className="p-4 flex items-center justify-between text-sm">
                       <div>
-                        {indexOfFirstStrategy + 1}-{Math.min(indexOfLastStrategy, strategies.length)} of{" "}
-                        {strategies.length} entries
+                        {indexOfFirstStrategy + 1}-{Math.min(indexOfLastStrategy, allStrategies.length)} of{" "}
+                        {allStrategies.length} entries
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
@@ -545,7 +681,7 @@ export default function Dashboard() {
           </Card>
         </Collapsible>
 
-        {/* Edit Strategy Modal */}
+        {/* Edit Strategy Modal - Only for user-created strategies */}
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
           <DialogContent className="sm:max-w-[600px] bg-white dark:bg-[#232326]">
             <DialogHeader>
@@ -655,6 +791,7 @@ export default function Dashboard() {
           </DialogContent>
         </Dialog>
 
+        {/* Rest of the dashboard components remain the same */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
           {/* Smart Scanner Summary */}
           <div>
