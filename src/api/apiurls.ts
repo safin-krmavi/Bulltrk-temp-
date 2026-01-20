@@ -31,7 +31,7 @@ export const apiurls = {
         createstrategy:"/crypto/trade/create"
     },
     Copytrade:{
-        getallstratgies:"strategy/strategies/published",
+        getallstratgies:"/strategy/strategies/published",
         subscribestrategy:"/strategy/strategies/:id/subscribe",
         getsubscribedstrategies:"/strategy/strategies/subscriptions/me",
         unsubscribestrategy:"/strategies/subscription/:id"
