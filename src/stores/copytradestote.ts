@@ -217,6 +217,7 @@ export const useCopyTradeStore = create<CopyTradeState>((set, get) => ({
           allocation: sub.allocation,
         } as SubscribedStrategy));
 
+        
         set({ 
           subscribedStrategies,
           isLoadingSubscribed: false 
