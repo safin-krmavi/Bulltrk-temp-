@@ -14,7 +14,7 @@ import { toast } from "sonner"
 import apiClient from "@/api/apiClient"
 import { apiurls } from "@/api/apiurls"
 
-// Order types for different exchanges - FIXED: Added missing types
+//Order types for different exchanges - FIXED: Added missing types
 type OrderType = 
   | 'MARKET' 
   | 'LIMIT' 

@@ -105,6 +105,7 @@ export interface SubscribedStrategy {
   subscriptionId: string;
   subscribedAt: string;
   allocation?: number; // Allocated funds in USDT
+  followerExchange?: string; 
 }
 
 export interface SubscriptionResponse {
@@ -113,6 +114,7 @@ export interface SubscriptionResponse {
   userId: string;
   status: 'ACTIVE' | 'PAUSED' | 'STOPPED';  // ✅ Changed to uppercase
   allocation: number;
+  followerExchange: string;
   subscribedAt: string;
   strategy?: PublishedStrategy;
 }
@@ -135,7 +137,7 @@ export interface CopyTradeState {
   // Actions
   fetchPublishedStrategies: () => Promise<void>;
   fetchSubscribedStrategies: () => Promise<void>;
-  subscribeToStrategy: (strategyId: string, allocation: number) => Promise<SubscriptionResponse>;
+  subscribeToStrategy: (strategyId: string, allocation: number, followerExchange: string) => Promise<SubscriptionResponse>;
   unsubscribeFromStrategy: (subscriptionId: string) => Promise<void>;
   pauseSubscription: (subscriptionId: string) => Promise<void>;
   resumeSubscription: (subscriptionId: string) => Promise<void>;
@@ -215,6 +217,7 @@ export const useCopyTradeStore = create<CopyTradeState>((set, get) => ({
           subscribedAt: sub.subscribedAt,
           status: sub.status,  // ✅ Now matches uppercase type
           allocation: sub.allocation,
+          followerExchange: sub.followerExchange,
         } as SubscribedStrategy));
 
         
@@ -241,23 +244,28 @@ export const useCopyTradeStore = create<CopyTradeState>((set, get) => ({
   },
 
   // ✅ Subscribe to a strategy
-  subscribeToStrategy: async (strategyId: string, allocation: number) => {
-    set({ isSubscribing: true });
-    
-    try {
-      if (!strategyId || allocation <= 0) {
-        throw new Error('Invalid strategy ID or allocation amount');
-      }
+subscribeToStrategy: async (strategyId: string, allocation: number, followerExchange: string) => {
+  set({ isSubscribing: true });
+  
+  try {
+    if (!strategyId || allocation <= 0) {
+      throw new Error('Invalid strategy ID or allocation amount');
+    }
 
-      const url = apiurls.Copytrade.subscribestrategy.replace(':id', strategyId);
-      console.log("Subscribing to strategy:", url);
+    if (!followerExchange) {
+      throw new Error('Follower exchange is required');
+    }
 
-      const response = await apiClient.post<{ 
-        data: SubscriptionResponse; 
-        message: string;
-      }>(url, {
-        multiplier: Number(allocation),  // ✅ API expects "multiplier" not "allocation"
-      });
+    const url = apiurls.Copytrade.subscribestrategy.replace(':id', strategyId);
+    console.log("Subscribing to strategy:", url);
+
+    const response = await apiClient.post<{ 
+      data: SubscriptionResponse; 
+      message: string;
+    }>(url, {
+      multiplier: Number(allocation),
+      followerExchange: followerExchange,  // ✅ Now properly passed as parameter
+    });
 
       if (response.data?.data) {
         // Add to subscribed strategies
@@ -268,6 +276,7 @@ export const useCopyTradeStore = create<CopyTradeState>((set, get) => ({
           subscribedAt: newSubscription.subscribedAt,
           status: newSubscription.status,  // ✅ Now matches uppercase type
           allocation: newSubscription.allocation,
+          followerExchange: newSubscription.followerExchange,
         } as SubscribedStrategy;
 
         set((state) => ({

@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import { BrokerageConnection, brokerageService } from "@/api/brokerage";
 import { CandlestickChart } from "@/components/chart/CandlestickChart";
 import { ChartControls } from "@/components/chart/ChartControls";
-// import HumanGrid from "@/components/trade/human-grid";
+import HumanGrid from "@/components/trade/human-grid";
 // import IndyLESI from "@/components/trade/indie-lesi";
 // import IndyTrend from "@/components/trade/indy-trend";
 // import PriceAction from "@/components/trade/price-action";
@@ -281,7 +281,7 @@ export default function TradePage() {
           {/* {pathName === "/indie-lesi" && <IndyLESI />} */}
           {/* {pathName === "/indy-utc" && <IndyUTC />} */}
           {/* {pathName === "/price-action" && <PriceAction />} */}
-          {/* {pathName === "/human-grid" && <HumanGrid />} */}
+          {pathName === "/human-grid" && <HumanGrid />}
           {/* {pathName === "/smart-grid" && <SmartGrid />} */}
         </div>
       )}

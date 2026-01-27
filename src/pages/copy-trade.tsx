@@ -12,6 +12,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Transform API data to match TradingCard props
 const transformStrategyToCard = (strategy: PublishedStrategy) => {
@@ -40,6 +41,11 @@ const transformStrategyToCard = (strategy: PublishedStrategy) => {
     strategy: strategy // Pass full strategy for subscription dialog
   }
 }
+const AVAILABLE_EXCHANGES = [
+  { value: "BINANCE", label: "Binance" },
+  { value: "KUCOIN", label: "KuCoin" },
+  { value: "COINDCX", label: "CoinDCX" },
+]
 
 const sections = [
   { id: "all-strategies", label: "All Strategies" },
@@ -62,6 +68,7 @@ export default function CopyTradePage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStrategy, setSelectedStrategy] = useState<PublishedStrategy | null>(null)
   const [multiplier, setMultiplier] = useState("1")
+  const [followerExchange, setFollowerExchange] = useState<string>("BINANCE") // ✅ CORRECT LOCATION
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   // Fetch published strategies on mount
@@ -86,38 +93,45 @@ export default function CopyTradePage() {
   const unrealizedPnl = 0 // Calculate from actual data when available
 
   // Handle subscribe
-  const handleSubscribe = async () => {
-    if (!selectedStrategy) return
+const handleSubscribe = async () => {
+  if (!selectedStrategy) return
 
-    try {
-      const mult = parseFloat(multiplier)
-      
-      if (!mult || mult <= 0) {
-        toast.error("Invalid multiplier", {
-          description: "Please enter a multiplier greater than 0"
-        })
-        return
-      }
-
-      // Calculate allocation based on multiplier and per order amount
-      const perOrderAmount = selectedStrategy.config?.capital?.perOrderAmount || 0
-      const allocation = perOrderAmount * mult
-
-      await subscribeToStrategy(selectedStrategy.id, allocation)
-      
-      setIsDialogOpen(false)
-      setMultiplier("1")
-      setSelectedStrategy(null)
-    } catch (error) {
-      console.error("Subscription error:", error)
+  try {
+    const mult = parseFloat(multiplier)
+    
+    if (!mult || mult <= 0) {
+      toast.error("Invalid multiplier", {
+        description: "Please enter a multiplier greater than 0"
+      })
+      return
     }
+
+    // ✅ Add exchange validation
+    if (!followerExchange) {
+      toast.error("Exchange required", {
+        description: "Please select your trading exchange"
+      })
+      return
+    }
+
+    // ✅ Pass followerExchange as third parameter (pass mult, not allocation)
+    await subscribeToStrategy(selectedStrategy.id, mult, followerExchange)
+    
+    setIsDialogOpen(false)
+    setMultiplier("1")
+    setFollowerExchange("BINANCE") // ✅ Reset exchange
+    setSelectedStrategy(null)
+  } catch (error) {
+    console.error("Subscription error:", error)
   }
+}
 
   // Open subscription dialog
-  const openSubscribeDialog = (strategy: PublishedStrategy) => {
-    setSelectedStrategy(strategy)
-    setIsDialogOpen(true)
-  }
+const openSubscribeDialog = (strategy: PublishedStrategy) => {
+  setSelectedStrategy(strategy)
+  setFollowerExchange("BINANCE") // ✅ Reset to default
+  setIsDialogOpen(true)
+}
 
   return (
     <div className="p-6 max-w-7xl mx-auto bg-gray-50 dark:bg-[#18181B] dark:text-white">
@@ -366,7 +380,24 @@ export default function CopyTradePage() {
                   </span>
                 </div>
               </div>
-
+              <div className="space-y-2">
+                <Label htmlFor="exchange">Your Trading Exchange</Label>
+                <Select value={followerExchange} onValueChange={setFollowerExchange}>
+                  <SelectTrigger id="exchange">
+                    <SelectValue placeholder="Select exchange" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AVAILABLE_EXCHANGES.map((exchange) => (
+                      <SelectItem key={exchange.value} value={exchange.value}>
+                        {exchange.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">
+                  Select the exchange where you want to execute this strategy
+                </p>
+              </div>
               {/* Multiplier Input */}
               <div className="space-y-2">
                 <Label htmlFor="multiplier">Multiplier</Label>

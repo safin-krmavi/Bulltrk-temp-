@@ -876,7 +876,7 @@ export default function GrowthDCA() {
 
         <div className="flex gap-4">
           <Button
-            className="flex-1 bg-[#4A1515] hover:bg-[#5A2525]"
+            className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525]"
             onClick={handleProceed}
             disabled={isLoading}
             type="button"
