@@ -6,8 +6,10 @@ import { toast } from 'sonner';
 // Types for Copy Trade
 export interface PublishedStrategy {
   id: string;
+  userId: string;  // ✅ Add userId field
   name: string;
   strategyType: 'GROWTH_DCA' | string;
+  type?: 'GROWTH_DCA' | string;
   assetType: 'CRYPTO';
   exchange: string;
   segment: string;
@@ -50,6 +52,12 @@ export interface PublishedStrategy {
   updatedAt?: string;
   _count?: {
     copyFollowers: number;
+  };
+  performance?: {
+    roi?: number;
+    totalPnl?: number;
+    winRate?: number;
+    totalTrades?: number;
   };
 }
 

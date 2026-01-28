@@ -21,7 +21,7 @@ export const apiurls = {
      getbalance:"/crypto/exchange/get-balances"
     },
     strategies: {
-        growthDCA: "/strategy/strategies",
+        create: "/strategy/strategies",
         getAll: "/strategy/strategies",
         getById: "/strategy/strategies/:id",
         update: "/strategy/strategies/:id",

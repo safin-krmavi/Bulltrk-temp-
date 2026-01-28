@@ -7,22 +7,33 @@ import { apiurls } from '@/api/apiurls';
 export interface Strategy {
   id: string;
   name: string;
-  strategyType: 'GROWTH_DCA' | 'GRID' | 'CUSTOM';
+  strategyType: 'GROWTH_DCA' | 'HUMAN_GRID' | 'SMART_GRID' | 'GRID' | 'CUSTOM';
   assetType: 'CRYPTO' | 'STOCK';
   exchange: string;
   segment: string;
   symbol: string;
   investmentPerRun: number;
   investmentCap: number;
-  frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY';
+  frequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY';
   time?: string;
   daysOfWeek?: number[];
   datesOfMonth?: number[];
   hourInterval?: number;
-  takeProfitPct: number;
-  stopLossPct: number;
+  takeProfitPct?: number;
+  stopLossPct?: number;
   priceStart?: number;
   priceStop?: number;
+  // Human Grid specific fields
+  lowerLimit?: number;
+  upperLimit?: number;
+  entryInterval?: number;
+  bookProfitBy?: number;
+  // Smart Grid specific fields
+  levels?: number;
+  profitPercentage?: number;
+  direction?: 'NEUTRAL' | 'LONG' | 'SHORT';
+  dataSetDays?: number;
+  gridMode?: 'STATIC' | 'DYNAMIC';
   status: 'ACTIVE' | 'PAUSED' | 'STOPPED';
   createdAt: string;
   updatedAt: string;
@@ -47,10 +58,57 @@ export interface GrowthDCAStrategy {
     intervalHours?: number;
   };
   takeProfitPct: number;
-  stopLossPct?: number;  // ✅ Optional
-  priceStart?: number;   // ✅ Optional
-  priceStop?: number;    // ✅ Optional
+  stopLossPct?: number;
+  priceStart?: number;
+  priceStop?: number;
   executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED'; 
+  status?: 'active' | 'paused' | 'stopped';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Human Grid Strategy interface
+export interface HumanGridStrategy {
+  id?: string;
+  name: string;
+  strategyType: 'HUMAN_GRID';
+  assetType: 'CRYPTO';
+  exchange: string;
+  segment: string;
+  symbol: string;
+  investmentPerRun: number;
+  investmentCap: number;
+  lowerLimit: number;
+  upperLimit: number;
+  entryInterval: number;
+  bookProfitBy: number;
+  stopLossPct?: number;
+  executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED';
+  status?: 'active' | 'paused' | 'stopped';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ✅ Smart Grid Strategy interface
+export interface SmartGridStrategy {
+  id?: string;
+  name: string;
+  strategyType: 'SMART_GRID';
+  assetType: 'CRYPTO';
+  exchange: string;
+  segment: string;
+  symbol: string;
+  investmentPerRun: number;
+  investmentCap: number;
+  lowerLimit: number;
+  upperLimit: number;
+  levels: number;
+  profitPercentage: number;
+  direction: 'NEUTRAL' | 'LONG' | 'SHORT';
+  dataSetDays: number;
+  gridMode: 'STATIC' | 'DYNAMIC';
+  stopLossPct?: number;
+  executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED';
   status?: 'active' | 'paused' | 'stopped';
   createdAt?: string;
   updatedAt?: string;
@@ -68,9 +126,9 @@ interface GrowthDCAApiPayload {
   investmentCap: number;
   frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY';
   takeProfitPct: number;
-  stopLossPct?: number;  // ✅ Optional
-  priceStart?: number;   // ✅ Optional
-  priceStop?: number;    // ✅ Optional
+  stopLossPct?: number;
+  priceStart?: number;
+  priceStop?: number;
   executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED'; 
   time?: string;
   hourInterval?: number;
@@ -78,6 +136,44 @@ interface GrowthDCAApiPayload {
   datesOfMonth?: number[];
 }
 
+// Human Grid API payload interface
+interface HumanGridApiPayload {
+  name: string;
+  strategyType: 'HUMAN_GRID';
+  assetType: 'CRYPTO';
+  exchange: string;
+  segment: string;
+  symbol: string;
+  executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED';
+  investmentPerRun: number;
+  investmentCap: number;
+  lowerLimit: number;
+  upperLimit: number;
+  entryInterval: number;
+  bookProfitBy: number;
+  stopLossPct?: number;
+}
+
+// ✅ Smart Grid API payload interface
+interface SmartGridApiPayload {
+  name: string;
+  strategyType: 'SMART_GRID';
+  assetType: 'CRYPTO';
+  exchange: string;
+  segment: string;
+  symbol: string;
+  executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED';
+  investmentPerRun: number;
+  investmentCap: number;
+  lowerLimit: number;
+  upperLimit: number;
+  levels: number;
+  profitPercentage: number;
+  direction: 'NEUTRAL' | 'LONG' | 'SHORT';
+  dataSetDays: number;
+  gridMode: 'STATIC' | 'DYNAMIC';
+  stopLossPct?: number;
+}
 
 export interface Symbol {
   symbol: string;
@@ -106,7 +202,9 @@ export interface StrategyState {
   // Strategy State
   strategies: Strategy[];
   growthDCAStrategies: GrowthDCAStrategy[];
-  currentStrategy: GrowthDCAStrategy | null;
+  humanGridStrategies: HumanGridStrategy[];
+  smartGridStrategies: SmartGridStrategy[];  // ✅ Add Smart Grid array
+  currentStrategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | null;
   isLoading: boolean;
   error: string | null;
 
@@ -123,8 +221,8 @@ export interface StrategyState {
 
   // Strategy Actions
   setStrategies: (strategies: Strategy[]) => void;
-  setCurrentStrategy: (strategy: GrowthDCAStrategy | null) => void;
-  addStrategy: (strategy: GrowthDCAStrategy) => void;
+  setCurrentStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | null) => void;
+  addStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy) => void;
   updateStrategy: (id: string, updates: Partial<Strategy>) => void;
   removeStrategy: (id: string) => void;
   setLoading: (loading: boolean) => void;
@@ -147,6 +245,8 @@ export interface StrategyState {
   fetchStrategies: () => Promise<void>;
   fetchStrategyById: (id: string) => Promise<Strategy>;
   createGrowthDCA: (strategy: Omit<GrowthDCAStrategy, 'strategyType' | 'assetType'>) => Promise<GrowthDCAStrategy>;
+  createHumanGrid: (strategy: Omit<HumanGridStrategy, 'strategyType' | 'assetType'>) => Promise<HumanGridStrategy>;
+  createSmartGrid: (strategy: Omit<SmartGridStrategy, 'strategyType' | 'assetType'>) => Promise<SmartGridStrategy>;  // ✅ Add Smart Grid method
   updateStrategyById: (id: string, updates: Partial<Strategy>) => Promise<Strategy>;
   deleteStrategyById: (id: string) => Promise<void>;
 
@@ -189,18 +289,17 @@ const convertToApiPayload = (strategy: GrowthDCAStrategy): GrowthDCAApiPayload =
     executionMode: strategy.executionMode || 'LIVE',
   };
 
-if (strategy.stopLossPct != null) {
-  payload.stopLossPct = strategy.stopLossPct;
-}
+  if (strategy.stopLossPct != null) {
+    payload.stopLossPct = strategy.stopLossPct;
+  }
 
-if (strategy.priceStart != null) {
-  payload.priceStart = strategy.priceStart;
-}
+  if (strategy.priceStart != null) {
+    payload.priceStart = strategy.priceStart;
+  }
 
-if (strategy.priceStop != null) {
-  payload.priceStop = strategy.priceStop;
-}
-
+  if (strategy.priceStop != null) {
+    payload.priceStop = strategy.priceStop;
+  }
 
   // Add frequency-specific fields based on type
   switch (strategy.frequency.type) {
@@ -231,12 +330,67 @@ if (strategy.priceStop != null) {
   return payload;
 };
 
+// Helper function to convert Human Grid strategy to API payload
+const convertHumanGridToApiPayload = (strategy: HumanGridStrategy): HumanGridApiPayload => {
+  const payload: HumanGridApiPayload = {
+    name: strategy.name,
+    strategyType: 'HUMAN_GRID',
+    assetType: 'CRYPTO',
+    exchange: strategy.exchange.toUpperCase(),
+    segment: strategy.segment.toUpperCase(),
+    symbol: strategy.symbol.toUpperCase(),
+    executionMode: strategy.executionMode || 'LIVE',
+    investmentPerRun: strategy.investmentPerRun,
+    investmentCap: strategy.investmentCap,
+    lowerLimit: strategy.lowerLimit,
+    upperLimit: strategy.upperLimit,
+    entryInterval: strategy.entryInterval,
+    bookProfitBy: strategy.bookProfitBy,
+  };
+
+  if (strategy.stopLossPct != null && strategy.stopLossPct > 0) {
+    payload.stopLossPct = strategy.stopLossPct;
+  }
+
+  return payload;
+};
+
+// ✅ Helper function to convert Smart Grid strategy to API payload
+const convertSmartGridToApiPayload = (strategy: SmartGridStrategy): SmartGridApiPayload => {
+  const payload: SmartGridApiPayload = {
+    name: strategy.name,
+    strategyType: 'SMART_GRID',
+    assetType: 'CRYPTO',
+    exchange: strategy.exchange.toUpperCase(),
+    segment: strategy.segment.toUpperCase(),
+    symbol: strategy.symbol.toUpperCase(),
+    executionMode: strategy.executionMode || 'LIVE',
+    investmentPerRun: strategy.investmentPerRun,
+    investmentCap: strategy.investmentCap,
+    lowerLimit: strategy.lowerLimit,
+    upperLimit: strategy.upperLimit,
+    levels: strategy.levels,
+    profitPercentage: strategy.profitPercentage,
+    direction: strategy.direction,
+    dataSetDays: strategy.dataSetDays,
+    gridMode: strategy.gridMode,
+  };
+
+  if (strategy.stopLossPct != null && strategy.stopLossPct > 0) {
+    payload.stopLossPct = strategy.stopLossPct;
+  }
+
+  return payload;
+};
+
 export const useStrategyStore = create<StrategyState>()(
   persist(
     (set, get) => ({
       // Initial State
       strategies: [],
       growthDCAStrategies: [],
+      humanGridStrategies: [],
+      smartGridStrategies: [],  // ✅ Initialize Smart Grid array
       currentStrategy: null,
       isLoading: false,
       error: null,
@@ -254,10 +408,16 @@ export const useStrategyStore = create<StrategyState>()(
 
       // Strategy State Setters
       setStrategies: (strategies: Strategy[]) => set({ strategies }),
-      setCurrentStrategy: (strategy: GrowthDCAStrategy | null) => set({ currentStrategy: strategy }),
-      addStrategy: (strategy: GrowthDCAStrategy) => set((state) => ({ 
-        growthDCAStrategies: [...state.growthDCAStrategies, strategy] 
-      })),
+      setCurrentStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | null) => set({ currentStrategy: strategy }),
+      addStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy) => set((state) => {
+        if (strategy.strategyType === 'HUMAN_GRID') {
+          return { humanGridStrategies: [...state.humanGridStrategies, strategy as HumanGridStrategy] };
+        }
+        if (strategy.strategyType === 'SMART_GRID') {
+          return { smartGridStrategies: [...state.smartGridStrategies, strategy as SmartGridStrategy] };
+        }
+        return { growthDCAStrategies: [...state.growthDCAStrategies, strategy as GrowthDCAStrategy] };
+      }),
       updateStrategy: (id: string, updates: Partial<Strategy>) => set((state) => ({
         strategies: state.strategies.map((s) => s.id === id ? { ...s, ...updates } : s),
       })),
@@ -346,7 +506,7 @@ export const useStrategyStore = create<StrategyState>()(
           const apiPayload = convertToApiPayload(strategy);
           console.log("API Payload:", apiPayload);
 
-          const response = await apiClient.post(apiurls.strategies.growthDCA, apiPayload);
+          const response = await apiClient.post(apiurls.strategies.create, apiPayload);
 
           if (response.data?.data) {
             const newStrategy = response.data.data as GrowthDCAStrategy;
@@ -363,6 +523,88 @@ export const useStrategyStore = create<StrategyState>()(
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || 'Failed to create strategy';
           console.error("Failed to create strategy:", error);
+          set({ error: errorMessage, isLoading: false });
+          throw new Error(errorMessage);
+        }
+      },
+
+      // Create Human Grid Strategy
+      createHumanGrid: async (strategyInput: Omit<HumanGridStrategy, 'strategyType' | 'assetType'>) => {
+        console.log("=== Creating Human Grid Strategy ===");
+        set({ isLoading: true, error: null });
+        
+        try {
+          const strategy: HumanGridStrategy = {
+            ...strategyInput,
+            strategyType: 'HUMAN_GRID',
+            assetType: 'CRYPTO',
+          };
+
+          const apiPayload = convertHumanGridToApiPayload(strategy);
+          console.log("Human Grid API Payload:", JSON.stringify(apiPayload, null, 2));
+
+          const response = await apiClient.post(apiurls.strategies.create, apiPayload);
+
+          console.log("API Response:", response.data);
+
+          if (response.data?.data) {
+            const newStrategy = response.data.data as HumanGridStrategy;
+            get().addStrategy(newStrategy);
+            set({ isLoading: false });
+            
+            // Refresh strategies list
+            await get().fetchStrategies();
+            
+            console.log("Human Grid strategy created successfully:", newStrategy);
+            return newStrategy;
+          }
+
+          throw new Error('Invalid response from server');
+        } catch (error: any) {
+          const errorMessage = error.response?.data?.message || error.message || 'Failed to create Human Grid strategy';
+          console.error("Failed to create Human Grid strategy:", error);
+          console.error("Error response:", error.response?.data);
+          set({ error: errorMessage, isLoading: false });
+          throw new Error(errorMessage);
+        }
+      },
+
+      // ✅ Create Smart Grid Strategy
+      createSmartGrid: async (strategyInput: Omit<SmartGridStrategy, 'strategyType' | 'assetType'>) => {
+        console.log("=== Creating Smart Grid Strategy ===");
+        set({ isLoading: true, error: null });
+        
+        try {
+          const strategy: SmartGridStrategy = {
+            ...strategyInput,
+            strategyType: 'SMART_GRID',
+            assetType: 'CRYPTO',
+          };
+
+          const apiPayload = convertSmartGridToApiPayload(strategy);
+          console.log("Smart Grid API Payload:", JSON.stringify(apiPayload, null, 2));
+
+          const response = await apiClient.post(apiurls.strategies.create, apiPayload);
+
+          console.log("API Response:", response.data);
+
+          if (response.data?.data) {
+            const newStrategy = response.data.data as SmartGridStrategy;
+            get().addStrategy(newStrategy);
+            set({ isLoading: false });
+            
+            // Refresh strategies list
+            await get().fetchStrategies();
+            
+            console.log("Smart Grid strategy created successfully:", newStrategy);
+            return newStrategy;
+          }
+
+          throw new Error('Invalid response from server');
+        } catch (error: any) {
+          const errorMessage = error.response?.data?.message || error.message || 'Failed to create Smart Grid strategy';
+          console.error("Failed to create Smart Grid strategy:", error);
+          console.error("Error response:", error.response?.data);
           set({ error: errorMessage, isLoading: false });
           throw new Error(errorMessage);
         }
@@ -508,6 +750,8 @@ export const useStrategyStore = create<StrategyState>()(
       partialize: (state) => ({
         strategies: state.strategies,
         growthDCAStrategies: state.growthDCAStrategies,
+        humanGridStrategies: state.humanGridStrategies,
+        smartGridStrategies: state.smartGridStrategies,  // ✅ Persist Smart Grid strategies
         currentStrategy: state.currentStrategy,
         symbolsData: state.symbolsData,
         lastFetched: state.lastFetched,

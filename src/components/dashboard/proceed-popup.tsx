@@ -11,17 +11,33 @@ interface StrategyData {
   segment: string;
   pair: string;
   
-  // Strategy Details
+  // Common Strategy Details
   name: string;
   investmentPerRun: number;
   investmentCap: number;
-  frequency: string;
-  takeProfitPct: number;
+  strategyType?: 'GROWTH_DCA' | 'HUMAN_GRID' | 'SMART_GRID';
   
-  // Advanced Settings
-  priceStart: number;
-  priceStop: number;
-  stopLossPct: number;
+  // Growth DCA specific fields
+  frequency?: string;
+  frequencyData?: any;
+  takeProfitPct?: number;
+  priceStart?: number;
+  priceStop?: number;
+  stopLossPct?: number;
+  
+  // Human Grid specific fields
+  lowerLimit?: number;
+  upperLimit?: number;
+  leverage?: number;
+  direction?: string;
+  entryInterval?: number;
+  bookProfitBy?: number;
+  
+  // Smart Grid specific fields
+  levels?: number;
+  profitPercentage?: number;
+  dataSetDays?: number;
+  gridMode?: string;
 }
 
 interface ProceedPopupProps {
@@ -39,6 +55,10 @@ export function ProceedPopup({
 }: ProceedPopupProps) {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  const isHumanGrid = strategyData.strategyType === 'HUMAN_GRID';
+  const isSmartGrid = strategyData.strategyType === 'SMART_GRID';
+  const isFutures = strategyData.segment?.toUpperCase() === 'FUTURES';
+
   const accountDetails = [
     { label: 'API Connection', value: strategyData.selectedApi },
     { label: 'Exchange', value: strategyData.exchange },
@@ -46,26 +66,79 @@ export function ProceedPopup({
     { label: 'Trading Pair', value: strategyData.pair },
   ];
 
-  const botDetails = [
-    { label: 'Strategy Name', value: strategyData.name },
-    { label: 'Strategy Type', value: 'Growth DCA' },
-    { label: 'Asset Type', value: 'CRYPTO' },
-    { label: 'Investment Per Run', value: `${strategyData.investmentPerRun} USDT` },
-    { label: 'Investment CAP', value: `${strategyData.investmentCap} USDT` },
-    { label: 'Frequency', value: strategyData.frequency },
-    { label: 'Take Profit %', value: `${strategyData.takeProfitPct}%` },
-  ];
+  // Bot Details - Dynamic based on strategy type
+  const getBotDetails = () => {
+    if (isSmartGrid) {
+      return [
+        { label: 'Strategy Name', value: strategyData.name },
+        { label: 'Strategy Type', value: 'Smart Grid' },
+        { label: 'Asset Type', value: 'CRYPTO' },
+        { label: 'Investment Per Run', value: `${strategyData.investmentPerRun} USDT` },
+        { label: 'Investment CAP', value: `${strategyData.investmentCap} USDT` },
+        { label: 'Lower Limit', value: `${strategyData.lowerLimit} USDT` },
+        { label: 'Upper Limit', value: `${strategyData.upperLimit} USDT` },
+        { label: 'Levels', value: `${strategyData.levels}` },
+        { label: 'Direction', value: strategyData.direction || 'NEUTRAL' },
+      ];
+    }
+    
+    if (isHumanGrid) {
+      return [
+        { label: 'Strategy Name', value: strategyData.name },
+        { label: 'Strategy Type', value: 'Human Grid' },
+        { label: 'Asset Type', value: 'CRYPTO' },
+        { label: 'Investment Per Run', value: `${strategyData.investmentPerRun} USDT` },
+        { label: 'Investment CAP', value: `${strategyData.investmentCap} USDT` },
+        { label: 'Lower Limit', value: `${strategyData.lowerLimit} USDT` },
+        { label: 'Upper Limit', value: `${strategyData.upperLimit} USDT` },
+        ...(isFutures && strategyData.leverage ? [{ label: 'Leverage', value: `${strategyData.leverage}x` }] : []),
+        ...(isFutures && strategyData.direction ? [{ label: 'Direction', value: strategyData.direction }] : []),
+      ];
+    }
+    
+    // Growth DCA
+    return [
+      { label: 'Strategy Name', value: strategyData.name },
+      { label: 'Strategy Type', value: 'Growth DCA' },
+      { label: 'Asset Type', value: 'CRYPTO' },
+      { label: 'Investment Per Run', value: `${strategyData.investmentPerRun} USDT` },
+      { label: 'Investment CAP', value: `${strategyData.investmentCap} USDT` },
+      { label: 'Frequency', value: strategyData.frequency || 'N/A' },
+      { label: 'Take Profit %', value: `${strategyData.takeProfitPct || 0}%` },
+    ];
+  };
 
-  const advancedSettings = [
-    { label: 'Price Start', value: strategyData.priceStart.toString() },
-    { label: 'Price Stop', value: strategyData.priceStop.toString() },
-    { label: 'Stop Loss %', value: `${strategyData.stopLossPct}%` },
-  ];
+  // Advanced Settings - Dynamic based on strategy type
+  const getAdvancedSettings = () => {
+    if (isSmartGrid) {
+      return [
+        { label: 'Profit Percentage', value: `${strategyData.profitPercentage}%` },
+        { label: 'Data Set Days', value: `${strategyData.dataSetDays} days` },
+        { label: 'Grid Mode', value: strategyData.gridMode || 'STATIC' },
+        { label: 'Stop Loss %', value: strategyData.stopLossPct ? `${strategyData.stopLossPct}%` : 'N/A' },
+      ];
+    }
+    
+    if (isHumanGrid) {
+      return [
+        { label: 'Entry Interval', value: `${strategyData.entryInterval} Pts` },
+        { label: 'Book Profit By', value: `${strategyData.bookProfitBy}%` },
+        { label: 'Stop Loss %', value: strategyData.stopLossPct ? `${strategyData.stopLossPct}%` : 'N/A' },
+      ];
+    }
+    
+    // Growth DCA
+    return [
+      { label: 'Price Start', value: strategyData.priceStart?.toString() || 'N/A' },
+      { label: 'Price Stop', value: strategyData.priceStop?.toString() || 'N/A' },
+      { label: 'Stop Loss %', value: strategyData.stopLossPct ? `${strategyData.stopLossPct}%` : 'N/A' },
+    ];
+  };
 
   const sections = [
     { title: 'Account Details', fields: accountDetails },
-    { title: 'Bot Details', fields: botDetails },
-    { title: 'Advanced Settings', fields: advancedSettings },
+    { title: 'Bot Details', fields: getBotDetails() },
+    { title: 'Advanced Settings', fields: getAdvancedSettings() },
   ];
 
   return (

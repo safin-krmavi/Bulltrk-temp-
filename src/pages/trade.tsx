@@ -21,7 +21,7 @@ import HumanGrid from "@/components/trade/human-grid";
 // import IndyLESI from "@/components/trade/indie-lesi";
 // import IndyTrend from "@/components/trade/indy-trend";
 // import PriceAction from "@/components/trade/price-action";
-// import SmartGrid from "@/components/trade/smart-grid";
+import SmartGrid from "@/components/trade/smart-grid";
 import { TradeConfirmationDialog } from "@/components/trade/trade-confirmation-dialog";
 // import IndyUTC from "@/components/trade/indy-UTC";
 
@@ -282,7 +282,7 @@ export default function TradePage() {
           {/* {pathName === "/indy-utc" && <IndyUTC />} */}
           {/* {pathName === "/price-action" && <PriceAction />} */}
           {pathName === "/human-grid" && <HumanGrid />}
-          {/* {pathName === "/smart-grid" && <SmartGrid />} */}
+          {pathName === "/smart-grid" && <SmartGrid />}
         </div>
       )}
     </div>
