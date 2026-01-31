@@ -42,7 +42,7 @@ interface BrokerageConnection {
 
 const PLATFORMS = [
   { value: "BINANCE", label: "Binance" },
-  { value: "COINDCX", label: "CoinDcx" },
+  { value: "COINDCX", label: "CoinDCX" },
   { value: "KUCOIN", label: "KuCoin" },
 ];
 

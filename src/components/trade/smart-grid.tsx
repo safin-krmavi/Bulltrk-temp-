@@ -73,6 +73,16 @@ export default function SmartGrid() {
   // Handlers for data set buttons
   const handleDataSetSelect = (val: string) => setDataSet(val);
 
+  // Auto-reset type to NEUTRAL if SHORT is selected when segment changes to SPOT
+  React.useEffect(() => {
+    if (segment === "SPOT" && type === "SHORT") {
+      setType("NEUTRAL");
+      toast.info("Type changed to NEUTRAL", {
+        description: "SHORT is not available for SPOT trading"
+      });
+    }
+  }, [segment, type]);
+
   // Fetch balances when exchange and segment change
   React.useEffect(() => {
     if (exchange && segment) {
@@ -289,6 +299,16 @@ export default function SmartGrid() {
     });
   };
 
+  // Determine available type options based on segment
+  const getAvailableTypes = () => {
+    if (segment === "SPOT") {
+      return ['NEUTRAL', 'LONG'] as const;
+    }
+    return ['NEUTRAL', 'LONG', 'SHORT'] as const;
+  };
+
+  const availableTypes = getAvailableTypes();
+
   return (
     <div className="w-full max-w-md mx-auto">
       <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
@@ -311,7 +331,7 @@ export default function SmartGrid() {
             <div className="space-y-2">
               <Label>Select Type</Label>
               <div className="grid grid-cols-3 gap-2">
-                {['NEUTRAL', 'LONG', 'SHORT'].map(val => (
+                {availableTypes.map(val => (
                   <Button 
                     key={val} 
                     variant={type === val ? "default" : "outline"} 
@@ -331,7 +351,7 @@ export default function SmartGrid() {
                 <span className="text-muted-foreground">ⓘ</span>
               </Label>
               <div className="grid grid-cols-5 gap-2">
-                {['3', '7', '30', '180', '365'].map(val => (
+                {['20', '30', '40', '180', '365'].map(val => (
                   <Button 
                     key={val} 
                     variant={dataSet === val ? "default" : "outline"} 
