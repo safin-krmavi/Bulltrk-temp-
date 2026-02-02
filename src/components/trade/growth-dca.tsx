@@ -529,7 +529,7 @@ export default function GrowthDCA() {
                 <span className="text-muted-foreground">ⓘ</span>
               </Label>
               <div className="flex gap-2">
-                <Input placeholder="Value" value={investmentPerRun} onChange={e => setInvestmentPerRun(e.target.value)} type="number" />
+                <Input placeholder="Value" value={investmentPerRun} onChange={e => setInvestmentPerRun(e.target.value)} type="text" />
                 <Select value="USDT" disabled>
                   <SelectTrigger className="w-[100px]">
                     <SelectValue />
@@ -557,7 +557,7 @@ export default function GrowthDCA() {
                 <span className="text-muted-foreground">ⓘ</span>
               </Label>
               <div className="flex gap-2">
-                <Input placeholder="Value" value={investmentCap} onChange={e => setInvestmentCap(e.target.value)} type="number" />
+                <Input placeholder="Value" value={investmentCap} onChange={e => setInvestmentCap(e.target.value)} type="text" />
                 <Select value="USDT" disabled>
                   <SelectTrigger className="w-[100px]">
                     <SelectValue />
@@ -839,7 +839,7 @@ export default function GrowthDCA() {
                 <span className="text-muted-foreground">ⓘ</span>
               </Label>
               <div className="relative">
-                <Input placeholder="Value" value={takeProfitPct} onChange={e => setTakeProfitPct(e.target.value)} type="number" />
+                <Input placeholder="Value" value={takeProfitPct} onChange={e => setTakeProfitPct(e.target.value)} type="text" />
                 <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">%</span>
               </div>
             </div>
@@ -854,18 +854,18 @@ export default function GrowthDCA() {
           <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4">
             <div className="space-y-2">
               <Label>Price Start</Label>
-              <Input placeholder="Value" value={priceStart} onChange={e => setPriceStart(e.target.value)} type="number" step="0.00001" />
+              <Input placeholder="Value" value={priceStart} onChange={e => setPriceStart(e.target.value)} type="text" step="0.00001" />
             </div>
 
             <div className="space-y-2">
               <Label>Price Stop</Label>
-              <Input placeholder="Value" value={priceStop} onChange={e => setPriceStop(e.target.value)} type="number" step="0.00001" />
+              <Input placeholder="Value" value={priceStop} onChange={e => setPriceStop(e.target.value)} type="text" step="0.00001" />
             </div>
 
             <div className="space-y-2">
               <Label>Stop Loss %</Label>
               <div className="relative">
-                <Input placeholder="Value" value={stopLossPct} onChange={e => setStopLossPct(e.target.value)} type="number" />
+                <Input placeholder="Value" value={stopLossPct} onChange={e => setStopLossPct(e.target.value)} type="text" />
                 <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">%</span>
               </div>
             </div>

@@ -376,7 +376,7 @@ export default function SmartGrid() {
                   placeholder="Value" 
                   value={investment} 
                   onChange={e => setInvestment(e.target.value)} 
-                  type="number"
+                  type="text"
                   step="0.01"
                 />
                 <Select value="USDT" disabled>
@@ -410,7 +410,7 @@ export default function SmartGrid() {
                   placeholder="Value" 
                   value={investmentCap} 
                   onChange={e => setInvestmentCap(e.target.value)} 
-                  type="number"
+                  type="text"
                   step="0.01"
                 />
                 <Select value="USDT" disabled>
@@ -435,7 +435,7 @@ export default function SmartGrid() {
                     placeholder="Value" 
                     value={lowerLimit} 
                     onChange={e => setLowerLimit(e.target.value)} 
-                    type="number"
+                    type="text"
                     step="0.001"
                   />
                   <Select value="USDT" disabled>
@@ -458,7 +458,7 @@ export default function SmartGrid() {
                     placeholder="Value" 
                     value={upperLimit} 
                     onChange={e => setUpperLimit(e.target.value)} 
-                    type="number"
+                    type="text"
                     step="0.001"
                   />
                   <Select value="USDT" disabled>
@@ -479,7 +479,7 @@ export default function SmartGrid() {
                 placeholder="Value" 
                 value={levels} 
                 onChange={e => setLevels(e.target.value)} 
-                type="number"
+                type="text"
                 min="1"
               />
             </div>

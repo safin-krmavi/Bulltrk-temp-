@@ -345,7 +345,7 @@ export default function HumanGrid() {
                   placeholder="Value" 
                   value={investment} 
                   onChange={e => setInvestment(e.target.value)} 
-                  type="number"
+                  type="text"
                   step="0.01"
                 />
                 <Select value="USDT" disabled>
@@ -379,7 +379,7 @@ export default function HumanGrid() {
                   placeholder="Value" 
                   value={investmentCap} 
                   onChange={e => setInvestmentCap(e.target.value)} 
-                  type="number"
+                  type="text"
                   step="0.01"
                 />
                 <Select value="USDT" disabled>
@@ -401,7 +401,7 @@ export default function HumanGrid() {
                     placeholder="Value" 
                     value={lowerLimit} 
                     onChange={e => setLowerLimit(e.target.value)} 
-                    type="number"
+                    type="text"
                     step="0.01"
                   />
                   <Select value="USDT" disabled>
@@ -421,7 +421,7 @@ export default function HumanGrid() {
                     placeholder="Value" 
                     value={upperLimit} 
                     onChange={e => setUpperLimit(e.target.value)} 
-                    type="number"
+                    type="text"
                     step="0.01"
                   />
                   <Select value="USDT" disabled>
@@ -448,7 +448,7 @@ export default function HumanGrid() {
                     placeholder="Value" 
                     value={leverage} 
                     onChange={e => setLeverage(e.target.value)} 
-                    type="number"
+                    type="text"
                     min="1"
                     step="1"
                   />
@@ -481,7 +481,7 @@ export default function HumanGrid() {
                   placeholder="Value" 
                   value={entryInterval} 
                   onChange={e => setEntryInterval(e.target.value)} 
-                  type="number"
+                  type="text"
                   step="0.01"
                 />
                 <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">Pts</span>
@@ -498,7 +498,7 @@ export default function HumanGrid() {
                   placeholder="Value" 
                   value={bookProfitBy} 
                   onChange={e => setBookProfitBy(e.target.value)} 
-                  type="number"
+                  type="text"
                   step="0.01"
                 />
                 <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">%</span>
@@ -512,7 +512,7 @@ export default function HumanGrid() {
                   placeholder="Value" 
                   value={stopLossBy} 
                   onChange={e => setStopLossBy(e.target.value)} 
-                  type="number"
+                  type="text"
                   step="0.01"
                 />
                 <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">%</span>
