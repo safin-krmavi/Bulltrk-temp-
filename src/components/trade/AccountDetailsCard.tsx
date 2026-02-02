@@ -281,7 +281,6 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
                         onChange={(e) => setPairSearch(e.target.value)}
                         className="pl-8 h-9 bg-white dark:bg-[#1a1a1d]"
                         onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => e.stopPropagation()}
                       />
                     </div>
                     {pairSearch && (

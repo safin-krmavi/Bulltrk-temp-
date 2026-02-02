@@ -36,8 +36,5 @@ export const apiurls = {
         getsubscribedstrategies:"/strategy/strategies/subscriptions/me",
         unsubscribestrategy:"/strategies/subscription/:id"
     },
-    candlechart:{
-        candlegraph:"/crypto/exchange/candles"
-    }
 
 }
