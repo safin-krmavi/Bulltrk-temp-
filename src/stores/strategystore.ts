@@ -219,6 +219,15 @@ export interface StrategyState {
   isLoadingBalances: boolean;
   balancesError: string | null;
 
+  // Add Smart Grid Limits
+  calculateSmartGridLimits: (
+    exchange: string, 
+    segment: string, 
+    symbol: string, 
+    period: number, 
+    stdDev: number
+  ) => Promise<{ lowerLimit: number; upperLimit: number }>;
+
   // Strategy Actions
   setStrategies: (strategies: Strategy[]) => void;
   setCurrentStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | null) => void;
@@ -228,6 +237,7 @@ export interface StrategyState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
+  
 
   // Symbols Actions
   setSymbolsData: (data: SymbolTypeData[]) => void;
@@ -744,6 +754,43 @@ export const useStrategyStore = create<StrategyState>()(
         const { balances } = get();
         return balances.find(b => b.asset.toUpperCase() === asset.toUpperCase()) || null;
       },
+
+      // ✅ Calculate Smart Grid Limits
+      calculateSmartGridLimits: async (
+        exchange: string,
+        segment: string,
+        symbol: string,
+        period: number,
+        stdDev: number
+      ) => {
+        console.log("=== Calculating Smart Grid Limits ===");
+        console.log({ exchange, segment, symbol, period, stdDev });
+        
+        try {
+          const response = await apiClient.post(apiurls.strategies.limits, {
+            exchange: exchange.toUpperCase(),
+            segment: segment.toUpperCase(),
+            symbol: symbol.toUpperCase(),
+            period: period,
+            stdDev: stdDev
+          });
+
+          console.log("Limits API Response:", response.data);
+
+          if (response.data?.data) {
+            const { lowerLimit, upperLimit } = response.data.data;
+            console.log("Calculated limits:", { lowerLimit, upperLimit });
+            return { lowerLimit, upperLimit };
+          }
+
+          throw new Error('Invalid response from server');
+        } catch (error: any) {
+          const errorMessage = error.response?.data?.message || error.message || 'Failed to calculate limits';
+          console.error("Failed to calculate Smart Grid limits:", error);
+          console.error("Error response:", error.response?.data);
+          throw new Error(errorMessage);
+        }
+      },
     }),
     {
       name: 'strategy-storage',
@@ -751,7 +798,7 @@ export const useStrategyStore = create<StrategyState>()(
         strategies: state.strategies,
         growthDCAStrategies: state.growthDCAStrategies,
         humanGridStrategies: state.humanGridStrategies,
-        smartGridStrategies: state.smartGridStrategies,  // ✅ Persist Smart Grid strategies
+        smartGridStrategies: state.smartGridStrategies,
         currentStrategy: state.currentStrategy,
         symbolsData: state.symbolsData,
         lastFetched: state.lastFetched,

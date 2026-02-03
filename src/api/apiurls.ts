@@ -25,7 +25,8 @@ export const apiurls = {
         getAll: "/strategy/strategies",
         getById: "/strategy/strategies/:id",
         update: "/strategy/strategies/:id",
-        delete: "/strategy/strategies/:id"
+        delete: "/strategy/strategies/:id",
+        limits:"/strategy/calculate-smart-grid-limits"
     },
     spottrades:{
         createstrategy:"/crypto/trade/create"
