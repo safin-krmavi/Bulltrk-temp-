@@ -21,7 +21,7 @@ export default function SmartGrid() {
   // Account details from child component
   const [selectedApiId, setSelectedApiId] = useState<string>("");
   const [exchange, setExchange] = useState("");
-  const [segment, setSegment] = useState("SPOT");
+  const [segment, setSegment] = useState("FUTURES");
   const [symbol, setSymbol] = useState("");
 
   // Form state
@@ -155,24 +155,6 @@ export default function SmartGrid() {
     if (!investmentCap || Number(investmentCap) <= 0) {
       toast.error("Invalid investment cap", {
         description: "Enter a valid cap amount greater than 0"
-      });
-      return false;
-    }
-    if (!lowerLimit || Number(lowerLimit) <= 0) {
-      toast.error("Invalid lower limit", {
-        description: "Enter a valid lower price limit"
-      });
-      return false;
-    }
-    if (!upperLimit || Number(upperLimit) <= 0) {
-      toast.error("Invalid upper limit", {
-        description: "Enter a valid upper price limit"
-      });
-      return false;
-    }
-    if (Number(upperLimit) <= Number(lowerLimit)) {
-      toast.error("Invalid price limits", {
-        description: "Upper limit must be greater than lower limit"
       });
       return false;
     }
