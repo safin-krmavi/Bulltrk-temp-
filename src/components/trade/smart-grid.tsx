@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from "react"
-import { ChevronDown} from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,9 +15,8 @@ import { ProceedPopup } from "@/components/dashboard/proceed-popup"
 
 export default function SmartGrid() {
   const [isOpen, setIsOpen] = React.useState(true)
-  const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false)
   const [showProceedPopup, setShowProceedPopup] = React.useState(false)
-  const [,setIsCalculatingLimits] = React.useState(false)
+  const [, setIsCalculatingLimits] = React.useState(false)
 
   // Account details from child component
   const [selectedApiId, setSelectedApiId] = useState<string>("");
@@ -25,24 +24,22 @@ export default function SmartGrid() {
   const [segment, setSegment] = useState("SPOT");
   const [symbol, setSymbol] = useState("");
 
-  // Form state
+  // Form state - Updated according to new structure
   const [strategyName, setStrategyName] = React.useState("");
   const [type, setType] = React.useState<'NEUTRAL' | 'LONG' | 'SHORT'>("NEUTRAL");
   const [dataSet, setDataSet] = React.useState("30");
-  // const [stdDev, setStdDev] = React.useState("2"); // ✅ Add standard deviation
   const [lowerLimit, setLowerLimit] = React.useState("");
   const [upperLimit, setUpperLimit] = React.useState("");
   const [levels, setLevels] = React.useState("");
-  const [profitPercentage, setProfitPercentage] = React.useState("");
+  const [profitPerLevel, setProfitPerLevel] = React.useState(""); // Renamed from profitPercentage
+  const [profitUnit, setProfitUnit] = React.useState("%"); // For the % or fixed toggle
   const [investment, setInvestment] = React.useState("");
-  const [investmentCap, setInvestmentCap] = React.useState("");
-  const [gridMode, setGridMode] = React.useState<'STATIC' | 'DYNAMIC'>("STATIC");
-  const [stopLossPct, setStopLossPct] = React.useState("");
+  const [minimumInvestment, setMinimumInvestment] = React.useState(""); // New field
 
   // Get strategy store
   const { 
     createSmartGrid, 
-    calculateSmartGridLimits, // ✅ Add limits calculator
+    calculateSmartGridLimits,
     isLoading, 
     error, 
     clearError,
@@ -76,7 +73,7 @@ export default function SmartGrid() {
   // Handlers for data set buttons
   const handleDataSetSelect = (val: string) => setDataSet(val);
 
-  // ✅ Calculate limits automatically when exchange, segment, symbol, dataSet, or stdDev changes
+  // ✅ Calculate limits automatically when exchange, segment, symbol, or dataSet changes
   React.useEffect(() => {
     if (exchange && segment && symbol && dataSet) {
       handleCalculateLimits();
@@ -84,7 +81,7 @@ export default function SmartGrid() {
   }, [exchange, segment, symbol, dataSet]);
 
   // ✅ Calculate Smart Grid Limits
-   const handleCalculateLimits = async () => {
+  const handleCalculateLimits = async () => {
     if (!exchange || !segment || !symbol) {
       return;
     }
@@ -98,7 +95,7 @@ export default function SmartGrid() {
         exchange,
         segment,
         symbol,
-        Number(dataSet)  // ✅ This now correctly maps to dataSetDays parameter
+        Number(dataSet)
       );
 
       setLowerLimit(calcLower.toFixed(6));
@@ -174,7 +171,7 @@ export default function SmartGrid() {
     }
     if (!segment) {
       toast.error("Please select a segment", {
-        description: "Choose between Spot, Futures, or Margin"
+        description: "Choose between Spot or Futures"
       });
       return false;
     }
@@ -196,9 +193,15 @@ export default function SmartGrid() {
       });
       return false;
     }
-    if (!investmentCap || Number(investmentCap) <= 0) {
-      toast.error("Invalid investment cap", {
-        description: "Enter a valid cap amount greater than 0"
+    if (!minimumInvestment || Number(minimumInvestment) <= 0) {
+      toast.error("Invalid minimum investment", {
+        description: "Enter a valid minimum investment amount"
+      });
+      return false;
+    }
+    if (Number(minimumInvestment) > Number(investment)) {
+      toast.error("Invalid minimum investment", {
+        description: "Minimum investment cannot be greater than total investment"
       });
       return false;
     }
@@ -226,9 +229,9 @@ export default function SmartGrid() {
       });
       return false;
     }
-    if (!profitPercentage || Number(profitPercentage) <= 0) {
-      toast.error("Invalid profit percentage", {
-        description: "Enter a valid percentage greater than 0"
+    if (!profitPerLevel || Number(profitPerLevel) <= 0) {
+      toast.error("Invalid profit per level", {
+        description: "Enter a valid profit value greater than 0"
       });
       return false;
     }
@@ -243,16 +246,15 @@ export default function SmartGrid() {
       segment: segment,
       pair: symbol,
       name: strategyName,
-      investmentPerRun: Number(investment),
-      investmentCap: Number(investmentCap),
+      investmentPerRun: Number(minimumInvestment),  // This will map to minimumInvestment
+      investmentCap: Number(investment),  // This will map to investment
       lowerLimit: Number(lowerLimit),
       upperLimit: Number(upperLimit),
       levels: Number(levels),
-      profitPercentage: Number(profitPercentage),
-      direction: type,
+      profitPercentage: Number(profitPerLevel),
+      direction: type,  // This will map to type
       dataSetDays: Number(dataSet),
-      gridMode: gridMode,
-      stopLossPct: stopLossPct ? Number(stopLossPct) : undefined,
+      gridMode: 'STATIC' as const,
       strategyType: 'SMART_GRID' as const,
     };
   };
@@ -286,18 +288,16 @@ export default function SmartGrid() {
         exchange: exchange,
         segment: segment,
         symbol: symbol,
-        investmentPerRun: Number(investment),
-        investmentCap: Number(investmentCap),
+        investmentPerRun: Number(minimumInvestment),  // Will be converted to minimumInvestment
+        investmentCap: Number(investment),  // Will be converted to investment
         lowerLimit: Number(lowerLimit),
         upperLimit: Number(upperLimit),
         levels: Number(levels),
-        profitPercentage: Number(profitPercentage),
-        direction: type,
+        profitPercentage: Number(profitPerLevel),
+        direction: type,  // Will be converted to type
         dataSetDays: Number(dataSet),
-        gridMode: gridMode,
+        gridMode: 'STATIC',
         executionMode: executionMode,
-        
-        ...(stopLossPct && { stopLossPct: Number(stopLossPct) }),
       };
       
       console.log("Smart Grid strategy data being sent:", strategyData);
@@ -327,15 +327,13 @@ export default function SmartGrid() {
     setStrategyName("");
     setType("NEUTRAL");
     setDataSet("30");
-    // setStdDev("2");
     setLowerLimit("");
     setUpperLimit("");
     setLevels("");
-    setProfitPercentage("");
+    setProfitPerLevel("");
+    setProfitUnit("%");
     setInvestment("");
-    setInvestmentCap("");
-    setGridMode("STATIC");
-    setStopLossPct("");
+    setMinimumInvestment("");
     
     clearError();
     
@@ -364,15 +362,21 @@ export default function SmartGrid() {
             <span>Smart Grid</span>
             <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
           </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4">
+          <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
+            {/* Strategy Name */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Strategy Name
-                <span className="text-muted-foreground">ⓘ</span>
+                <span className="text-muted-foreground text-xs">ⓘ</span>
               </Label>
-              <Input placeholder="Enter Name" value={strategyName} onChange={e => setStrategyName(e.target.value)} />
+              <Input 
+                placeholder="Enter Name" 
+                value={strategyName} 
+                onChange={e => setStrategyName(e.target.value)} 
+              />
             </div>
 
+            {/* Select Type */}
             <div className="space-y-2">
               <Label>Select Type</Label>
               <div className="grid grid-cols-3 gap-2">
@@ -390,50 +394,137 @@ export default function SmartGrid() {
               </div>
             </div>
 
+            {/* Data Set (Days) */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
-                Data Set (Days)
-                <span className="text-muted-foreground">ⓘ</span>
+                Data Set
+                <span className="text-muted-foreground text-xs">ⓘ</span>
               </Label>
               <div className="grid grid-cols-5 gap-2">
-                {['20', '30', '40', '180', '365'].map(val => (
+                {['30', '7', '30', '180', '365'].map((val, index) => (
                   <Button 
-                    key={val} 
+                    key={index} 
                     variant={dataSet === val ? "default" : "outline"} 
                     size="sm" 
                     type="button" 
                     onClick={() => handleDataSetSelect(val)}
                     className={dataSet === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
                   >
-                    {val}D
+                    {val === '30' && index === 0 ? '30D' : 
+                     val === '7' ? '7D' : 
+                     val === '30' && index === 2 ? '30D' : 
+                     val === '180' ? '180D' : '365D'}
                   </Button>
                 ))}
               </div>
             </div>
 
-            {/* ✅ Standard Deviation Field */}
-            {/* <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Standard Deviation
-                <span className="text-muted-foreground">ⓘ</span>
-              </Label>
-              <Input 
-                placeholder="Enter standard deviation" 
-                value={stdDev} 
-                onChange={e => setStdDev(e.target.value)} 
-                type="number"
-                step="0.1"
-                min="0.1"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Higher values = wider grid range (default: 2)
-              </p>
-            </div> */}
+            {/* Lower and Upper Limit - Auto-calculated */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  Lower Limit
+                  <span className="text-muted-foreground text-xs">ⓘ</span>
+                </Label>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="Value" 
+                    value={lowerLimit} 
+                    readOnly
+                    type="number"
+                    step="0.000001"
+                    className="bg-gray-100 dark:bg-[#2A2A2D] cursor-not-allowed"
+                  />
+                  <Select value="USDT" disabled>
+                    <SelectTrigger className="w-[80px] bg-gray-100 dark:bg-[#2A2A2D]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USDT">USDT</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  Upper Limit
+                  <span className="text-muted-foreground text-xs">ⓘ</span>
+                </Label>
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="Long" 
+                    value={upperLimit} 
+                    readOnly
+                    type="number"
+                    step="0.000001"
+                    className="bg-gray-100 dark:bg-[#2A2A2D] cursor-not-allowed"
+                  />
+                  <Select value="USDT" disabled>
+                    <SelectTrigger className="w-[80px] bg-gray-100 dark:bg-[#2A2A2D]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USDT">USDT</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
 
+            {/* Levels */}
+            <div className="space-y-2">
+              <Label>Levels</Label>
+              <Input 
+                placeholder="Value" 
+                value={levels} 
+                onChange={e => setLevels(e.target.value)} 
+                type="number"
+                min="1"
+              />
+            </div>
+
+            {/* Profit per Level - Updated with dual input */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                Profit per Level
+                <span className="text-muted-foreground text-xs">ⓘ</span>
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative">
+                  <Input 
+                    placeholder="Value" 
+                    value={profitPerLevel} 
+                    onChange={e => setProfitPerLevel(e.target.value)} 
+                    type="number"
+                    step="0.1"
+                  />
+                  <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">
+                    {profitUnit}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">-</span>
+                  <div className="relative flex-1">
+                    <Input 
+                      placeholder="Value" 
+                      type="number"
+                      step="0.1"
+                      disabled
+                    />
+                    <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">
+                      {profitUnit}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Investment */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Investment
-                <span className="text-muted-foreground">ⓘ</span>
+                <span className="text-muted-foreground text-xs">ⓘ</span>
               </Label>
               <div className="flex gap-2">
                 <Input 
@@ -464,16 +555,14 @@ export default function SmartGrid() {
               )}
             </div>
 
+            {/* Minimum Investment - New Field */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Investment CAP
-                <span className="text-muted-foreground">ⓘ</span>
-              </Label>
+              <Label>Minimum Investment</Label>
               <div className="flex gap-2">
                 <Input 
                   placeholder="Value" 
-                  value={investmentCap} 
-                  onChange={e => setInvestmentCap(e.target.value)} 
+                  value={minimumInvestment} 
+                  onChange={e => setMinimumInvestment(e.target.value)} 
                   type="number"
                   step="0.01"
                 />
@@ -486,124 +575,18 @@ export default function SmartGrid() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            {/* ✅ Auto-calculated limits with manual override */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs">Lower Limit</Label>
-                  <div className="flex gap-2">
-                   <Input 
-                      placeholder="Auto-calculated" 
-                      value={lowerLimit} 
-                      readOnly
-                      type="number"
-                      step="0.000001"
-                      className="bg-white dark:bg-[#1a1a1d] cursor-not-allowed"
-                    />
-                    <Select value="USDT" disabled>
-                      <SelectTrigger className="w-[80px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="USDT">USDT</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">Upper Limit</Label>
-                  <div className="flex gap-2">
-                    <Input 
-                      placeholder="Auto-calculated" 
-                      value={upperLimit} 
-                      readOnly
-                      type="number"
-                      step="0.000001"
-                      className="bg-white dark:bg-[#1a1a1d] cursor-not-allowed"
-                    />
-                    <Select value="USDT" disabled>
-                      <SelectTrigger className="w-[80px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="USDT">USDT</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-
-            <div className="space-y-2">
-              <Label>Levels</Label>
-              <Input 
-                placeholder="Value" 
-                value={levels} 
-                onChange={e => setLevels(e.target.value)} 
-                type="number"
-                min="1"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Profit Percentage
-                <span className="text-muted-foreground">ⓘ</span>
-              </Label>
-              <div className="relative">
-                <Input 
-                  placeholder="Value" 
-                  value={profitPercentage} 
-                  onChange={e => setProfitPercentage(e.target.value)} 
-                  type="number"
-                  step="0.1"
-                />
-                <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">%</span>
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
-          <CollapsibleTrigger className="flex w-full items-center justify-between border border-t-0 rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
-            <span>Advanced Settings</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${isAdvancedOpen ? "rotate-180" : ""}`} />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4">
-            <div className="space-y-2">
-              <Label>Grid Mode</Label>
-              <Select value={gridMode} onValueChange={(value: 'STATIC' | 'DYNAMIC') => setGridMode(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="STATIC">Static</SelectItem>
-                  <SelectItem value="DYNAMIC">Dynamic</SelectItem>
-                </SelectContent>
-              </Select>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Static: Fixed grid levels | Dynamic: Adjusts based on market
+                Minimum amount per grid level
               </p>
             </div>
-
-            <div className="space-y-2">
-              <Label>Stop Loss % (Optional)</Label>
-              <div className="relative">
-                <Input 
-                  placeholder="Value" 
-                  value={stopLossPct} 
-                  onChange={e => setStopLossPct(e.target.value)} 
-                  type="number"
-                  step="0.1"
-                />
-                <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">%</span>
-              </div>
-            </div>
           </CollapsibleContent>
         </Collapsible>
 
-        {error && <div className="text-red-500 text-sm p-2 border border-red-300 rounded bg-red-50 dark:bg-red-900/20">{error}</div>}
+        {error && (
+          <div className="text-red-500 text-sm p-2 border border-red-300 rounded bg-red-50 dark:bg-red-900/20">
+            {error}
+          </div>
+        )}
 
         <div className="flex gap-4">
           <Button 

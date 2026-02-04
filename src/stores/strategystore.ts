@@ -163,15 +163,15 @@ interface SmartGridApiPayload {
   segment: string;
   symbol: string;
   executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED';
-  investmentPerRun: number;
-  investmentCap: number;
+  type: 'NEUTRAL' | 'LONG' | 'SHORT';  // ✅ Changed from 'direction' to 'type'
+  dataSetDays: number;
   lowerLimit: number;
   upperLimit: number;
   levels: number;
   profitPercentage: number;
-  direction: 'NEUTRAL' | 'LONG' | 'SHORT';
-  dataSetDays: number;
-  gridMode: 'STATIC' | 'DYNAMIC';
+  investment: number;  // ✅ Changed from 'investmentCap'
+  minimumInvestment: number;  // ✅ Changed from 'investmentPerRun'
+  gridMode?: 'STATIC' | 'DYNAMIC';  // ✅ Made optional
   stopLossPct?: number;
 }
 
@@ -374,16 +374,20 @@ const convertSmartGridToApiPayload = (strategy: SmartGridStrategy): SmartGridApi
     segment: strategy.segment.toUpperCase(),
     symbol: strategy.symbol.toUpperCase(),
     executionMode: strategy.executionMode || 'LIVE',
-    investmentPerRun: strategy.investmentPerRun,
-    investmentCap: strategy.investmentCap,
+    type: strategy.direction,  // ✅ Map 'direction' to 'type' for API
+    dataSetDays: strategy.dataSetDays,
     lowerLimit: strategy.lowerLimit,
     upperLimit: strategy.upperLimit,
     levels: strategy.levels,
     profitPercentage: strategy.profitPercentage,
-    direction: strategy.direction,
-    dataSetDays: strategy.dataSetDays,
-    gridMode: strategy.gridMode,
+    investment: strategy.investmentCap,  // ✅ Map 'investmentCap' to 'investment'
+    minimumInvestment: strategy.investmentPerRun,  // ✅ Map 'investmentPerRun' to 'minimumInvestment'
   };
+
+
+  if (strategy.gridMode) {
+    payload.gridMode = strategy.gridMode;
+  }
 
   if (strategy.stopLossPct != null && strategy.stopLossPct > 0) {
     payload.stopLossPct = strategy.stopLossPct;
@@ -391,7 +395,6 @@ const convertSmartGridToApiPayload = (strategy: SmartGridStrategy): SmartGridApi
 
   return payload;
 };
-
 export const useStrategyStore = create<StrategyState>()(
   persist(
     (set, get) => ({
