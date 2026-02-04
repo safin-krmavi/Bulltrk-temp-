@@ -89,6 +89,7 @@ export default function SmartGrid() {
       return;
     }
 
+    
     setIsCalculatingLimits(true);
     
     try {
