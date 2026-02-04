@@ -225,7 +225,6 @@ export interface StrategyState {
     segment: string, 
     symbol: string, 
     period: number, 
-    stdDev: number
   ) => Promise<{ lowerLimit: number; upperLimit: number }>;
 
   // Strategy Actions
@@ -761,10 +760,9 @@ export const useStrategyStore = create<StrategyState>()(
         segment: string,
         symbol: string,
         period: number,
-        stdDev: number
       ) => {
         console.log("=== Calculating Smart Grid Limits ===");
-        console.log({ exchange, segment, symbol, period, stdDev });
+        console.log({ exchange, segment, symbol, period});
         
         try {
           const response = await apiClient.post(apiurls.strategies.limits, {
@@ -772,7 +770,7 @@ export const useStrategyStore = create<StrategyState>()(
             segment: segment.toUpperCase(),
             symbol: symbol.toUpperCase(),
             period: period,
-            stdDev: stdDev
+
           });
 
           console.log("Limits API Response:", response.data);
