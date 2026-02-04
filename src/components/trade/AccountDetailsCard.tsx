@@ -145,13 +145,23 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
           ? response.data.data 
           : [response.data.data];
         
-        console.log("Connections loaded:", connectionsData);
-        setConnections(connectionsData);
+        // ✅ Sort connections to prioritize Binance
+        const sortedConnections = connectionsData.sort((a: { exchange: string; }, b: { exchange: string; }) => {
+          const aIsBinance = a.exchange.toUpperCase() === 'BINANCE';
+          const bIsBinance = b.exchange.toUpperCase() === 'BINANCE';
+          
+          if (aIsBinance && !bIsBinance) return -1;
+          if (!aIsBinance && bIsBinance) return 1;
+          return 0;
+        });
         
-        // Auto-select first connection if available
-        if (connectionsData.length > 0 && !selectedApi) {
-          console.log("Auto-selecting first connection:", connectionsData[0].id);
-          setSelectedApi(connectionsData[0].id);
+        console.log("Connections loaded (Binance prioritized):", sortedConnections);
+        setConnections(sortedConnections);
+        
+        // Auto-select first connection (which will be Binance if available)
+        if (sortedConnections.length > 0 && !selectedApi) {
+          console.log("Auto-selecting first connection:", sortedConnections[0].exchange, sortedConnections[0].id);
+          setSelectedApi(sortedConnections[0].id);
         }
       }
     } catch (error: any) {
