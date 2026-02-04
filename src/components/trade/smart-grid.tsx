@@ -29,7 +29,7 @@ export default function SmartGrid() {
   const [strategyName, setStrategyName] = React.useState("");
   const [type, setType] = React.useState<'NEUTRAL' | 'LONG' | 'SHORT'>("NEUTRAL");
   const [dataSet, setDataSet] = React.useState("30");
-  const [stdDev, setStdDev] = React.useState("2"); // ✅ Add standard deviation
+  // const [stdDev, setStdDev] = React.useState("2"); // ✅ Add standard deviation
   const [lowerLimit, setLowerLimit] = React.useState("");
   const [upperLimit, setUpperLimit] = React.useState("");
   const [levels, setLevels] = React.useState("");
@@ -78,10 +78,10 @@ export default function SmartGrid() {
 
   // ✅ Calculate limits automatically when exchange, segment, symbol, dataSet, or stdDev changes
   React.useEffect(() => {
-    if (exchange && segment && symbol && dataSet && stdDev) {
+    if (exchange && segment && symbol && dataSet) {
       handleCalculateLimits();
     }
-  }, [exchange, segment, symbol, dataSet, stdDev]);
+  }, [exchange, segment, symbol, dataSet]);
 
   // ✅ Calculate Smart Grid Limits
   const handleCalculateLimits = async () => {
@@ -93,14 +93,14 @@ export default function SmartGrid() {
     setIsCalculatingLimits(true);
     
     try {
-      console.log("Calculating limits with:", { exchange, segment, symbol, dataSet, stdDev });
+      console.log("Calculating limits with:", { exchange, segment, symbol, dataSet });
       
       const { lowerLimit: calcLower, upperLimit: calcUpper } = await calculateSmartGridLimits(
         exchange,
         segment,
         symbol,
         Number(dataSet),
-        Number(stdDev)
+        // Number(stdDev)
       );
 
       setLowerLimit(calcLower.toFixed(6));
@@ -329,7 +329,7 @@ export default function SmartGrid() {
     setStrategyName("");
     setType("NEUTRAL");
     setDataSet("30");
-    setStdDev("2");
+    // setStdDev("2");
     setLowerLimit("");
     setUpperLimit("");
     setLevels("");
@@ -414,7 +414,7 @@ export default function SmartGrid() {
             </div>
 
             {/* ✅ Standard Deviation Field */}
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Standard Deviation
                 <span className="text-muted-foreground">ⓘ</span>
@@ -430,7 +430,7 @@ export default function SmartGrid() {
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Higher values = wider grid range (default: 2)
               </p>
-            </div>
+            </div> */}
 
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
