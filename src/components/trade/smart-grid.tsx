@@ -84,23 +84,21 @@ export default function SmartGrid() {
   }, [exchange, segment, symbol, dataSet]);
 
   // ✅ Calculate Smart Grid Limits
-  const handleCalculateLimits = async () => {
+   const handleCalculateLimits = async () => {
     if (!exchange || !segment || !symbol) {
       return;
     }
 
-    
     setIsCalculatingLimits(true);
     
     try {
-      console.log("Calculating limits with:", { exchange, segment, symbol, dataSet });
+      console.log("Calculating limits with:", { exchange, segment, symbol, dataSetDays: dataSet });
       
       const { lowerLimit: calcLower, upperLimit: calcUpper } = await calculateSmartGridLimits(
         exchange,
         segment,
         symbol,
-        Number(dataSet),
-        // Number(stdDev)
+        Number(dataSet)  // ✅ This now correctly maps to dataSetDays parameter
       );
 
       setLowerLimit(calcLower.toFixed(6));
