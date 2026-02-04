@@ -145,13 +145,28 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
           ? response.data.data 
           : [response.data.data];
         
-        console.log("Connections loaded:", connectionsData);
-        setConnections(connectionsData);
+        // ✅ Sort connections to prioritize Binance FIRST
+        const sortedConnections = connectionsData.sort((a: { exchange: string; }, b: { exchange: string; }) => {
+          const aIsBinance = a.exchange.toUpperCase() === 'BINANCE';
+          const bIsBinance = b.exchange.toUpperCase() === 'BINANCE';
+          
+          if (aIsBinance && !bIsBinance) return -1;
+          if (!aIsBinance && bIsBinance) return 1;
+          return 0;
+        });
         
-        // Auto-select first connection if available
-        if (connectionsData.length > 0 && !selectedApi) {
-          console.log("Auto-selecting first connection:", connectionsData[0].id);
-          setSelectedApi(connectionsData[0].id);
+        console.log("Sorted connections (Binance first):", sortedConnections.map((c: { exchange: any; }) => c.exchange));
+        
+        // ✅ Set connections FIRST before auto-selecting
+        setConnections(sortedConnections);
+        
+        // ✅ Auto-select Binance connection if available, otherwise select first
+        if (sortedConnections.length > 0 && !selectedApi) {
+          const binanceConnection = sortedConnections.find((c: { exchange: string; }) => c.exchange.toUpperCase() === 'BINANCE');
+          const connectionToSelect = binanceConnection || sortedConnections[0];
+          
+          console.log("Auto-selecting connection:", connectionToSelect.exchange, connectionToSelect.id);
+          setSelectedApi(connectionToSelect.id);
         }
       }
     } catch (error: any) {
@@ -218,6 +233,9 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
                   connections.map((connection) => (
                     <SelectItem key={connection.id} value={connection.id}>
                       {getPlatformLabel(connection.exchange)}
+                      {connection.exchange.toUpperCase() === 'BINANCE' && (
+                        <span className="ml-2 text-xs text-green-600"></span>
+                      )}
                     </SelectItem>
                   ))
                 )}
