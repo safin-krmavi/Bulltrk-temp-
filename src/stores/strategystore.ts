@@ -227,7 +227,12 @@ export interface StrategyState {
     dataSetDays: number,
     investment: number,
     minimumInvestment: number
-  ) => Promise<{ lowerLimit: number; upperLimit: number }>;
+  ) => Promise<{ 
+    lowerLimit: number; 
+    upperLimit: number;
+    levels: number;
+    profitPercentage: number;
+  }>;
 
   // Strategy Actions
   setStrategies: (strategies: Strategy[]) => void;
@@ -784,9 +789,28 @@ export const useStrategyStore = create<StrategyState>()(
           console.log("Limits API Response:", response.data);
 
           if (response.data?.data) {
-            const { lowerLimit, upperLimit } = response.data.data;
-            console.log("Calculated limits:", { lowerLimit, upperLimit });
-            return { lowerLimit, upperLimit };
+            // ✅ Extract only the fields we need from the response
+            const { 
+              lowerLimit, 
+              upperLimit, 
+              levels, 
+              profitPercentage 
+            } = response.data.data;
+            
+            console.log("Calculated limits:", { 
+              lowerLimit, 
+              upperLimit, 
+              levels, 
+              profitPercentage 
+            });
+            
+            // ✅ Return all calculated values
+            return { 
+              lowerLimit, 
+              upperLimit, 
+              levels, 
+              profitPercentage 
+            };
           }
 
           throw new Error('Invalid response from server');

@@ -95,7 +95,7 @@ export default function SmartGrid() {
     }
   }, [exchange, segment, symbol, dataSet, investment, minimumInvestment]);
 
-  // ✅ Update Calculate Smart Grid Limits function
+  // ✅ Update Calculate Smart Grid Limits function to use all returned values
   const handleCalculateLimits = async () => {
     if (!exchange || !segment || !symbol || !investment || !minimumInvestment) {
       return;
@@ -127,7 +127,13 @@ export default function SmartGrid() {
         minimumInvestment: minimumInvestmentNum
       });
       
-      const { lowerLimit: calcLower, upperLimit: calcUpper } = await calculateSmartGridLimits(
+      // ✅ Receive all calculated values including levels and profitPercentage
+      const { 
+        lowerLimit: calcLower, 
+        upperLimit: calcUpper,
+        levels: calcLevels,
+        profitPercentage: calcProfitPercentage
+      } = await calculateSmartGridLimits(
         exchange,
         segment,
         symbol,
@@ -136,11 +142,14 @@ export default function SmartGrid() {
         minimumInvestmentNum
       );
 
+      // ✅ Update all fields with calculated values
       setLowerLimit(calcLower.toFixed(6));
       setUpperLimit(calcUpper.toFixed(6));
+      setLevels(calcLevels.toString());
+      setProfitPerLevel(calcProfitPercentage.toString());
 
-      toast.success("Limits calculated!", {
-        description: `Lower: ${calcLower.toFixed(6)} | Upper: ${calcUpper.toFixed(6)}`
+      toast.success("Smart Grid parameters calculated!", {
+        description: `Limits: ${calcLower.toFixed(6)} - ${calcUpper.toFixed(6)} | Levels: ${calcLevels} | Profit: ${calcProfitPercentage}%`
       });
     } catch (err: any) {
       console.error("Limits calculation error:", err);
