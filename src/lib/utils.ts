@@ -70,3 +70,35 @@ export function formatSymbolForExchange(symbol: string, exchange: string): strin
   return symbol;
 }
 
+// ✅ Extract quote asset from symbol (the currency you're spending)
+export function getQuoteAsset(symbol: string): string {
+  if (!symbol) return 'USDT';
+  
+  const knownQuotes = ['USDT', 'USDC', 'BUSD', 'BTC', 'ETH', 'BNB', 'INR', 'TUSD', 'DAI', 'FDUSD'];
+  const sortedQuotes = knownQuotes.sort((a, b) => b.length - a.length);
+  
+  for (const quote of sortedQuotes) {
+    if (symbol.toUpperCase().endsWith(quote)) {
+      return quote;
+    }
+  }
+  
+  return 'USDT'; // Fallback
+}
+
+// ✅ Extract base asset from symbol (the currency you're buying)
+export function getBaseAsset(symbol: string): string {
+  if (!symbol) return '';
+  
+  const knownQuotes = ['USDT', 'USDC', 'BUSD', 'BTC', 'ETH', 'BNB', 'INR', 'TUSD', 'DAI', 'FDUSD'];
+  const sortedQuotes = knownQuotes.sort((a, b) => b.length - a.length);
+  
+  for (const quote of sortedQuotes) {
+    if (symbol.toUpperCase().endsWith(quote)) {
+      return symbol.slice(0, -quote.length); // Remove quote to get base
+    }
+  }
+  
+  return symbol; // Return full symbol if no quote found
+}
+

@@ -12,7 +12,6 @@ import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { toast } from "sonner"
 import { useStrategyStore, SmartGridStrategy } from "@/stores/strategystore"
 import { ProceedPopup } from "@/components/dashboard/proceed-popup"
-import { formatSymbolForExchange } from "@/lib/utils"
 
 export default function SmartGrid() {
   const [isOpen, setIsOpen] = React.useState(true)
@@ -74,63 +73,40 @@ export default function SmartGrid() {
   // Handlers for data set buttons
   const handleDataSetSelect = (val: string) => setDataSet(val);
 
-  // ✅ Calculate limits automatically when all required fields are present
+  // ✅ Calculate limits automatically when exchange, segment, symbol, or dataSet changes
   React.useEffect(() => {
-    if (exchange && segment && symbol && dataSet && investment && minimumInvestment) {
+    if (exchange && segment && symbol && dataSet) {
       handleCalculateLimits();
     }
-  }, [exchange, segment, symbol, dataSet, investment, minimumInvestment]);
+  }, [exchange, segment, symbol, dataSet]);
 
-  // ✅ Calculate Smart Grid Limits - Updated to show formatted symbol
+  // ✅ Calculate Smart Grid Limits
   const handleCalculateLimits = async () => {
-    if (!exchange || !segment || !symbol || !investment || !minimumInvestment) {
-      return;
-    }
-
-    // Validate investment values
-    if (Number(minimumInvestment) > Number(investment)) {
-      toast.error("Invalid investment values", {
-        description: "Minimum investment cannot be greater than total investment"
-      });
+    if (!exchange || !segment || !symbol) {
       return;
     }
 
     setIsCalculatingLimits(true);
     
     try {
-      const formattedSymbol = formatSymbolForExchange(symbol, exchange); // ✅ Format symbol
+      console.log("Calculating limits with:", { exchange, segment, symbol, dataSetDays: dataSet });
       
-      console.log("Calculating limits with:", { 
-        exchange, 
-        segment, 
-        symbol,
-        formattedSymbol, // ✅ Log formatted symbol
-        dataSetDays: dataSet,
-        investment,
-        minimumInvestment 
-      });
-      
-      const result = await calculateSmartGridLimits(
+      const { lowerLimit: calcLower, upperLimit: calcUpper } = await calculateSmartGridLimits(
         exchange,
         segment,
         symbol,
-        Number(dataSet),
-        Number(investment),
-        Number(minimumInvestment)
+        Number(dataSet)
       );
 
-      // ✅ Map response values to UI fields
-      setLowerLimit(result.lowerLimit.toFixed(6));
-      setUpperLimit(result.upperLimit.toFixed(6));
-      setLevels(result.levels.toString());
-      setProfitPerLevel(result.profitPercentage.toString());
+      setLowerLimit(calcLower.toFixed(6));
+      setUpperLimit(calcUpper.toFixed(6));
 
-      toast.success("Grid parameters calculated!", {
-        description: `Lower: ${result.lowerLimit.toFixed(6)} | Upper: ${result.upperLimit.toFixed(6)} | Levels: ${result.levels} | Profit: ${result.profitPercentage}%`
+      toast.success("Limits calculated!", {
+        description: `Lower: ${calcLower.toFixed(6)} | Upper: ${calcUpper.toFixed(6)}`
       });
     } catch (err: any) {
       console.error("Limits calculation error:", err);
-      toast.error("Failed to calculate grid parameters", {
+      toast.error("Failed to calculate limits", {
         description: err.message || "Please try again"
       });
     } finally {
@@ -149,9 +125,8 @@ export default function SmartGrid() {
   }, [segment, type]);
 
   // Fetch balances when exchange and segment change
-   React.useEffect(() => {
+  React.useEffect(() => {
     if (exchange && segment) {
-      console.log("Fetching balances for:", { exchange, segment, symbol });
       fetchBalances(exchange, segment).catch(err => {
         console.error("Failed to fetch balances:", err);
         toast.error("Failed to load balance", {
@@ -159,65 +134,26 @@ export default function SmartGrid() {
         });
       });
     }
-  }, [exchange, segment, symbol, fetchBalances]); // ✅ Added symbol to dependencies
+  }, [exchange, segment, fetchBalances]);
 
-  // ✅ Update available balance when symbol or balances change
+  // Update available balance
   React.useEffect(() => {
     if (symbol && balances.length > 0) {
-      console.log("Updating balance for symbol:", symbol);
-      console.log("Available balances:", balances);
+      const quoteAsset = symbol.replace(/^[A-Z]+/, '');
+      const balance = getBalanceByAsset(quoteAsset);
       
-      // Extract quote asset from symbol (e.g., BTCUSDT → USDT, 0GUSDT → USDT)
-      let quoteAsset = '';
-      const knownQuotes = ['USDT', 'USDC', 'BUSD', 'BTC', 'ETH', 'BNB', 'INR', 'TUSD', 'DAI', 'FDUSD'];
-      
-      // Sort by length descending to match longer quote assets first (e.g., USDT before USD)
-      const sortedQuotes = knownQuotes.sort((a, b) => b.length - a.length);
-      
-      for (const quote of sortedQuotes) {
-        if (symbol.toUpperCase().endsWith(quote)) {
-          quoteAsset = quote;
-          break;
-        }
-      }
-      
-      console.log("Extracted quote asset:", quoteAsset);
-      
-      if (quoteAsset) {
-        // ✅ Find balance where currency matches the quote asset
-        const balance = balances.find(b => b.currency?.toUpperCase() === quoteAsset);
-        console.log("Found balance for", quoteAsset, ":", balance);
-        
-        if (balance) {
-          // ✅ Use 'balance' field from API response
-          const availableAmount = typeof balance.balance === 'number' 
-            ? balance.balance 
-            : parseFloat(balance.balance || '0');
-          
-          setAvailableBalance(availableAmount.toFixed(2));
-          console.log("Set available balance to:", availableAmount.toFixed(2));
-          return;
-        }
-      }
-      
-      // Fallback to USDT if quote asset not found
-      const usdtBalance = balances.find(b => b.currency?.toUpperCase() === 'USDT');
-      if (usdtBalance) {
-        console.log("Using USDT balance as fallback:", usdtBalance);
-        const availableAmount = typeof usdtBalance.balance === 'number'
-          ? usdtBalance.balance
-          : parseFloat(usdtBalance.balance || '0');
-        setAvailableBalance(availableAmount.toFixed(2));
+      if (balance) {
+        setAvailableBalance(parseFloat(balance.free).toFixed(2));
       } else {
-        console.log("No USDT balance found, setting to 0");
-        setAvailableBalance("0");
+        const usdtBalance = getBalanceByAsset('USDT');
+        if (usdtBalance) {
+          setAvailableBalance(parseFloat(usdtBalance.free).toFixed(2));
+        } else {
+          setAvailableBalance("0");
+        }
       }
-    } else if (!symbol) {
-      console.log("No symbol selected, resetting balance");
-      setAvailableBalance("0");
     }
-  }, [symbol, balances]);
-
+  }, [symbol, balances, getBalanceByAsset]);
 
   // Validation
   const validateForm = () => {
@@ -347,27 +283,24 @@ export default function SmartGrid() {
     });
     
     try {
-      const formattedSymbol = formatSymbolForExchange(symbol, exchange); // ✅ Format symbol for logging
-      
       const strategyData: Omit<SmartGridStrategy, 'strategyType' | 'assetType'> = {
         name: strategyName,
         exchange: exchange,
         segment: segment,
-        symbol: symbol, // Store original symbol in state
-        investmentPerRun: Number(minimumInvestment),
-        investmentCap: Number(investment),
+        symbol: symbol,
+        investmentPerRun: Number(minimumInvestment),  // Will be converted to minimumInvestment
+        investmentCap: Number(investment),  // Will be converted to investment
         lowerLimit: Number(lowerLimit),
         upperLimit: Number(upperLimit),
         levels: Number(levels),
         profitPercentage: Number(profitPerLevel),
-        direction: type,
+        direction: type,  // Will be converted to type
         dataSetDays: Number(dataSet),
         gridMode: 'STATIC',
         executionMode: executionMode,
       };
       
       console.log("Smart Grid strategy data being sent:", strategyData);
-      console.log("Formatted symbol for API:", formattedSymbol); // ✅ Log formatted symbol
       
       await createSmartGrid(strategyData);
       
