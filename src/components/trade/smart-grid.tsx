@@ -75,29 +75,65 @@ export default function SmartGrid() {
   // Handlers for data set buttons
   const handleDataSetSelect = (val: string) => setDataSet(val);
 
-  // ✅ Calculate limits automatically when exchange, segment, symbol, or dataSet changes
-  React.useEffect(() => {
-    if (exchange && segment && symbol && dataSet) {
-      handleCalculateLimits();
-    }
-  }, [exchange, segment, symbol, dataSet]);
+  // ✅ Remove automatic calculation on mount
+  // React.useEffect(() => {
+  //   if (exchange && segment && symbol && dataSet) {
+  //     handleCalculateLimits();
+  //   }
+  // }, [exchange, segment, symbol, dataSet]);
 
-  // ✅ Calculate Smart Grid Limits
+  // ✅ Add new effect to calculate when investments are entered
+  React.useEffect(() => {
+    // Only calculate if all required fields including investments are filled
+    if (exchange && segment && symbol && dataSet && investment && minimumInvestment) {
+      const investmentNum = Number(investment);
+      const minimumInvestmentNum = Number(minimumInvestment);
+      
+      if (investmentNum > 0 && minimumInvestmentNum > 0 && minimumInvestmentNum <= investmentNum) {
+        handleCalculateLimits();
+      }
+    }
+  }, [exchange, segment, symbol, dataSet, investment, minimumInvestment]);
+
+  // ✅ Update Calculate Smart Grid Limits function
   const handleCalculateLimits = async () => {
-    if (!exchange || !segment || !symbol) {
+    if (!exchange || !segment || !symbol || !investment || !minimumInvestment) {
+      return;
+    }
+
+    const investmentNum = Number(investment);
+    const minimumInvestmentNum = Number(minimumInvestment);
+
+    if (investmentNum <= 0 || minimumInvestmentNum <= 0) {
+      return;
+    }
+
+    if (minimumInvestmentNum > investmentNum) {
+      toast.error("Invalid investment values", {
+        description: "Minimum investment cannot be greater than total investment"
+      });
       return;
     }
 
     setIsCalculatingLimits(true);
     
     try {
-      console.log("Calculating limits with:", { exchange, segment, symbol, dataSetDays: dataSet });
+      console.log("Calculating limits with:", { 
+        exchange, 
+        segment, 
+        symbol, 
+        dataSetDays: dataSet,
+        investment: investmentNum,
+        minimumInvestment: minimumInvestmentNum
+      });
       
       const { lowerLimit: calcLower, upperLimit: calcUpper } = await calculateSmartGridLimits(
         exchange,
         segment,
         symbol,
-        Number(dataSet)
+        Number(dataSet),
+        investmentNum,
+        minimumInvestmentNum
       );
 
       setLowerLimit(calcLower.toFixed(6));
