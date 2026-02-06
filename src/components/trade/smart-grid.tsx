@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from "react"
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, AlertCircle } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,11 +12,13 @@ import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { toast } from "sonner"
 import { useStrategyStore, SmartGridStrategy } from "@/stores/strategystore"
 import { ProceedPopup } from "@/components/dashboard/proceed-popup"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function SmartGrid() {
   const [isOpen, setIsOpen] = React.useState(true)
   const [showProceedPopup, setShowProceedPopup] = React.useState(false)
   const [, setIsCalculatingLimits] = React.useState(false)
+  const [showRequiredFieldsWarning, setShowRequiredFieldsWarning] = React.useState(false)
 
   // Account details from child component
   const [selectedApiId, setSelectedApiId] = useState<string>("");
@@ -154,6 +156,23 @@ export default function SmartGrid() {
       }
     }
   }, [symbol, balances, getBalanceByAsset]);
+
+  // ✅ Check for missing required fields and show warning
+  React.useEffect(() => {
+    const hasRequiredFields = exchange && segment && symbol && investment && minimumInvestment;
+    setShowRequiredFieldsWarning(!hasRequiredFields);
+  }, [exchange, segment, symbol, investment, minimumInvestment]);
+
+  // Get list of missing required fields
+  const getMissingFields = () => {
+    const missing = [];
+    if (!exchange) missing.push("Exchange");
+    if (!segment) missing.push("Segment");
+    if (!symbol) missing.push("Trading Pair");
+    if (!investment) missing.push("Investment");
+    if (!minimumInvestment) missing.push("Minimum Investment");
+    return missing;
+  };
 
   // Validation
   const validateForm = () => {
@@ -356,6 +375,17 @@ export default function SmartGrid() {
     <div className="w-full max-w-md mx-auto">
       <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
       
+      {/* ✅ Required Fields Warning */}
+      {showRequiredFieldsWarning && (
+        <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+          <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+          <AlertDescription className="text-amber-800 dark:text-amber-400">
+            <span className="font-semibold">Required fields missing:</span>
+            <span className="ml-1">{getMissingFields().join(", ")}</span>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 border border-t-0 font-medium text-white hover:bg-[#5A2525]">
@@ -400,8 +430,8 @@ export default function SmartGrid() {
                 Data Set
                 <span className="text-muted-foreground text-xs">ⓘ</span>
               </Label>
-              <div className="grid grid-cols-5 gap-2">
-                {['3','7','20', '30', '180', '365'].map((val, index) => (
+              <div className="grid grid-cols-3 gap-2">
+                {['30', '180', '365'].map((val, index) => (
                   <Button 
                     key={index} 
                     variant={dataSet === val ? "default" : "outline"} 
@@ -410,11 +440,7 @@ export default function SmartGrid() {
                     onClick={() => handleDataSetSelect(val)}
                     className={dataSet === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
                   >
-                    {val === '3' && index === 0 ? '3D' :
-                     val === '7' && index === 1 ? '7D' :
-                     val === '20' && index === 2 ? '20D' :
-                     val === '30' && index === 3 ? '30D' : 
-                     val === '180' ? '180D' : '365D'}
+                    {val}D
                   </Button>
                 ))}
               </div>
