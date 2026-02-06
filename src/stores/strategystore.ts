@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import apiClient from '@/api/apiClient';
 import { apiurls } from '@/api/apiurls';
+import { formatSymbolForExchange } from '@/lib/utils';
 
 // Strategy interface that matches API response
 export interface Strategy {
@@ -224,8 +225,15 @@ export interface StrategyState {
     exchange: string, 
     segment: string, 
     symbol: string, 
-    dataSetDays: number, 
-  ) => Promise<{ lowerLimit: number; upperLimit: number }>;
+    dataSetDays: number,
+    investment: number,
+    minimumInvestment: number
+  ) => Promise<{ 
+    lowerLimit: number; 
+    upperLimit: number;
+    levels: number;
+    profitPercentage: number;
+  }>;
 
   // Strategy Actions
   setStrategies: (strategies: Strategy[]) => void;
@@ -290,7 +298,7 @@ const convertToApiPayload = (strategy: GrowthDCAStrategy): GrowthDCAApiPayload =
     assetType: 'CRYPTO',
     exchange: strategy.exchange.toUpperCase(),
     segment: strategy.segment.toUpperCase(),
-    symbol: strategy.symbol.toUpperCase(),
+    symbol: formatSymbolForExchange(strategy.symbol, strategy.exchange), // ✅ Format symbol
     investmentPerRun: strategy.investmentPerRun,
     investmentCap: strategy.investmentCap,
     frequency: strategy.frequency.type.toUpperCase() as 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY',
@@ -347,7 +355,7 @@ const convertHumanGridToApiPayload = (strategy: HumanGridStrategy): HumanGridApi
     assetType: 'CRYPTO',
     exchange: strategy.exchange.toUpperCase(),
     segment: strategy.segment.toUpperCase(),
-    symbol: strategy.symbol.toUpperCase(),
+    symbol: formatSymbolForExchange(strategy.symbol, strategy.exchange), // ✅ Format symbol
     executionMode: strategy.executionMode || 'LIVE',
     investmentPerRun: strategy.investmentPerRun,
     investmentCap: strategy.investmentCap,
@@ -372,18 +380,17 @@ const convertSmartGridToApiPayload = (strategy: SmartGridStrategy): SmartGridApi
     assetType: 'CRYPTO',
     exchange: strategy.exchange.toUpperCase(),
     segment: strategy.segment.toUpperCase(),
-    symbol: strategy.symbol.toUpperCase(),
+    symbol: formatSymbolForExchange(strategy.symbol, strategy.exchange), // ✅ Format symbol
     executionMode: strategy.executionMode || 'LIVE',
-    type: strategy.direction,  // ✅ Map 'direction' to 'type' for API
+    type: strategy.direction,
     dataSetDays: strategy.dataSetDays,
     lowerLimit: strategy.lowerLimit,
     upperLimit: strategy.upperLimit,
     levels: strategy.levels,
     profitPercentage: strategy.profitPercentage,
-    investment: strategy.investmentCap,  // ✅ Map 'investmentCap' to 'investment'
-    minimumInvestment: strategy.investmentPerRun,  // ✅ Map 'investmentPerRun' to 'minimumInvestment'
+    investment: strategy.investmentCap,
+    minimumInvestment: strategy.investmentPerRun,
   };
-
 
   if (strategy.gridMode) {
     payload.gridMode = strategy.gridMode;
@@ -763,25 +770,36 @@ export const useStrategyStore = create<StrategyState>()(
         segment: string,
         symbol: string,
         dataSetDays: number,
+        investment: number,
+        minimumInvestment: number
       ) => {
         console.log("=== Calculating Smart Grid Limits ===");
-        console.log({ exchange, segment, symbol, dataSetDays});
+        console.log({ exchange, segment, symbol, dataSetDays, investment, minimumInvestment });
         
         try {
+          const formattedSymbol = formatSymbolForExchange(symbol, exchange); // ✅ Format symbol
+          
           const response = await apiClient.post(apiurls.strategies.limits, {
             exchange: exchange.toUpperCase(),
             segment: segment.toUpperCase(),
-            symbol: symbol.toUpperCase(),
+            symbol: formattedSymbol, // ✅ Use formatted symbol
             dataSetDays: dataSetDays,
-
+            investment: investment,
+            minimumInvestment: minimumInvestment,
           });
 
           console.log("Limits API Response:", response.data);
 
           if (response.data?.data) {
-            const { lowerLimit, upperLimit } = response.data.data;
-            console.log("Calculated limits:", { lowerLimit, upperLimit });
-            return { lowerLimit, upperLimit };
+            const { lowerLimit, upperLimit, levels, profitPercentage } = response.data.data;
+            console.log("Calculated limits:", { lowerLimit, upperLimit, levels, profitPercentage });
+            
+            return { 
+              lowerLimit, 
+              upperLimit,
+              levels,
+              profitPercentage
+            };
           }
 
           throw new Error('Invalid response from server');

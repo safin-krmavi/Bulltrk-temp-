@@ -12,6 +12,7 @@ import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { toast } from "sonner"
 import { useStrategyStore, SmartGridStrategy } from "@/stores/strategystore"
 import { ProceedPopup } from "@/components/dashboard/proceed-popup"
+import { formatSymbolForExchange } from "@/lib/utils"
 
 export default function SmartGrid() {
   const [isOpen, setIsOpen] = React.useState(true)
@@ -73,40 +74,63 @@ export default function SmartGrid() {
   // Handlers for data set buttons
   const handleDataSetSelect = (val: string) => setDataSet(val);
 
-  // ✅ Calculate limits automatically when exchange, segment, symbol, or dataSet changes
+  // ✅ Calculate limits automatically when all required fields are present
   React.useEffect(() => {
-    if (exchange && segment && symbol && dataSet) {
+    if (exchange && segment && symbol && dataSet && investment && minimumInvestment) {
       handleCalculateLimits();
     }
-  }, [exchange, segment, symbol, dataSet]);
+  }, [exchange, segment, symbol, dataSet, investment, minimumInvestment]);
 
-  // ✅ Calculate Smart Grid Limits
+  // ✅ Calculate Smart Grid Limits - Updated to show formatted symbol
   const handleCalculateLimits = async () => {
-    if (!exchange || !segment || !symbol) {
+    if (!exchange || !segment || !symbol || !investment || !minimumInvestment) {
+      return;
+    }
+
+    // Validate investment values
+    if (Number(minimumInvestment) > Number(investment)) {
+      toast.error("Invalid investment values", {
+        description: "Minimum investment cannot be greater than total investment"
+      });
       return;
     }
 
     setIsCalculatingLimits(true);
     
     try {
-      console.log("Calculating limits with:", { exchange, segment, symbol, dataSetDays: dataSet });
+      const formattedSymbol = formatSymbolForExchange(symbol, exchange); // ✅ Format symbol
       
-      const { lowerLimit: calcLower, upperLimit: calcUpper } = await calculateSmartGridLimits(
+      console.log("Calculating limits with:", { 
+        exchange, 
+        segment, 
+        symbol,
+        formattedSymbol, // ✅ Log formatted symbol
+        dataSetDays: dataSet,
+        investment,
+        minimumInvestment 
+      });
+      
+      const result = await calculateSmartGridLimits(
         exchange,
         segment,
         symbol,
-        Number(dataSet)
+        Number(dataSet),
+        Number(investment),
+        Number(minimumInvestment)
       );
 
-      setLowerLimit(calcLower.toFixed(6));
-      setUpperLimit(calcUpper.toFixed(6));
+      // ✅ Map response values to UI fields
+      setLowerLimit(result.lowerLimit.toFixed(6));
+      setUpperLimit(result.upperLimit.toFixed(6));
+      setLevels(result.levels.toString());
+      setProfitPerLevel(result.profitPercentage.toString());
 
-      toast.success("Limits calculated!", {
-        description: `Lower: ${calcLower.toFixed(6)} | Upper: ${calcUpper.toFixed(6)}`
+      toast.success("Grid parameters calculated!", {
+        description: `Lower: ${result.lowerLimit.toFixed(6)} | Upper: ${result.upperLimit.toFixed(6)} | Levels: ${result.levels} | Profit: ${result.profitPercentage}%`
       });
     } catch (err: any) {
       console.error("Limits calculation error:", err);
-      toast.error("Failed to calculate limits", {
+      toast.error("Failed to calculate grid parameters", {
         description: err.message || "Please try again"
       });
     } finally {
@@ -283,24 +307,27 @@ export default function SmartGrid() {
     });
     
     try {
+      const formattedSymbol = formatSymbolForExchange(symbol, exchange); // ✅ Format symbol for logging
+      
       const strategyData: Omit<SmartGridStrategy, 'strategyType' | 'assetType'> = {
         name: strategyName,
         exchange: exchange,
         segment: segment,
-        symbol: symbol,
-        investmentPerRun: Number(minimumInvestment),  // Will be converted to minimumInvestment
-        investmentCap: Number(investment),  // Will be converted to investment
+        symbol: symbol, // Store original symbol in state
+        investmentPerRun: Number(minimumInvestment),
+        investmentCap: Number(investment),
         lowerLimit: Number(lowerLimit),
         upperLimit: Number(upperLimit),
         levels: Number(levels),
         profitPercentage: Number(profitPerLevel),
-        direction: type,  // Will be converted to type
+        direction: type,
         dataSetDays: Number(dataSet),
         gridMode: 'STATIC',
         executionMode: executionMode,
       };
       
       console.log("Smart Grid strategy data being sent:", strategyData);
+      console.log("Formatted symbol for API:", formattedSymbol); // ✅ Log formatted symbol
       
       await createSmartGrid(strategyData);
       
@@ -401,7 +428,7 @@ export default function SmartGrid() {
                 <span className="text-muted-foreground text-xs">ⓘ</span>
               </Label>
               <div className="grid grid-cols-5 gap-2">
-                {['30', '7', '30', '180', '365'].map((val, index) => (
+                {['3','7','20', '30', '180', '365'].map((val, index) => (
                   <Button 
                     key={index} 
                     variant={dataSet === val ? "default" : "outline"} 
@@ -410,9 +437,10 @@ export default function SmartGrid() {
                     onClick={() => handleDataSetSelect(val)}
                     className={dataSet === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
                   >
-                    {val === '30' && index === 0 ? '30D' : 
-                     val === '7' ? '7D' : 
-                     val === '30' && index === 2 ? '30D' : 
+                    {val === '3' && index === 0 ? '3D' :
+                     val === '7' && index === 1 ? '7D' :
+                     val === '20' && index === 2 ? '20D' :
+                     val === '30' && index === 3 ? '30D' : 
                      val === '180' ? '180D' : '365D'}
                   </Button>
                 ))}

@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from "clsx"
+import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
@@ -39,5 +39,34 @@ export function generateMockData(count: number) {
     pl: i % 3 === 0 ? 89 : i % 4 === 0 ? -900 : -88,
     transactionId: '1234GHY'
   }))
+}
+
+// ✅ Add symbol formatting utility for different exchanges
+export function formatSymbolForExchange(symbol: string, exchange: string): string {
+  if (!symbol) return symbol;
+
+  const ex = exchange.toUpperCase();
+
+  // CoinDCX format → B-BASE_QUOTE (e.g. POLUSDT → B-POL_USDT)
+  if (ex === 'COINDCX') {
+    // Already formatted
+    if (symbol.startsWith('B-') && symbol.includes('_')) {
+      return symbol;
+    }
+
+    const knownQuotes = ['USDT', 'INR', 'BTC', 'ETH'];
+
+    for (const quote of knownQuotes) {
+      if (symbol.endsWith(quote)) {
+        const base = symbol.replace(quote, '');
+        return `B-${base}_${quote}`;
+      }
+    }
+
+    console.warn('CoinDCX: Unable to auto-format symbol:', symbol);
+  }
+
+  // Binance and KuCoin use standard format (BTCUSDT)
+  return symbol;
 }
 
