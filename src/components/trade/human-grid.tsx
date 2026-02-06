@@ -284,6 +284,7 @@ export default function HumanGrid() {
   // Fetch balances when exchange and segment change
   React.useEffect(() => {
     if (exchange && segment) {
+      console.log("Fetching balances for:", { exchange, segment, symbol });
       fetchBalances(exchange, segment).catch(err => {
         console.error("Failed to fetch balances:", err);
         toast.error("Failed to load balance", {
@@ -291,24 +292,64 @@ export default function HumanGrid() {
         });
       });
     }
-  }, [exchange, segment, fetchBalances]);
+  }, [exchange, segment, symbol, fetchBalances]); // ✅ Added symbol to dependencies
 
-  // Update available balance when symbol or balances change
+  // ✅ Update available balance when symbol or balances change
   React.useEffect(() => {
     if (symbol && balances.length > 0) {
-      const quoteAsset = symbol.replace(/^[A-Z]+/, '');
-      const balance = getBalanceByAsset(quoteAsset);
+      console.log("Updating balance for symbol:", symbol);
+      console.log("Available balances:", balances);
       
-      if (balance) {
-        setAvailableBalance(parseFloat(balance.free).toFixed(2));
-      } else {
-        const usdtBalance = getBalanceByAsset('USDT');
-        if (usdtBalance) {
-          setAvailableBalance(parseFloat(usdtBalance.free).toFixed(2));
-        } else {
-          setAvailableBalance("0");
+      // Extract both base and quote asset from symbol (e.g., 0GUSDT → base: 0G, quote: USDT)
+      let baseAsset = '';
+      let quoteAsset = '';
+      const knownQuotes = ['USDT', 'USDC', 'BUSD', 'BTC', 'ETH', 'BNB', 'INR'];
+      
+      // Find the quote asset
+      for (const quote of knownQuotes) {
+        if (symbol.toUpperCase().endsWith(quote)) {
+          quoteAsset = quote;
+          baseAsset = symbol.slice(0, -quote.length); // Extract base asset by removing quote
+          break;
         }
       }
+      
+      console.log("Extracted assets:", { baseAsset, quoteAsset });
+      
+      // Priority 1: Try to find the quote asset balance (USDT, BTC, etc.)
+      if (quoteAsset) {
+        const quoteBalance = getBalanceByAsset(quoteAsset);
+        console.log("Found balance for quote asset", quoteAsset, ":", quoteBalance);
+        
+        if (quoteBalance && parseFloat(quoteBalance.free) > 0) {
+          setAvailableBalance(parseFloat(quoteBalance.free).toFixed(2));
+          return;
+        }
+      }
+      
+      // Priority 2: Try to find the base asset balance (0G, BTC, etc.)
+      if (baseAsset) {
+        const baseBalance = getBalanceByAsset(baseAsset);
+        console.log("Found balance for base asset", baseAsset, ":", baseBalance);
+        
+        if (baseBalance && parseFloat(baseBalance.free) > 0) {
+          setAvailableBalance(parseFloat(baseBalance.free).toFixed(6)); // More decimals for base asset
+          return;
+        }
+      }
+      
+      // Priority 3: Fallback to USDT if neither found
+      const usdtBalance = getBalanceByAsset('USDT');
+      if (usdtBalance) {
+        console.log("Using USDT balance as fallback:", usdtBalance);
+        setAvailableBalance(parseFloat(usdtBalance.free).toFixed(2));
+      } else {
+        console.log("No balance found, setting to 0");
+        setAvailableBalance("0");
+      }
+    } else if (!symbol) {
+      console.log("No symbol selected, resetting balance");
+      setAvailableBalance("0");
     }
   }, [symbol, balances, getBalanceByAsset]);
 

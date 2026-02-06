@@ -149,8 +149,9 @@ export default function SmartGrid() {
   }, [segment, type]);
 
   // Fetch balances when exchange and segment change
-  React.useEffect(() => {
+   React.useEffect(() => {
     if (exchange && segment) {
+      console.log("Fetching balances for:", { exchange, segment, symbol });
       fetchBalances(exchange, segment).catch(err => {
         console.error("Failed to fetch balances:", err);
         toast.error("Failed to load balance", {
@@ -158,26 +159,65 @@ export default function SmartGrid() {
         });
       });
     }
-  }, [exchange, segment, fetchBalances]);
+  }, [exchange, segment, symbol, fetchBalances]); // ✅ Added symbol to dependencies
 
-  // Update available balance
+  // ✅ Update available balance when symbol or balances change
   React.useEffect(() => {
     if (symbol && balances.length > 0) {
-      const quoteAsset = symbol.replace(/^[A-Z]+/, '');
-      const balance = getBalanceByAsset(quoteAsset);
+      console.log("Updating balance for symbol:", symbol);
+      console.log("Available balances:", balances);
       
-      if (balance) {
-        setAvailableBalance(parseFloat(balance.free).toFixed(2));
-      } else {
-        const usdtBalance = getBalanceByAsset('USDT');
-        if (usdtBalance) {
-          setAvailableBalance(parseFloat(usdtBalance.free).toFixed(2));
-        } else {
-          setAvailableBalance("0");
+      // Extract quote asset from symbol (e.g., BTCUSDT → USDT, 0GUSDT → USDT)
+      let quoteAsset = '';
+      const knownQuotes = ['USDT', 'USDC', 'BUSD', 'BTC', 'ETH', 'BNB', 'INR', 'TUSD', 'DAI', 'FDUSD'];
+      
+      // Sort by length descending to match longer quote assets first (e.g., USDT before USD)
+      const sortedQuotes = knownQuotes.sort((a, b) => b.length - a.length);
+      
+      for (const quote of sortedQuotes) {
+        if (symbol.toUpperCase().endsWith(quote)) {
+          quoteAsset = quote;
+          break;
         }
       }
+      
+      console.log("Extracted quote asset:", quoteAsset);
+      
+      if (quoteAsset) {
+        // ✅ Find balance where currency matches the quote asset
+        const balance = balances.find(b => b.currency?.toUpperCase() === quoteAsset);
+        console.log("Found balance for", quoteAsset, ":", balance);
+        
+        if (balance) {
+          // ✅ Use 'balance' field from API response
+          const availableAmount = typeof balance.balance === 'number' 
+            ? balance.balance 
+            : parseFloat(balance.balance || '0');
+          
+          setAvailableBalance(availableAmount.toFixed(2));
+          console.log("Set available balance to:", availableAmount.toFixed(2));
+          return;
+        }
+      }
+      
+      // Fallback to USDT if quote asset not found
+      const usdtBalance = balances.find(b => b.currency?.toUpperCase() === 'USDT');
+      if (usdtBalance) {
+        console.log("Using USDT balance as fallback:", usdtBalance);
+        const availableAmount = typeof usdtBalance.balance === 'number'
+          ? usdtBalance.balance
+          : parseFloat(usdtBalance.balance || '0');
+        setAvailableBalance(availableAmount.toFixed(2));
+      } else {
+        console.log("No USDT balance found, setting to 0");
+        setAvailableBalance("0");
+      }
+    } else if (!symbol) {
+      console.log("No symbol selected, resetting balance");
+      setAvailableBalance("0");
     }
-  }, [symbol, balances, getBalanceByAsset]);
+  }, [symbol, balances]);
+
 
   // Validation
   const validateForm = () => {

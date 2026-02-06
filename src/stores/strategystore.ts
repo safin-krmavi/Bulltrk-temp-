@@ -193,10 +193,13 @@ export interface SymbolTypeData {
 }
 
 export interface BalanceData {
-  asset: string;
-  free: string;
-  locked: string;
-  total: string;
+  asset?: string;  // ✅ Made optional
+  currency?: string;  // ✅ Added currency field (Binance uses this)
+  free?: string;  // ✅ Made optional
+  balance?: number;  // ✅ Added balance field (Binance uses this)
+  locked?: string;  // ✅ Made optional
+  lockedBalance?: number;  // ✅ Added lockedBalance field (Binance uses this)
+  total?: string;
 }
 
 export interface StrategyState {
@@ -738,7 +741,7 @@ export const useStrategyStore = create<StrategyState>()(
         return exchangeData.data;
       },
 
-      // Fetch Balances
+      // Fetch Balances - Updated to handle different response formats
       fetchBalances: async (exchange: string, type: string) => {
         set({ isLoadingBalances: true, balancesError: null });
         try {
@@ -747,8 +750,22 @@ export const useStrategyStore = create<StrategyState>()(
             type: type.toUpperCase(),
           });
 
-          if (response.data?.data?.balances) {
-            set({ balances: response.data.data.balances, isLoadingBalances: false });
+          console.log("Balance API Response:", response.data);
+
+          if (response.data?.data) {
+            // Handle both array of balances and nested balances object
+            let balancesArray = [];
+            
+            if (Array.isArray(response.data.data)) {
+              balancesArray = response.data.data;
+            } else if (response.data.data.balances && Array.isArray(response.data.data.balances)) {
+              balancesArray = response.data.data.balances;
+            } else {
+              balancesArray = [response.data.data];
+            }
+            
+            console.log("Processed balances:", balancesArray);
+            set({ balances: balancesArray, isLoadingBalances: false });
           } else {
             set({ balances: [], isLoadingBalances: false });
           }
