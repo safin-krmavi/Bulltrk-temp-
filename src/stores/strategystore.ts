@@ -224,14 +224,13 @@ export interface StrategyState {
     exchange: string, 
     segment: string, 
     symbol: string, 
-    dataSetDays: number,
-    investment: number
+    dataSetDays: number
   ) => Promise<{ 
     lowerLimit: number; 
     upperLimit: number;
     levels: number;
     profitPercentage: number;
-    minimumInvestment: number;  // Still returned by API
+    minimumInvestment: number;
   }>;
 
   // Strategy Actions
@@ -769,11 +768,10 @@ export const useStrategyStore = create<StrategyState>()(
         exchange: string,
         segment: string,
         symbol: string,
-        dataSetDays: number,
-        investment: number
+        dataSetDays: number
       ) => {
         console.log("=== Calculating Smart Grid Limits ===");
-        console.log({ exchange, segment, symbol, dataSetDays, investment });
+        console.log({ exchange, segment, symbol, dataSetDays });
         
         try {
           const response = await apiClient.post(apiurls.strategies.limits, {
@@ -781,8 +779,7 @@ export const useStrategyStore = create<StrategyState>()(
             segment: segment.toUpperCase(),
             symbol: symbol.toUpperCase(),
             dataSetDays: dataSetDays,
-            investment: investment,
-            // ✅ Removed minimumInvestment from request
+            // ✅ Removed investment from request
           });
 
           console.log("Limits API Response:", response.data);
@@ -794,7 +791,7 @@ export const useStrategyStore = create<StrategyState>()(
               upperLimit, 
               levels, 
               profitPercentage,
-              minimumInvestment: calculatedMinInvestment  // ✅ API calculates this now
+              minimumInvestment: calculatedMinInvestment
             } = response.data.data;
             
             console.log("Calculated limits:", { 
@@ -805,7 +802,7 @@ export const useStrategyStore = create<StrategyState>()(
               minimumInvestment: calculatedMinInvestment
             });
             
-            // ✅ Return all calculated values including the API-calculated minimumInvestment
+            // ✅ Return all calculated values
             return { 
               lowerLimit, 
               upperLimit, 

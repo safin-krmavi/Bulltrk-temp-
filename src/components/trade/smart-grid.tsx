@@ -82,27 +82,17 @@ export default function SmartGrid() {
   //   }
   // }, [exchange, segment, symbol, dataSet]);
 
-  // ✅ Update effect to calculate when only investment is entered (not minimumInvestment)
+  // ✅ Update effect to calculate when exchange, segment, symbol, and dataSet are filled
   React.useEffect(() => {
-    // Only calculate if all required fields including investment are filled
-    if (exchange && segment && symbol && dataSet && investment) {
-      const investmentNum = Number(investment);
-      
-      if (investmentNum > 0) {
-        handleCalculateLimits();
-      }
+    // Calculate limits as soon as we have the required fields
+    if (exchange && segment && symbol && dataSet) {
+      handleCalculateLimits();
     }
-  }, [exchange, segment, symbol, dataSet, investment]);  // ✅ Removed minimumInvestment dependency
+  }, [exchange, segment, symbol, dataSet]);  // ✅ Removed investment dependency
 
-  // ✅ Update Calculate Smart Grid Limits function
+  // ✅ Update Calculate Smart Grid Limits function - Remove investment requirement
   const handleCalculateLimits = async () => {
-    if (!exchange || !segment || !symbol || !investment) {
-      return;
-    }
-
-    const investmentNum = Number(investment);
-
-    if (investmentNum <= 0) {
+    if (!exchange || !segment || !symbol) {
       return;
     }
 
@@ -114,24 +104,22 @@ export default function SmartGrid() {
         segment, 
         symbol, 
         dataSetDays: dataSet,
-        investment: investmentNum,
-        // ✅ Removed minimumInvestment from request
+        // ✅ Removed investment from log
       });
       
-      // ✅ Call API without minimumInvestment parameter
+      // ✅ Call API without investment parameter
       const { 
         lowerLimit: calcLower, 
         upperLimit: calcUpper,
         levels: calcLevels,
         profitPercentage: calcProfitPercentage,
-        minimumInvestment: calcMinimumInvestment  // ✅ API returns calculated value
+        minimumInvestment: calcMinimumInvestment
       } = await calculateSmartGridLimits(
         exchange,
         segment,
         symbol,
-        Number(dataSet),
-        investmentNum
-        // ✅ Removed minimumInvestment parameter
+        Number(dataSet)
+        // ✅ Removed investment parameter
       );
 
       // ✅ Update all fields with calculated values
@@ -139,7 +127,7 @@ export default function SmartGrid() {
       setUpperLimit(calcUpper.toFixed(6));
       setLevels(calcLevels.toString());
       setProfitPerLevel(calcProfitPercentage.toString());
-      setMinimumInvestment(calcMinimumInvestment.toString());  // ✅ Set from API response
+      setMinimumInvestment(calcMinimumInvestment.toString());
 
       toast.success("Smart Grid parameters calculated!", {
         description: `Limits: ${calcLower.toFixed(6)} - ${calcUpper.toFixed(6)} | Levels: ${calcLevels} | Profit: ${calcProfitPercentage}% | Min Investment: ${calcMinimumInvestment}`
@@ -279,19 +267,19 @@ export default function SmartGrid() {
     return true;
   };
 
-  // ✅ Update required fields warning
+  // ✅ Update required fields warning - Remove investment from check
   React.useEffect(() => {
-    const hasRequiredFields = exchange && segment && symbol && investment;  // ✅ Removed minimumInvestment
+    const hasRequiredFields = exchange && segment && symbol;  // ✅ Removed investment
     setShowRequiredFieldsWarning(!hasRequiredFields);
-  }, [exchange, segment, symbol, investment]);  // ✅ Removed minimumInvestment dependency
+  }, [exchange, segment, symbol]);  // ✅ Removed investment dependency
 
-  // ✅ Update missing fields list
+  // ✅ Update missing fields list - Remove investment
   const getMissingFields = () => {
     const missing = [];
     if (!exchange) missing.push("Exchange");
     if (!segment) missing.push("Segment");
     if (!symbol) missing.push("Trading Pair");
-    if (!investment) missing.push("Investment");
+    // ✅ Removed investment from required fields
     return missing;
   };
 
