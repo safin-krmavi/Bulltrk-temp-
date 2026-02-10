@@ -225,13 +225,13 @@ export interface StrategyState {
     segment: string, 
     symbol: string, 
     dataSetDays: number,
-    investment: number,
-    minimumInvestment: number
+    investment: number
   ) => Promise<{ 
     lowerLimit: number; 
     upperLimit: number;
     levels: number;
     profitPercentage: number;
+    minimumInvestment: number;  // Still returned by API
   }>;
 
   // Strategy Actions
@@ -770,11 +770,10 @@ export const useStrategyStore = create<StrategyState>()(
         segment: string,
         symbol: string,
         dataSetDays: number,
-        investment: number,
-        minimumInvestment: number
+        investment: number
       ) => {
         console.log("=== Calculating Smart Grid Limits ===");
-        console.log({ exchange, segment, symbol, dataSetDays, investment, minimumInvestment });
+        console.log({ exchange, segment, symbol, dataSetDays, investment });
         
         try {
           const response = await apiClient.post(apiurls.strategies.limits, {
@@ -783,33 +782,36 @@ export const useStrategyStore = create<StrategyState>()(
             symbol: symbol.toUpperCase(),
             dataSetDays: dataSetDays,
             investment: investment,
-            minimumInvestment: minimumInvestment
+            // ✅ Removed minimumInvestment from request
           });
 
           console.log("Limits API Response:", response.data);
 
           if (response.data?.data) {
-            // ✅ Extract only the fields we need from the response
+            // ✅ Extract all fields including the calculated minimumInvestment
             const { 
               lowerLimit, 
               upperLimit, 
               levels, 
-              profitPercentage 
+              profitPercentage,
+              minimumInvestment: calculatedMinInvestment  // ✅ API calculates this now
             } = response.data.data;
             
             console.log("Calculated limits:", { 
               lowerLimit, 
               upperLimit, 
               levels, 
-              profitPercentage 
+              profitPercentage,
+              minimumInvestment: calculatedMinInvestment
             });
             
-            // ✅ Return all calculated values
+            // ✅ Return all calculated values including the API-calculated minimumInvestment
             return { 
               lowerLimit, 
               upperLimit, 
               levels, 
-              profitPercentage 
+              profitPercentage,
+              minimumInvestment: calculatedMinInvestment
             };
           }
 
