@@ -292,7 +292,6 @@ export default function SmartGrid() {
     if (!segment) missing.push("Segment");
     if (!symbol) missing.push("Trading Pair");
     if (!investment) missing.push("Investment");
-    // ✅ Removed minimumInvestment from required fields
     return missing;
   };
 
@@ -625,11 +624,10 @@ export default function SmartGrid() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Minimum Investment
-                <span className="text-xs text-blue-500">(Auto-calculated)</span>
               </Label>
               <div className="flex gap-2">
                 <Input 
-                  placeholder="Calculated automatically" 
+                  placeholder="Value" 
                   value={minimumInvestment} 
                   onChange={e => setMinimumInvestment(e.target.value)} 
                   type="number"
@@ -645,9 +643,6 @@ export default function SmartGrid() {
                   </SelectContent>
                 </Select>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Automatically calculated per grid level based on investment and levels
-              </p>
             </div>
           </CollapsibleContent>
         </Collapsible>
