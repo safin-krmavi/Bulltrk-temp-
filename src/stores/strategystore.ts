@@ -114,6 +114,31 @@ export interface SmartGridStrategy {
   updatedAt?: string;
 }
 
+// ✅ Add UTC Strategy interface
+export interface UTCStrategy {
+  id?: string;
+  name: string;
+  strategyType: 'UTC';
+  assetType: 'CRYPTO';
+  exchange: string;
+  segment: string;
+  symbol: string;
+  executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED';
+  timeFrame: string;
+  investmentPerRun: number;
+  investmentCap: number;
+  leverage?: number;
+  lowerLimit?: number;
+  upperLimit?: number;
+  priceStart?: number;
+  priceStop?: number;
+  stopLossPct?: number;
+  takeProfitPct?: number;
+  status?: 'active' | 'paused' | 'stopped';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // API payload interface - matches the CURL structure
 interface GrowthDCAApiPayload {
   name: string;
@@ -175,6 +200,27 @@ interface SmartGridApiPayload {
   stopLossPct?: number;
 }
 
+// ✅ UTC API payload interface
+interface UTCApiPayload {
+  name: string;
+  strategyType: 'UTC';
+  assetType: 'CRYPTO';
+  exchange: string;
+  segment: string;
+  symbol: string;
+  executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED';
+  timeFrame: string;
+  investmentPerRun: number;
+  investmentCap: number;
+  leverage?: number;
+  lowerLimit?: number;
+  upperLimit?: number;
+  priceStart?: number;
+  priceStop?: number;
+  stopLossPct?: number;
+  takeProfitPct?: number;
+}
+
 export interface Symbol {
   symbol: string;
   base: string;
@@ -203,8 +249,9 @@ export interface StrategyState {
   strategies: Strategy[];
   growthDCAStrategies: GrowthDCAStrategy[];
   humanGridStrategies: HumanGridStrategy[];
-  smartGridStrategies: SmartGridStrategy[];  // ✅ Add Smart Grid array
-  currentStrategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | null;
+  smartGridStrategies: SmartGridStrategy[];
+  utcStrategies: UTCStrategy[];  // ✅ Add UTC array
+  currentStrategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy | null;
   isLoading: boolean;
   error: string | null;
 
@@ -231,12 +278,13 @@ export interface StrategyState {
     levels: number;
     profitPercentage: number;
     minimumInvestment: number;
+    investment: number;  // ✅ Add investment to return type
   }>;
 
   // Strategy Actions
   setStrategies: (strategies: Strategy[]) => void;
-  setCurrentStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | null) => void;
-  addStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy) => void;
+  setCurrentStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy | null) => void;
+  addStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy) => void;
   updateStrategy: (id: string, updates: Partial<Strategy>) => void;
   removeStrategy: (id: string) => void;
   setLoading: (loading: boolean) => void;
@@ -261,7 +309,8 @@ export interface StrategyState {
   fetchStrategyById: (id: string) => Promise<Strategy>;
   createGrowthDCA: (strategy: Omit<GrowthDCAStrategy, 'strategyType' | 'assetType'>) => Promise<GrowthDCAStrategy>;
   createHumanGrid: (strategy: Omit<HumanGridStrategy, 'strategyType' | 'assetType'>) => Promise<HumanGridStrategy>;
-  createSmartGrid: (strategy: Omit<SmartGridStrategy, 'strategyType' | 'assetType'>) => Promise<SmartGridStrategy>;  // ✅ Add Smart Grid method
+  createSmartGrid: (strategy: Omit<SmartGridStrategy, 'strategyType' | 'assetType'>) => Promise<SmartGridStrategy>;
+  createUTC: (strategy: Omit<UTCStrategy, 'strategyType' | 'assetType'>) => Promise<UTCStrategy>;  // ✅ Add UTC method
   updateStrategyById: (id: string, updates: Partial<Strategy>) => Promise<Strategy>;
   deleteStrategyById: (id: string) => Promise<void>;
 
@@ -401,6 +450,54 @@ const convertSmartGridToApiPayload = (strategy: SmartGridStrategy): SmartGridApi
 
   return payload;
 };
+
+// ✅ Helper function to convert UTC strategy to API payload
+const convertUTCToApiPayload = (strategy: UTCStrategy): UTCApiPayload => {
+  const payload: UTCApiPayload = {
+    name: strategy.name,
+    strategyType: 'UTC',
+    assetType: 'CRYPTO',
+    exchange: strategy.exchange.toUpperCase(),
+    segment: strategy.segment.toUpperCase(),
+    symbol: strategy.symbol.toUpperCase(),
+    executionMode: strategy.executionMode || 'LIVE',
+    timeFrame: strategy.timeFrame,
+    investmentPerRun: strategy.investmentPerRun,
+    investmentCap: strategy.investmentCap,
+  };
+
+  // Add optional fields if they exist
+  if (strategy.leverage != null && strategy.leverage > 0) {
+    payload.leverage = strategy.leverage;
+  }
+
+  if (strategy.lowerLimit != null && strategy.lowerLimit > 0) {
+    payload.lowerLimit = strategy.lowerLimit;
+  }
+
+  if (strategy.upperLimit != null && strategy.upperLimit > 0) {
+    payload.upperLimit = strategy.upperLimit;
+  }
+
+  if (strategy.priceStart != null && strategy.priceStart > 0) {
+    payload.priceStart = strategy.priceStart;
+  }
+
+  if (strategy.priceStop != null && strategy.priceStop > 0) {
+    payload.priceStop = strategy.priceStop;
+  }
+
+  if (strategy.stopLossPct != null && strategy.stopLossPct > 0) {
+    payload.stopLossPct = strategy.stopLossPct;
+  }
+
+  if (strategy.takeProfitPct != null && strategy.takeProfitPct > 0) {
+    payload.takeProfitPct = strategy.takeProfitPct;
+  }
+
+  return payload;
+};
+
 export const useStrategyStore = create<StrategyState>()(
   persist(
     (set, get) => ({
@@ -408,7 +505,8 @@ export const useStrategyStore = create<StrategyState>()(
       strategies: [],
       growthDCAStrategies: [],
       humanGridStrategies: [],
-      smartGridStrategies: [],  // ✅ Initialize Smart Grid array
+      smartGridStrategies: [],
+      utcStrategies: [],  // ✅ Initialize UTC array
       currentStrategy: null,
       isLoading: false,
       error: null,
@@ -426,13 +524,16 @@ export const useStrategyStore = create<StrategyState>()(
 
       // Strategy State Setters
       setStrategies: (strategies: Strategy[]) => set({ strategies }),
-      setCurrentStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | null) => set({ currentStrategy: strategy }),
-      addStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy) => set((state) => {
+      setCurrentStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy | null) => set({ currentStrategy: strategy }),
+      addStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy) => set((state) => {
         if (strategy.strategyType === 'HUMAN_GRID') {
           return { humanGridStrategies: [...state.humanGridStrategies, strategy as HumanGridStrategy] };
         }
         if (strategy.strategyType === 'SMART_GRID') {
           return { smartGridStrategies: [...state.smartGridStrategies, strategy as SmartGridStrategy] };
+        }
+        if (strategy.strategyType === 'UTC') {
+          return { utcStrategies: [...state.utcStrategies, strategy as UTCStrategy] };
         }
         return { growthDCAStrategies: [...state.growthDCAStrategies, strategy as GrowthDCAStrategy] };
       }),
@@ -628,6 +729,47 @@ export const useStrategyStore = create<StrategyState>()(
         }
       },
 
+      // ✅ Create UTC Strategy
+      createUTC: async (strategyInput: Omit<UTCStrategy, 'strategyType' | 'assetType'>) => {
+        console.log("=== Creating UTC Strategy ===");
+        set({ isLoading: true, error: null });
+        
+        try {
+          const strategy: UTCStrategy = {
+            ...strategyInput,
+            strategyType: 'UTC',
+            assetType: 'CRYPTO',
+          };
+
+          const apiPayload = convertUTCToApiPayload(strategy);
+          console.log("UTC API Payload:", JSON.stringify(apiPayload, null, 2));
+
+          const response = await apiClient.post(apiurls.strategies.create, apiPayload);
+
+          console.log("API Response:", response.data);
+
+          if (response.data?.data) {
+            const newStrategy = response.data.data as UTCStrategy;
+            get().addStrategy(newStrategy);
+            set({ isLoading: false });
+            
+            // Refresh strategies list
+            await get().fetchStrategies();
+            
+            console.log("UTC strategy created successfully:", newStrategy);
+            return newStrategy;
+          }
+
+          throw new Error('Invalid response from server');
+        } catch (error: any) {
+          const errorMessage = error.response?.data?.message || error.message || 'Failed to create UTC strategy';
+          console.error("Failed to create UTC strategy:", error);
+          console.error("Error response:", error.response?.data);
+          set({ error: errorMessage, isLoading: false });
+          throw new Error(errorMessage);
+        }
+      },
+
       // Update Strategy by ID
       updateStrategyById: async (id: string, updates: Partial<Strategy>) => {
         set({ isLoading: true, error: null });
@@ -779,19 +921,19 @@ export const useStrategyStore = create<StrategyState>()(
             segment: segment.toUpperCase(),
             symbol: symbol.toUpperCase(),
             dataSetDays: dataSetDays,
-            // ✅ Removed investment from request
           });
 
           console.log("Limits API Response:", response.data);
 
           if (response.data?.data) {
-            // ✅ Extract all fields including the calculated minimumInvestment
+            // ✅ Extract all fields including investment
             const { 
               lowerLimit, 
               upperLimit, 
               levels, 
               profitPercentage,
-              minimumInvestment: calculatedMinInvestment
+              minimumInvestment: calculatedMinInvestment,
+              investment: calculatedInvestment  // ✅ Extract investment from API
             } = response.data.data;
             
             console.log("Calculated limits:", { 
@@ -799,16 +941,18 @@ export const useStrategyStore = create<StrategyState>()(
               upperLimit, 
               levels, 
               profitPercentage,
-              minimumInvestment: calculatedMinInvestment
+              minimumInvestment: calculatedMinInvestment,
+              investment: calculatedInvestment  // ✅ Log investment
             });
             
-            // ✅ Return all calculated values
+            // ✅ Return all calculated values including investment
             return { 
               lowerLimit, 
               upperLimit, 
               levels, 
               profitPercentage,
-              minimumInvestment: calculatedMinInvestment
+              minimumInvestment: calculatedMinInvestment,
+              investment: calculatedInvestment  // ✅ Return investment
             };
           }
 
@@ -828,6 +972,7 @@ export const useStrategyStore = create<StrategyState>()(
         growthDCAStrategies: state.growthDCAStrategies,
         humanGridStrategies: state.humanGridStrategies,
         smartGridStrategies: state.smartGridStrategies,
+        utcStrategies: state.utcStrategies,
         currentStrategy: state.currentStrategy,
         symbolsData: state.symbolsData,
         lastFetched: state.lastFetched,

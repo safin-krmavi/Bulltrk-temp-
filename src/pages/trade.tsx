@@ -1,8 +1,9 @@
 import GrowthDCA from '@/components/trade/growth-dca';
 import HumanGrid from '@/components/trade/human-grid';
 // import IndyLESI from '@/components/trade/indie-lesi';
-// import IndyTrend from '@/components/trade/indy-trend';
+import IndyTrend from '@/components/trade/indy-trend';
 // import PriceAction from '@/components/trade/price-action';
+ import IndyUTC from '@/components/trade/indy-utc';
 import SmartGrid from '@/components/trade/smart-grid';
 import { TradeConfirmationDialog } from '@/components/trade/trade-confirmation-dialog';
 import { Button } from "@/components/ui/button";
@@ -311,7 +312,10 @@ export default function TradePage() {
       </div>}
       {pathName !== "/trade" &&<div className="max-w-[400px] w-full h-full mx-auto p-4 space-y-4">
       {
-        // pathName === "/indie-trend" && <IndyTrend /> 
+        pathName === "/indie-trend" && <IndyTrend /> 
+      }
+     {
+        pathName === "/indy-utc" && <IndyUTC /> 
       }
       {
         pathName === "/growth-dca" && <GrowthDCA /> 

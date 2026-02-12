@@ -90,7 +90,7 @@ export default function SmartGrid() {
     }
   }, [exchange, segment, symbol, dataSet]);  // ✅ Removed investment dependency
 
-  // ✅ Update Calculate Smart Grid Limits function - Remove investment requirement
+  // ✅ Update Calculate Smart Grid Limits function to receive and map investment
   const handleCalculateLimits = async () => {
     if (!exchange || !segment || !symbol) {
       return;
@@ -104,33 +104,33 @@ export default function SmartGrid() {
         segment, 
         symbol, 
         dataSetDays: dataSet,
-        // ✅ Removed investment from log
       });
       
-      // ✅ Call API without investment parameter
+      // ✅ Call API and receive investment value
       const { 
         lowerLimit: calcLower, 
         upperLimit: calcUpper,
         levels: calcLevels,
         profitPercentage: calcProfitPercentage,
-        minimumInvestment: calcMinimumInvestment
+        minimumInvestment: calcMinimumInvestment,
+        investment: calcInvestment  // ✅ Receive investment from API
       } = await calculateSmartGridLimits(
         exchange,
         segment,
         symbol,
         Number(dataSet)
-        // ✅ Removed investment parameter
       );
 
-      // ✅ Update all fields with calculated values
+      // ✅ Update all fields with calculated values including investment
       setLowerLimit(calcLower.toFixed(6));
       setUpperLimit(calcUpper.toFixed(6));
       setLevels(calcLevels.toString());
       setProfitPerLevel(calcProfitPercentage.toString());
       setMinimumInvestment(calcMinimumInvestment.toString());
+      setInvestment(calcInvestment.toString());  // ✅ Set investment field
 
       toast.success("Smart Grid parameters calculated!", {
-        description: `Limits: ${calcLower.toFixed(6)} - ${calcUpper.toFixed(6)} | Levels: ${calcLevels} | Profit: ${calcProfitPercentage}% | Min Investment: ${calcMinimumInvestment}`
+        description: `Limits: ${calcLower.toFixed(6)} - ${calcUpper.toFixed(6)} | Levels: ${calcLevels} | Profit: ${calcProfitPercentage}% | Investment: ${calcInvestment} | Min Investment: ${calcMinimumInvestment}`
       });
     } catch (err: any) {
       console.error("Limits calculation error:", err);
