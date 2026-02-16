@@ -148,15 +148,15 @@ export default function GrowthDCA() {
     return `${hour}:${minute} ${sharedTime.period}`;
   };
 
-  // Get input display value - show values for all frequencies
-  const getInputDisplayValue = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY') => {
-    // DAILY input - show time if configured, otherwise empty for placeholder
+  // Get input display value - return undefined when there's no value so placeholder shows
+  const getInputDisplayValue = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY'): string | undefined => {
+    // DAILY input - show time if configured, otherwise undefined for placeholder
     if (freq === 'DAILY') {
       // Only show time if it's not the default values
       if (sharedTime.hour !== "12" || sharedTime.minute !== "00" || sharedTime.period !== "AM") {
         return getFormattedTime();
       }
-      return '';
+      return undefined;
     }
     
     // WEEKLY input shows only selected days when active
@@ -168,7 +168,7 @@ export default function GrowthDCA() {
       if (weeklyDays.length > 0) {
         return `${weeklyDays.length} days`;
       }
-      return '';
+      return undefined;
     }
     
     // MONTHLY input shows only selected dates when active
@@ -180,7 +180,7 @@ export default function GrowthDCA() {
       if (monthlyDates.length > 0) {
         return `${monthlyDates.length} dates`;
       }
-      return '';
+      return undefined;
     }
     
     // HOURLY input shows interval
@@ -192,10 +192,10 @@ export default function GrowthDCA() {
         }
         return `${hourInterval}h`;
       }
-      return '';
+      return undefined;
     }
     
-    return '';
+    return undefined;
   };
 
   // Frequency input handler
@@ -578,6 +578,7 @@ export default function GrowthDCA() {
                 {(['DAILY', 'WEEKLY', 'MONTHLY', 'HOURLY'] as const).map(val => {
                   const displayValue = getInputDisplayValue(val);
                   const placeholderText = val.charAt(0) + val.slice(1).toLowerCase();
+                  const hasValue = displayValue !== undefined && displayValue !== '';
                   
                   return (
                     <Popover 
@@ -590,15 +591,23 @@ export default function GrowthDCA() {
                       }}
                     >
                       <PopoverTrigger asChild>
-                        <Input
-                          placeholder={placeholderText}
-                          value={displayValue}
+                        <div
                           onClick={() => handleFrequencyClick(val)}
-                          readOnly
-                          className={`cursor-pointer text-xs placeholder:text-black dark:placeholder:text-white focus:bg-orange-50 dark:focus:bg-orange-900/20 focus-visible:ring-orange-500 ${
-                            frequency === val ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-500' : ''
-                          }`}
-                        />
+                          className={`relative h-10 px-3 flex items-center justify-center cursor-pointer text-xs text-center font-medium rounded-md border transition-colors
+                            ${hasValue 
+                              ? 'text-gray-800 dark:text-gray-100' 
+                              : 'text-gray-500 dark:text-gray-400'
+                            }
+                            ${frequency === val 
+                              ? 'bg-orange-100 dark:bg-orange-500/30 border-orange-500' 
+                              : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                            }
+                            hover:bg-gray-200 dark:hover:bg-gray-600
+                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500
+                          `}
+                        >
+                          {hasValue ? displayValue : placeholderText}
+                        </div>
                       </PopoverTrigger>
                       <PopoverContent 
                         className="w-56 p-3 bg-white dark:bg-[#232326]" 
@@ -692,7 +701,6 @@ export default function GrowthDCA() {
 
                           {val === 'HOURLY' && (
                             <div className="space-y-3">
-                              {/* Interval */}
                               <div className="space-y-1.5">
                                 <h4 className="font-medium text-xs">Run Every</h4>
                                 <div className="flex items-center gap-2">
@@ -718,7 +726,6 @@ export default function GrowthDCA() {
                                 </div>
                               </div>
 
-                              {/* Start Time */}
                               <div className="space-y-1.5">
                                 <h4 className="font-medium text-xs">Start Time</h4>
                                 <div className="flex items-center gap-1.5">
@@ -776,7 +783,6 @@ export default function GrowthDCA() {
                               </div>
                             </div>
                           )}
-
 
                           {val !== 'HOURLY' && (
                             <div className="space-y-1.5">
