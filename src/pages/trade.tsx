@@ -1,6 +1,6 @@
 import GrowthDCA from '@/components/trade/growth-dca';
 import HumanGrid from '@/components/trade/human-grid';
-// import IndyLESI from '@/components/trade/indie-lesi';
+import IndyLESI from '@/components/trade/indie-lesi';
 import IndyTrend from '@/components/trade/indy-trend';
 // import PriceAction from '@/components/trade/price-action';
  import IndyUTC from '@/components/trade/indy-utc';
@@ -321,7 +321,7 @@ export default function TradePage() {
         pathName === "/growth-dca" && <GrowthDCA /> 
       }
       {
-        // pathName === "/indie-lesi" && <IndyLESI /> 
+        pathName === "/indie-lesi" && <IndyLESI /> 
       }
       {
         // pathName === "/price-action" && <PriceAction /> 
