@@ -451,26 +451,26 @@ export default function SmartGrid() {
             </div>
 
             {/* Data Set (Days) */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Data Set
-                <span className="text-muted-foreground text-xs">ⓘ</span>
-              </Label>
-              <div className="grid grid-cols-3 gap-2">
-                {['30', '180', '365'].map((val, index) => (
-                  <Button 
-                    key={index} 
-                    variant={dataSet === val ? "default" : "outline"} 
-                    size="sm" 
-                    type="button" 
-                    onClick={() => handleDataSetSelect(val)}
-                    className={dataSet === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
-                  >
-                    {val}D
-                  </Button>
-                ))}
-              </div>
-            </div>
+<div className="space-y-2">
+  <Label className="flex items-center gap-2">
+    Data Set
+    <span className="text-muted-foreground text-xs">ⓘ</span>
+  </Label>
+  <div className="grid grid-cols-4 gap-2">
+    {['30', '90', '180', '365'].map((val, index) => (
+      <Button 
+        key={index} 
+        variant={dataSet === val ? "default" : "outline"} 
+        size="sm" 
+        type="button" 
+        onClick={() => handleDataSetSelect(val)}
+        className={dataSet === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
+      >
+        {val}D
+      </Button>
+    ))}
+  </div>
+</div>
 
             {/* Lower and Upper Limit - Auto-calculated */}
             <div className="grid grid-cols-2 gap-4">
