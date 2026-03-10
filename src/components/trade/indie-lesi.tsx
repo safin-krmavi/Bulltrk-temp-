@@ -38,12 +38,19 @@ export default function IndyLESI() {
   const [priceTriggerStop, setPriceTriggerStop] = React.useState("");
   const [stopLossBy, setStopLossBy] = React.useState("");
 
-  // LESI indicator/settings
-  const [lesiIndicator, setLesiIndicator] = React.useState("lorentzian");
-  const [lookbackPeriod, setLookbackPeriod] = React.useState("75");
-  const [signalThreshold, setSignalThreshold] = React.useState("0.8");
-  const [noiseReduction, setNoiseReduction] = React.useState(true);
-  const [adaptiveThreshold, setAdaptiveThreshold] = React.useState(true);
+  // Advanced settings — LC
+  const [lcEnabled, setLcEnabled] = React.useState(false);
+  const [lcSource, setLcSource] = React.useState("close");
+
+  // Advanced settings — EMA
+  const [emaEnabled, setEmaEnabled] = React.useState(false);
+  const [emaLength, setEmaLength] = React.useState("200");
+  const [emaSource, setEmaSource] = React.useState("close");
+
+  // Advanced settings — LaRSI
+  const [laRsiEnabled, setLaRsiEnabled] = React.useState(false);
+  const [laRsiSource, setLaRsiSource] = React.useState("close");
+  const [laRsiAlpha, setLaRsiAlpha] = React.useState("0.2");
 
   // Feedback
   const [loading, setLoading] = React.useState(false);
@@ -134,12 +141,10 @@ export default function IndyLESI() {
         timeFrame,
         investmentPerRun: Number(investment),
         investmentCap: Number(investmentCap),
-        lesiIndicator,
-        lesiSettings: {
-          lookbackPeriod: Number(lookbackPeriod),
-          signalThreshold: Number(signalThreshold),
-          noiseReduction,
-          adaptiveThreshold,
+        advancedSettings: {
+          lc: { enabled: lcEnabled, source: lcSource },
+          ema: { enabled: emaEnabled, length: Number(emaLength), source: emaSource },
+          laRsi: { enabled: laRsiEnabled, source: laRsiSource, alpha: Number(laRsiAlpha) },
         },
       };
 
@@ -188,11 +193,14 @@ export default function IndyLESI() {
     setPriceTriggerStart("");
     setPriceTriggerStop("");
     setStopLossBy("");
-    setLesiIndicator("lorentzian");
-    setLookbackPeriod("75");
-    setSignalThreshold("0.8");
-    setNoiseReduction(true);
-    setAdaptiveThreshold(true);
+    setLcEnabled(false);
+    setLcSource("close");
+    setEmaEnabled(false);
+    setEmaLength("200");
+    setEmaSource("close");
+    setLaRsiEnabled(false);
+    setLaRsiSource("close");
+    setLaRsiAlpha("0.2");
     setError("");
     setSuccess("");
     
@@ -293,35 +301,16 @@ export default function IndyLESI() {
                 Time Frame
                 <span className="text-muted-foreground text-xs">ⓘ</span>
               </Label>
-              <div className="grid grid-cols-3 gap-2">
-                <Button
-                  variant={timeFrame === "5m" ? "default" : "outline"}
-                  size="sm"
-                  type="button"
-                  onClick={() => setTimeFrame("5m")}
-                  className={timeFrame === "5m" ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
-                >
-                  5 Minutes
-                </Button>
-                <Button
-                  variant={timeFrame === "15m" ? "default" : "outline"}
-                  size="sm"
-                  type="button"
-                  onClick={() => setTimeFrame("15m")}
-                  className={timeFrame === "15m" ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
-                >
-                  15 Minutes
-                </Button>
-                <Button
-                  variant={timeFrame === "1h" ? "default" : "outline"}
-                  size="sm"
-                  type="button"
-                  onClick={() => setTimeFrame("1h")}
-                  className={timeFrame === "1h" ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
-                >
-                  1 Hour
-                </Button>
-              </div>
+              <Select value={timeFrame} onValueChange={setTimeFrame}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5m">5 Minutes</SelectItem>
+                  <SelectItem value="15m">15 Minutes</SelectItem>
+                  <SelectItem value="1h">1 Hour</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Leverage */}
@@ -341,6 +330,7 @@ export default function IndyLESI() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-sm">
                   Lower Limit
+                  <span className="text-muted-foreground text-xs">ⓘ</span>
                 </Label>
                 <div className="flex gap-2">
                   <Input
@@ -364,6 +354,7 @@ export default function IndyLESI() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-sm">
                   Upper Limit
+                  <span className="text-muted-foreground text-xs">ⓘ</span>
                 </Label>
                 <div className="flex gap-2">
                   <Input
@@ -451,87 +442,132 @@ export default function IndyLESI() {
               </div>
             </div>
 
-            {/* Advanced Settings */}
-            <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md bg-gray-200 dark:bg-gray-700 p-3 font-medium">
-                <span>Advanced Settings</span>
-                <ChevronDown className={`h-4 w-4 transition-transform ${isAdvancedOpen ? "rotate-180" : ""}`} />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-4 mt-4">
-                {/* LESI Indicator */}
-                <div className="space-y-2">
-                  <Label>LESI Indicator</Label>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="lorentzian"
-                      checked={lesiIndicator === "lorentzian"}
-                      onCheckedChange={() => setLesiIndicator("lorentzian")}
-                    />
-                    <label htmlFor="lorentzian" className="text-sm cursor-pointer">
-                      Lorentzian
-                    </label>
-                  </div>
-                </div>
+          </CollapsibleContent>
+        </Collapsible>
 
-                {/* Lookback Period */}
-                <div className="space-y-2">
-                  <Label>Lookback Period</Label>
+        {/* Advanced Settings */}
+        <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
+            <span>Advanced Settings</span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${isAdvancedOpen ? "rotate-180" : ""}`} />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
+            {/* LC */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="lc"
+                  checked={lcEnabled}
+                  onCheckedChange={(checked) => setLcEnabled(!!checked)}
+                />
+                <label htmlFor="lc" className="text-sm font-medium cursor-pointer">LC</label>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm">Source</Label>
+                <Select value={lcSource} onValueChange={setLcSource}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="close">Close</SelectItem>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="hl2">HL2</SelectItem>
+                    <SelectItem value="hlc3">HLC3</SelectItem>
+                    <SelectItem value="ohlc4">OHLC4</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* EMA */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="ema"
+                  checked={emaEnabled}
+                  onCheckedChange={(checked) => setEmaEnabled(!!checked)}
+                />
+                <label htmlFor="ema" className="text-sm font-medium cursor-pointer">EMA</label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-sm">Length</Label>
                   <Input
-                    placeholder="Value"
-                    value={lookbackPeriod}
-                    onChange={(e) => setLookbackPeriod(e.target.value)}
+                    placeholder="200"
+                    value={emaLength}
+                    onChange={(e) => setEmaLength(e.target.value)}
                     type="number"
                     step="1"
                   />
                 </div>
+                <div className="space-y-1">
+                  <Label className="text-sm">Source</Label>
+                  <Select value={emaSource} onValueChange={setEmaSource}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="close">Close</SelectItem>
+                      <SelectItem value="open">Open</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="hl2">HL2</SelectItem>
+                      <SelectItem value="hlc3">HLC3</SelectItem>
+                      <SelectItem value="ohlc4">OHLC4</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
 
-                {/* Signal Threshold */}
-                <div className="space-y-2">
-                  <Label>Signal Threshold</Label>
+            {/* LaRSI */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="laRsi"
+                  checked={laRsiEnabled}
+                  onCheckedChange={(checked) => setLaRsiEnabled(!!checked)}
+                />
+                <label htmlFor="laRsi" className="text-sm font-medium cursor-pointer">LaRSI</label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-1 text-sm">
+                    Source
+                    <span className="text-muted-foreground text-xs">ⓘ</span>
+                  </Label>
+                  <Select value={laRsiSource} onValueChange={setLaRsiSource}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="close">Close</SelectItem>
+                      <SelectItem value="open">Open</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="hl2">HL2</SelectItem>
+                      <SelectItem value="hlc3">HLC3</SelectItem>
+                      <SelectItem value="ohlc4">OHLC4</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-1 text-sm">
+                    Alpha
+                    <span className="text-muted-foreground text-xs">ⓘ</span>
+                  </Label>
                   <Input
-                    placeholder="Value"
-                    value={signalThreshold}
-                    onChange={(e) => setSignalThreshold(e.target.value)}
+                    placeholder="0.2"
+                    value={laRsiAlpha}
+                    onChange={(e) => setLaRsiAlpha(e.target.value)}
                     type="number"
                     step="0.01"
                   />
                 </div>
-
-                {/* Noise Reduction */}
-                <div className="space-y-2">
-                  <Label>Noise Reduction</Label>
-                  <Select
-                    value={noiseReduction ? "yes" : "no"}
-                    onValueChange={(val) => setNoiseReduction(val === "yes")}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="yes">Yes</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Adaptive Threshold */}
-                <div className="space-y-2">
-                  <Label>Adaptive Threshold</Label>
-                  <Select
-                    value={adaptiveThreshold ? "yes" : "no"}
-                    onValueChange={(val) => setAdaptiveThreshold(val === "yes")}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="yes">Yes</SelectItem>
-                      <SelectItem value="no">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+              </div>
+            </div>
           </CollapsibleContent>
         </Collapsible>
 

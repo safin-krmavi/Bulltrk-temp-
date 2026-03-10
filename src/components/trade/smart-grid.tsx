@@ -122,15 +122,15 @@ export default function SmartGrid() {
       );
 
       // ✅ Update all fields with calculated values including investment
-      setLowerLimit(calcLower.toFixed(6));
-      setUpperLimit(calcUpper.toFixed(6));
+      setLowerLimit(calcLower.toFixed(2));
+      setUpperLimit(calcUpper.toFixed(2));
       setLevels(calcLevels.toString());
       setProfitPerLevel(calcProfitPercentage.toString());
       setMinimumInvestment(calcMinimumInvestment.toString());
       setInvestment(calcInvestment.toString());  // ✅ Set investment field
 
       toast.success("Smart Grid parameters calculated!", {
-        description: `Limits: ${calcLower.toFixed(6)} - ${calcUpper.toFixed(6)} | Levels: ${calcLevels} | Profit: ${calcProfitPercentage}% | Investment: ${calcInvestment} | Min Investment: ${calcMinimumInvestment}`
+        description: `Limits: ${calcLower.toFixed(2)} - ${calcUpper.toFixed(2)} | Levels: ${calcLevels} | Profit: ${calcProfitPercentage}% | Investment: ${calcInvestment} | Min Investment: ${calcMinimumInvestment}`
       });
     } catch (err: any) {
       console.error("Limits calculation error:", err);
