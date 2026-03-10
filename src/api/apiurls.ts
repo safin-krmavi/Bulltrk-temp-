@@ -37,5 +37,10 @@ export const apiurls = {
         getsubscribedstrategies:"/strategy/strategies/subscriptions/me",
         unsubscribestrategy:"/strategies/subscription/:id"
     },
+    marketplace: {
+        browsePublished: "/strategy/strategies/published",
+        purchase: "/strategy/strategies/purchase",
+        myPurchases: "/strategy/strategies/purchases/me",
+    },
 
 }

@@ -9,9 +9,11 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {  useState } from "react"
+import { useState } from "react"
 import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { toast } from "sonner"
+import apiClient from "@/api/apiClient"
+import { apiurls } from "@/api/apiurls"
 
 export default function IndyLESI() {
   const [isOpen, setIsOpen] = React.useState(true)
@@ -79,32 +81,8 @@ export default function IndyLESI() {
     return missing;
   };
 
-  // Validate form
+  // Validate form — only Name, Investment, and Investment Cap are required
   const validateForm = () => {
-    if (!selectedApiId) {
-      toast.error("Please select an API connection", {
-        description: "You need to connect an API to create strategies"
-      });
-      return false;
-    }
-    if (!exchange) {
-      toast.error("Exchange not available", {
-        description: "Please select a valid exchange"
-      });
-      return false;
-    }
-    if (!segment) {
-      toast.error("Please select a segment", {
-        description: "Choose between Spot or Futures"
-      });
-      return false;
-    }
-    if (!symbol) {
-      toast.error("Please select a trading pair", {
-        description: "Choose a trading pair like BTC/USDT"
-      });
-      return false;
-    }
     if (!strategyName.trim()) {
       toast.error("Please enter a strategy name", {
         description: "Give your strategy a unique name"
@@ -129,54 +107,6 @@ export default function IndyLESI() {
       });
       return false;
     }
-    if (!timeFrame) {
-      toast.error("Please select a time frame", {
-        description: "Choose a time frame"
-      });
-      return false;
-    }
-    if (!leverage || Number(leverage) <= 0) {
-      toast.error("Invalid leverage", {
-        description: "Enter a valid leverage value"
-      });
-      return false;
-    }
-    if (!lowerLimit || Number(lowerLimit) <= 0) {
-      toast.error("Invalid lower limit", {
-        description: "Lower limit must be greater than 0"
-      });
-      return false;
-    }
-    if (!upperLimit || Number(upperLimit) <= 0) {
-      toast.error("Invalid upper limit", {
-        description: "Upper limit must be greater than 0"
-      });
-      return false;
-    }
-    if (Number(upperLimit) <= Number(lowerLimit)) {
-      toast.error("Invalid price limits", {
-        description: "Upper limit must be greater than lower limit"
-      });
-      return false;
-    }
-    if (!priceTriggerStart || Number(priceTriggerStart) <= 0) {
-      toast.error("Invalid price trigger start", {
-        description: "Enter a valid price trigger start"
-      });
-      return false;
-    }
-    if (!priceTriggerStop || Number(priceTriggerStop) <= 0) {
-      toast.error("Invalid price trigger stop", {
-        description: "Enter a valid price trigger stop"
-      });
-      return false;
-    }
-    if (!stopLossBy || Number(stopLossBy) <= 0) {
-      toast.error("Invalid stop loss", {
-        description: "Enter a valid stop loss value"
-      });
-      return false;
-    }
     return true;
   };
 
@@ -193,83 +123,54 @@ export default function IndyLESI() {
     setLoading(true);
 
     try {
-      // Robust token retrieval: try all common keys, prioritize AUTH_TOKEN
-      let accessToken = localStorage.getItem("AUTH_TOKEN") || 
-                       localStorage.getItem("access_token") || 
-                       localStorage.getItem("token");
-      
-      if (!accessToken || typeof accessToken !== "string" || accessToken.trim() === "") {
-        setError("You are not logged in or token is missing. Please log in again.");
-        setLoading(false);
-        return;
-      }
-
-      accessToken = accessToken.trim();
-
-      const baseUrl = import.meta.env.VITE_API_URL || "";
-      if (!baseUrl) {
-        setError("API base URL is not set. Please check your environment variables.");
-        setLoading(false);
-        return;
-      }
-
-      console.log("[IndyLESI] API URL:", baseUrl + "/strategies");
-      console.log("[IndyLESI] Access token:", accessToken);
-
-      const body = {
-        strategy_name: strategyName,
-        strategy_type: "indy_lesi",
-        api_connection_id: Number(selectedApiId),
-        exchange: exchange,
-        segment: segment,
-        pair: symbol,
-        investment: Number(investment),
-        investment_cap: Number(investmentCap),
-        time_frame: timeFrame,
-        leverage: Number(leverage),
-        lower_limit: Number(lowerLimit),
-        upper_limit: Number(upperLimit),
-        price_trigger_start: Number(priceTriggerStart),
-        price_trigger_stop: Number(priceTriggerStop),
-        stop_loss_by: Number(stopLossBy),
-        lesi_indicator: lesiIndicator,
-        lesi_settings: {
-          lookback_period: Number(lookbackPeriod),
-          signal_threshold: Number(signalThreshold),
-          noise_reduction: noiseReduction,
-          adaptive_threshold: adaptiveThreshold
-        }
+      const payload: Record<string, any> = {
+        name: strategyName.trim(),
+        strategyType: "INDY_LESI",
+        assetType: "CRYPTO",
+        exchange: exchange.toUpperCase(),
+        segment: segment.toUpperCase(),
+        symbol: symbol.toUpperCase(),
+        executionMode: "LIVE",
+        timeFrame,
+        investmentPerRun: Number(investment),
+        investmentCap: Number(investmentCap),
+        lesiIndicator,
+        lesiSettings: {
+          lookbackPeriod: Number(lookbackPeriod),
+          signalThreshold: Number(signalThreshold),
+          noiseReduction,
+          adaptiveThreshold,
+        },
       };
 
-      const res = await fetch(`${baseUrl}/strategies`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-          "Accept": "application/json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
+      // Only include optional fields when provided
+      if (leverage && Number(leverage) > 0) payload.leverage = Number(leverage);
+      if (lowerLimit && Number(lowerLimit) > 0) payload.lowerLimit = Number(lowerLimit);
+      if (upperLimit && Number(upperLimit) > 0) payload.upperLimit = Number(upperLimit);
+      if (priceTriggerStart && Number(priceTriggerStart) > 0) payload.priceStart = Number(priceTriggerStart);
+      if (priceTriggerStop && Number(priceTriggerStop) > 0) payload.priceStop = Number(priceTriggerStop);
+      if (stopLossBy && Number(stopLossBy) > 0) payload.stopLossPct = Number(stopLossBy);
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to create Indy LESI strategy.");
-      }
+      console.log("[IndyLESI] Payload:", payload);
 
-      toast.success("Strategy created successfully! 🎉", {
+      const response = await apiClient.post(apiurls.strategies.create, payload);
+
+      console.log("[IndyLESI] Response:", response.data);
+
+      toast.success("Strategy created successfully!", {
         description: `${strategyName} is now active and running`,
-        duration: 5000
+        duration: 5000,
       });
 
       setSuccess("Indy LESI strategy created successfully.");
       handleReset();
     } catch (err: any) {
       console.error("Strategy creation error:", err);
-      const errorMsg = err.message || "Something went wrong.";
+      const errorMsg = err.response?.data?.message || err.message || "Something went wrong.";
       setError(errorMsg);
       toast.error("Failed to create strategy", {
         description: errorMsg,
-        duration: 5000
+        duration: 5000,
       });
     } finally {
       setLoading(false);
@@ -653,7 +554,7 @@ export default function IndyLESI() {
           <Button
             className="flex-1 bg-[#4A1515] hover:bg-[#5A2525]"
             onClick={handleProceed}
-            disabled={loading || showRequiredFieldsWarning}
+            disabled={loading}
             type="button"
           >
             {loading ? "Processing..." : "Proceed"}

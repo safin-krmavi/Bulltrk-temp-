@@ -38,32 +38,32 @@ export default function IndyTrend() {
   const [stopLossBy, setStopLossBy] = React.useState("");
 
   // Supertrend settings
-  const [supertrendEnabled, setSupertrendEnabled] = React.useState(false);
+  const [supertrendEnabled, setSupertrendEnabled] = React.useState(true);
   const [supertrendDirection, setSupertrendDirection] = React.useState("Neutral");
   const [supertrendTimeframe, setSupertrendTimeframe] = React.useState("1H");
   const [supertrendAtrPeriod, setSupertrendAtrPeriod] = React.useState("10");
   const [supertrendFactor, setSupertrendFactor] = React.useState("3");
 
   // RSI 1 settings
-  const [rsi1Enabled, setRsi1Enabled] = React.useState(false);
+  const [rsi1Enabled, setRsi1Enabled] = React.useState(true);
   const [rsi1Length, setRsi1Length] = React.useState("21");
   const [rsi1Source, setRsi1Source] = React.useState("Close");
   const [rsi1Timeframe, setRsi1Timeframe] = React.useState("65");
 
   // RSI 2 settings
-  const [rsi2Enabled, setRsi2Enabled] = React.useState(false);
+  const [rsi2Enabled, setRsi2Enabled] = React.useState(true);
   const [rsi2Length, setRsi2Length] = React.useState("21");
   const [rsi2Source, setRsi2Source] = React.useState("Close");
   const [rsi2Timeframe, setRsi2Timeframe] = React.useState("65");
 
   // RSI 3 settings
-  const [rsi3Enabled, setRsi3Enabled] = React.useState(false);
+  const [rsi3Enabled, setRsi3Enabled] = React.useState(true);
   const [rsi3Length, setRsi3Length] = React.useState("21");
   const [rsi3Source, setRsi3Source] = React.useState("Close");
   const [rsi3Timeframe, setRsi3Timeframe] = React.useState("65");
 
   // ADX settings
-  const [adxEnabled, setAdxEnabled] = React.useState(false);
+  const [adxEnabled, setAdxEnabled] = React.useState(true);
   const [adxSmoothing, setAdxSmoothing] = React.useState("21");
   const [adxDiLength, setAdxDiLength] = React.useState("Close");
   const [adxSig, setAdxSig] = React.useState("65");
@@ -181,32 +181,32 @@ export default function IndyTrend() {
     setStopLossBy("");
     
     // Reset Supertrend
-    setSupertrendEnabled(false);
+    setSupertrendEnabled(true);
     setSupertrendDirection("Neutral");
     setSupertrendTimeframe("1H");
     setSupertrendAtrPeriod("10");
     setSupertrendFactor("3");
     
     // Reset RSI 1
-    setRsi1Enabled(false);
+    setRsi1Enabled(true);
     setRsi1Length("21");
     setRsi1Source("Close");
     setRsi1Timeframe("65");
     
     // Reset RSI 2
-    setRsi2Enabled(false);
+    setRsi2Enabled(true);
     setRsi2Length("21");
     setRsi2Source("Close");
     setRsi2Timeframe("65");
     
     // Reset RSI 3
-    setRsi3Enabled(false);
+    setRsi3Enabled(true);
     setRsi3Length("21");
     setRsi3Source("Close");
     setRsi3Timeframe("65");
     
     // Reset ADX
-    setAdxEnabled(false);
+    setAdxEnabled(true);
     setAdxSmoothing("21");
     setAdxDiLength("Close");
     setAdxSig("65");

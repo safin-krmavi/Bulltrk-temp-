@@ -25,7 +25,7 @@ const GenericLayout = ({children}:{children:ReactNode}) => {
   return (
     <main className={`flex flex-col w-full min-h-screen h-full bg-[#F8F8F8] dark:bg-[#18181b] text-foreground transition-colors duration-300 ${hasBanner ? 'pt-16' : ''}`}>
       <Header />
-      <div className="flex w-full h-full justify-center flex-grow items-center">
+      <div className="flex w-full flex-grow items-start">
         {children}
       </div>
       <Footer />

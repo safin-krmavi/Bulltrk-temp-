@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Checkbox } from "@/components/ui/checkbox"
 import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { useState } from "react"
 import { useStrategyStore } from "@/stores/strategystore"
@@ -49,14 +50,17 @@ export default function IndyUTC() {
   const [takeProfitPct, setTakeProfitPct] = React.useState("");
 
   // UT Buy settings
+  const [utBuyEnabled, setUtBuyEnabled] = React.useState(false);
   const [utBuySensitivity, setUtBuySensitivity] = React.useState("2");
   const [utBuyAtrPeriod, setUtBuyAtrPeriod] = React.useState("300");
 
   // UT Sell settings
+  const [utSellEnabled, setUtSellEnabled] = React.useState(false);
   const [utSellSensitivity, setUtSellSensitivity] = React.useState("2");
   const [utSellAtrPeriod, setUtSellAtrPeriod] = React.useState("1");
 
   // UT Oscillator settings
+  const [utOscillatorEnabled, setUtOscillatorEnabled] = React.useState(false);
   const [utOscillatorLength, setUtOscillatorLength] = React.useState("80");
   const [utOscillatorFastLength, setUtOscillatorFastLength] = React.useState("27");
 
@@ -245,6 +249,9 @@ export default function IndyUTC() {
     setUtSellAtrPeriod("1");
     setUtOscillatorLength("80");
     setUtOscillatorFastLength("27");
+    setUtBuyEnabled(false);
+    setUtSellEnabled(false);
+    setUtOscillatorEnabled(false);
 
     toast.success("Form reset successfully");
   };
@@ -367,7 +374,7 @@ export default function IndyUTC() {
 
             {/* Leverage */}
             <div className="space-y-2">
-              <Label className="text-sm">Leverage (Optional)</Label>
+              <Label className="text-sm">Leverage</Label>
               <Input 
                 placeholder="Value" 
                 value={leverage} 
@@ -376,9 +383,6 @@ export default function IndyUTC() {
                 step="1"
                 className="h-10"
               />
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Only for futures trading. Leave empty for spot trading.
-              </p>
             </div>
 
             {/* Lower and Upper Limit - Side by Side */}
@@ -390,12 +394,12 @@ export default function IndyUTC() {
                 </Label>
                 <div className="flex gap-1">
                   <Input 
-                    placeholder="Optional" 
+                    placeholder="Value" 
                     value={lowerLimit} 
                     onChange={e => setLowerLimit(e.target.value)} 
                     type="number"
                     step="0.000001"
-                    className="h-10"
+                    className="h-10 min-w-0"
                   />
                   <Select value={quoteAsset} disabled>
                     <SelectTrigger className="w-[70px] h-10">
@@ -415,12 +419,12 @@ export default function IndyUTC() {
                 </Label>
                 <div className="flex gap-1">
                   <Input 
-                    placeholder="Optional" 
+                    placeholder="Value" 
                     value={upperLimit} 
                     onChange={e => setUpperLimit(e.target.value)} 
                     type="number"
                     step="0.000001"
-                    className="h-10"
+                    className="h-10 min-w-0"
                   />
                   <Select value={quoteAsset} disabled>
                     <SelectTrigger className="w-[70px] h-10">
@@ -436,10 +440,10 @@ export default function IndyUTC() {
 
             {/* Price Trigger Start */}
             <div className="space-y-2">
-              <Label className="text-sm">Price Trigger Start (Optional)</Label>
+              <Label className="text-sm">Price Trigger Start</Label>
               <div className="flex gap-2">
                 <Input 
-                  placeholder="Optional" 
+                  placeholder="Value" 
                   value={priceTriggerStart} 
                   onChange={e => setPriceTriggerStart(e.target.value)} 
                   type="number"
@@ -459,10 +463,10 @@ export default function IndyUTC() {
 
             {/* Price Trigger Stop */}
             <div className="space-y-2">
-              <Label className="text-sm">Price Trigger Stop (Optional)</Label>
+              <Label className="text-sm">Price Trigger Stop</Label>
               <div className="flex gap-2">
                 <Input 
-                  placeholder="Optional" 
+                  placeholder="Value" 
                   value={priceTriggerStop} 
                   onChange={e => setPriceTriggerStop(e.target.value)} 
                   type="number"
@@ -480,50 +484,26 @@ export default function IndyUTC() {
               </div>
             </div>
 
-            {/* Stop Loss and Take Profit */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="text-sm">Stop Loss % (Optional)</Label>
-                <div className="flex gap-1">
-                  <Input 
-                    placeholder="Optional" 
-                    value={stopLossBy} 
-                    onChange={e => setStopLossBy(e.target.value)} 
-                    type="number"
-                    step="0.01"
-                    className="h-10"
-                  />
-                  <Select value="%" disabled>
-                    <SelectTrigger className="w-[50px] h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="%">%</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm">Take Profit % (Optional)</Label>
-                <div className="flex gap-1">
-                  <Input 
-                    placeholder="Optional" 
-                    value={takeProfitPct} 
-                    onChange={e => setTakeProfitPct(e.target.value)} 
-                    type="number"
-                    step="0.01"
-                    className="h-10"
-                  />
-                  <Select value="%" disabled>
-                    <SelectTrigger className="w-[50px] h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="%">%</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            {/* Stop Loss By */}
+            <div className="space-y-2">
+              <Label className="text-sm">Stop Loss By</Label>
+              <div className="flex gap-2">
+                <Input 
+                  placeholder="Value" 
+                  value={stopLossBy} 
+                  onChange={e => setStopLossBy(e.target.value)} 
+                  type="number"
+                  step="0.01"
+                  className="h-10"
+                />
+                <Select value="%" disabled>
+                  <SelectTrigger className="w-[70px] h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="%">%</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CollapsibleContent>
@@ -538,7 +518,17 @@ export default function IndyUTC() {
           <CollapsibleContent className="space-y-5 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
             {/* UT Buy Section */}
             <div className="space-y-3">
-              <h3 className="font-medium text-sm text-gray-900 dark:text-white">UT Buy</h3>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="utBuy"
+                  checked={utBuyEnabled}
+                  onCheckedChange={(checked) => setUtBuyEnabled(checked as boolean)}
+                  className="h-5 w-5"
+                />
+                <Label htmlFor="utBuy" className="text-base font-normal cursor-pointer">
+                  UT Buy
+                </Label>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
@@ -552,6 +542,7 @@ export default function IndyUTC() {
                     type="number"
                     step="1"
                     className="h-10 text-sm"
+                    disabled={!utBuyEnabled}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -566,6 +557,7 @@ export default function IndyUTC() {
                     type="number"
                     step="1"
                     className="h-10 text-sm"
+                    disabled={!utBuyEnabled}
                   />
                 </div>
               </div>
@@ -573,7 +565,17 @@ export default function IndyUTC() {
 
             {/* UT Sell Section */}
             <div className="space-y-3">
-              <h3 className="font-medium text-sm text-gray-900 dark:text-white">UT Sell</h3>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="utSell"
+                  checked={utSellEnabled}
+                  onCheckedChange={(checked) => setUtSellEnabled(checked as boolean)}
+                  className="h-5 w-5"
+                />
+                <Label htmlFor="utSell" className="text-base font-normal cursor-pointer">
+                  UT Sell
+                </Label>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
@@ -587,6 +589,7 @@ export default function IndyUTC() {
                     type="number"
                     step="1"
                     className="h-10 text-sm"
+                    disabled={!utSellEnabled}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -601,6 +604,7 @@ export default function IndyUTC() {
                     type="number"
                     step="1"
                     className="h-10 text-sm"
+                    disabled={!utSellEnabled}
                   />
                 </div>
               </div>
@@ -608,7 +612,17 @@ export default function IndyUTC() {
 
             {/* UT Oscillator Section */}
             <div className="space-y-3">
-              <h3 className="font-medium text-sm text-gray-900 dark:text-white">UT Oscillator</h3>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="utOscillator"
+                  checked={utOscillatorEnabled}
+                  onCheckedChange={(checked) => setUtOscillatorEnabled(checked as boolean)}
+                  className="h-5 w-5"
+                />
+                <Label htmlFor="utOscillator" className="text-base font-normal cursor-pointer">
+                  UT Oscillator
+                </Label>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
@@ -622,6 +636,7 @@ export default function IndyUTC() {
                     type="number"
                     step="1"
                     className="h-10 text-sm"
+                    disabled={!utOscillatorEnabled}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -636,6 +651,7 @@ export default function IndyUTC() {
                     type="number"
                     step="1"
                     className="h-10 text-sm"
+                    disabled={!utOscillatorEnabled}
                   />
                 </div>
               </div>
