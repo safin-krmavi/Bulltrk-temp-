@@ -42,5 +42,8 @@ export const apiurls = {
         purchase: "/strategy/strategies/purchase",
         myPurchases: "/strategy/strategies/purchases/me",
     },
+    backtest: {
+        run: "/backtest/run",
+    },
 
 }

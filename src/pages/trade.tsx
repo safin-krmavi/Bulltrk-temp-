@@ -2,8 +2,8 @@ import GrowthDCA from '@/components/trade/growth-dca';
 import HumanGrid from '@/components/trade/human-grid';
 import IndyLESI from '@/components/trade/indie-lesi';
 import IndyTrend from '@/components/trade/indy-trend';
-// import PriceAction from '@/components/trade/price-action';
- import IndyUTC from '@/components/trade/indy-utc';
+import PriceAction from '@/components/trade/price-action';
+import IndyUTC from '@/components/trade/indy-utc';
 import SmartGrid from '@/components/trade/smart-grid';
 import { TradeConfirmationDialog } from '@/components/trade/trade-confirmation-dialog';
 import { Button } from "@/components/ui/button";
@@ -128,10 +128,10 @@ export default function TradePage() {
       {/* TradingView Chart */}
       <div id="chartContainer" ref={chartContainerRef} className="w-full !h-fit mb-4 border"></div>
 
-      {pathName==="/trade" && <div className="max-w-[400px] w-full h-full mx-auto p-4 space-y-4">
+      {pathName === "/trade" && <div className="max-w-[400px] w-full h-full mx-auto p-4 space-y-4">
         {/* Account Details */}
         <Card className="border bg-white rounded-lg shadow-sm">
-          <CardHeader 
+          <CardHeader
             className="flex flex-row items-center justify-between cursor-pointer p-4"
             onClick={() => toggleSection('accountDetails')}
           >
@@ -177,7 +177,7 @@ export default function TradePage() {
 
         {/* BOT Name */}
         <Card className="border bg-white rounded-lg shadow-sm">
-          <CardHeader 
+          <CardHeader
             className="flex flex-row items-center justify-between cursor-pointer p-4"
             onClick={() => toggleSection('botName')}
           >
@@ -228,29 +228,29 @@ export default function TradePage() {
                       <div className="grid grid-cols-2 gap-2">
                         <div className="text-muted-foreground">Name:</div>
                         <div>{selectedBotDetails.name}</div>
-                        
+
                         <div className="text-muted-foreground">Strategy ID:</div>
                         <div>{selectedBotDetails.strategy_id}</div>
-                        
+
                         <div className="text-muted-foreground">Mode:</div>
                         <div className="capitalize">{selectedBotDetails.mode}</div>
-                        
+
                         <div className="text-muted-foreground">Status:</div>
                         <div className="capitalize">{selectedBotDetails.status}</div>
-                        
+
                         <div className="text-muted-foreground">Execution Type:</div>
                         <div className="capitalize">{selectedBotDetails.execution_type}</div>
-                        
+
                         {selectedBotDetails.schedule_expression && (
                           <>
                             <div className="text-muted-foreground">Schedule:</div>
                             <div>{selectedBotDetails.schedule_expression}</div>
                           </>
                         )}
-                        
+
                         <div className="text-muted-foreground">Created:</div>
                         <div>{format(new Date(selectedBotDetails.created_at), 'dd MMM yyyy HH:mm')}</div>
-                        
+
                         <div className="text-muted-foreground">Last Updated:</div>
                         <div>{format(new Date(selectedBotDetails.updated_at), 'dd MMM yyyy HH:mm')}</div>
                       </div>
@@ -264,7 +264,7 @@ export default function TradePage() {
 
         {/* Advanced Settings */}
         <Card className="border bg-white rounded-lg shadow-sm">
-          <CardHeader 
+          <CardHeader
             className="flex flex-row items-center justify-between cursor-pointer p-4"
             onClick={() => toggleSection('advancedSettings')}
           >
@@ -287,14 +287,14 @@ export default function TradePage() {
 
         {/* Action Buttons */}
         <div className="flex justify-center gap-4 pt-2">
-          <Button 
+          <Button
             className="w-fit px-6 bg-[#4A1C24] text-white hover:bg-[#3A161C]"
             onClick={handleProceed}
             disabled={!selectedApi || !selectedBot}
           >
             Proceed
           </Button>
-          <Button 
+          <Button
             className="w-fit px-4 bg-[#D97706] text-white hover:bg-[#B45309]"
             onClick={() => console.log('Reset clicked')}
           >
@@ -303,35 +303,35 @@ export default function TradePage() {
         </div>
 
         {/* Confirmation Dialog */}
-          <TradeConfirmationDialog
-            isOpen={showConfirmation}
-            onClose={() => setShowConfirmation(false)}
-            selectedApi={selectedApi}
-            selectedBot={selectedBotDetails || null}
-          />
+        <TradeConfirmationDialog
+          isOpen={showConfirmation}
+          onClose={() => setShowConfirmation(false)}
+          selectedApi={selectedApi}
+          selectedBot={selectedBotDetails || null}
+        />
       </div>}
-      {pathName !== "/trade" &&<div className="max-w-[400px] w-full h-full mx-auto p-4 space-y-4">
-      {
-        pathName === "/indie-trend" && <IndyTrend /> 
-      }
-     {
-        pathName === "/indy-utc" && <IndyUTC /> 
-      }
-      {
-        pathName === "/growth-dca" && <GrowthDCA /> 
-      }
-      {
-        pathName === "/indie-lesi" && <IndyLESI /> 
-      }
-      {
-        // pathName === "/price-action" && <PriceAction /> 
-      }
-      {
-        pathName === "/human-grid" && <HumanGrid /> 
-      }
-      {
-        pathName === "/smart-grid" && <SmartGrid /> 
-      }
+      {pathName !== "/trade" && <div className="max-w-[400px] w-full h-full mx-auto p-4 space-y-4">
+        {
+          pathName === "/indie-trend" && <IndyTrend />
+        }
+        {
+          pathName === "/indy-utc" && <IndyUTC />
+        }
+        {
+          pathName === "/growth-dca" && <GrowthDCA />
+        }
+        {
+          pathName === "/indie-lesi" && <IndyLESI />
+        }
+        {
+          pathName === "/price-action" && <PriceAction />
+        }
+        {
+          pathName === "/human-grid" && <HumanGrid />
+        }
+        {
+          pathName === "/smart-grid" && <SmartGrid />
+        }
 
 
       </div>}

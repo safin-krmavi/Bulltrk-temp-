@@ -139,6 +139,29 @@ export interface UTCStrategy {
   updatedAt?: string;
 }
 
+// ✅ Add Price Action Strategy interface (updated to match API)
+export interface PriceActionStrategy {
+  id?: string;
+  name: string;
+  strategyType: 'PRICE_ACTION';
+  assetType: 'CRYPTO';
+  exchange: string;
+  segment: string;
+  symbol: string;
+  executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED';
+  timeFrame: string;
+  riskLevel: 'SAFE' | 'MODERATE' | 'RISKY';
+  investment: number;
+  investmentCap: number;
+  priceStart?: number;
+  priceStop?: number;
+  takeProfitPct?: number;
+  stopLossByPercent?: number;
+  status?: 'active' | 'paused' | 'stopped';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // API payload interface - matches the CURL structure
 interface GrowthDCAApiPayload {
   name: string;
@@ -221,6 +244,25 @@ interface UTCApiPayload {
   takeProfitPct?: number;
 }
 
+// ✅ Price Action API payload interface (updated to match actual API)
+interface PriceActionApiPayload {
+  name: string;
+  strategyType: 'PRICE_ACTION';
+  assetType: 'CRYPTO';
+  exchange: string;
+  segment: string;
+  symbol: string;
+  executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED';
+  timeFrame: string;
+  riskLevel: 'SAFE' | 'MODERATE' | 'RISKY';
+  investment: number;
+  investmentCap: number;
+  priceStart?: number;
+  priceStop?: number;
+  takeProfitPct?: number;
+  stopLossByPercent?: number;
+}
+
 export interface Symbol {
   symbol: string;
   base: string;
@@ -251,7 +293,8 @@ export interface StrategyState {
   humanGridStrategies: HumanGridStrategy[];
   smartGridStrategies: SmartGridStrategy[];
   utcStrategies: UTCStrategy[];  // ✅ Add UTC array
-  currentStrategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy | null;
+  priceActionStrategies: PriceActionStrategy[]; // ✅ Add Price Action array
+  currentStrategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy | PriceActionStrategy | null;
   isLoading: boolean;
   error: string | null;
 
@@ -283,8 +326,8 @@ export interface StrategyState {
 
   // Strategy Actions
   setStrategies: (strategies: Strategy[]) => void;
-  setCurrentStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy | null) => void;
-  addStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy) => void;
+  setCurrentStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy | PriceActionStrategy | null) => void;
+  addStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy | PriceActionStrategy) => void;
   updateStrategy: (id: string, updates: Partial<Strategy>) => void;
   removeStrategy: (id: string) => void;
   setLoading: (loading: boolean) => void;
@@ -311,6 +354,7 @@ export interface StrategyState {
   createHumanGrid: (strategy: Omit<HumanGridStrategy, 'strategyType' | 'assetType'>) => Promise<HumanGridStrategy>;
   createSmartGrid: (strategy: Omit<SmartGridStrategy, 'strategyType' | 'assetType'>) => Promise<SmartGridStrategy>;
   createUTC: (strategy: Omit<UTCStrategy, 'strategyType' | 'assetType'>) => Promise<UTCStrategy>;  // ✅ Add UTC method
+  createPriceAction: (strategy: Omit<PriceActionStrategy, 'strategyType' | 'assetType'>) => Promise<PriceActionStrategy>; // ✅ Update Price Action method signature
   updateStrategyById: (id: string, updates: Partial<Strategy>) => Promise<Strategy>;
   deleteStrategyById: (id: string) => Promise<void>;
 
@@ -498,6 +542,38 @@ const convertUTCToApiPayload = (strategy: UTCStrategy): UTCApiPayload => {
   return payload;
 };
 
+// ✅ Helper function to convert Price Action strategy to API payload
+const convertPriceActionToApiPayload = (strategy: PriceActionStrategy): PriceActionApiPayload => {
+  const payload: PriceActionApiPayload = {
+    name: strategy.name,
+    strategyType: 'PRICE_ACTION',
+    assetType: 'CRYPTO',
+    exchange: strategy.exchange.toUpperCase(),
+    segment: strategy.segment.toUpperCase(),
+    symbol: strategy.symbol.toUpperCase(),
+    executionMode: strategy.executionMode || 'LIVE',
+    timeFrame: strategy.timeFrame,
+    riskLevel: strategy.riskLevel,
+    investment: strategy.investment,
+    investmentCap: strategy.investmentCap,
+  };
+
+  if (strategy.priceStart != null && strategy.priceStart > 0) {
+    payload.priceStart = strategy.priceStart;
+  }
+  if (strategy.priceStop != null && strategy.priceStop > 0) {
+    payload.priceStop = strategy.priceStop;
+  }
+  if (strategy.takeProfitPct != null && strategy.takeProfitPct > 0) {
+    payload.takeProfitPct = strategy.takeProfitPct;
+  }
+  if (strategy.stopLossByPercent != null && strategy.stopLossByPercent > 0) {
+    payload.stopLossByPercent = strategy.stopLossByPercent;
+  }
+
+  return payload;
+};
+
 export const useStrategyStore = create<StrategyState>()(
   persist(
     (set, get) => ({
@@ -507,6 +583,7 @@ export const useStrategyStore = create<StrategyState>()(
       humanGridStrategies: [],
       smartGridStrategies: [],
       utcStrategies: [],  // ✅ Initialize UTC array
+      priceActionStrategies: [], // ✅ Initialize Price Action array
       currentStrategy: null,
       isLoading: false,
       error: null,
@@ -524,8 +601,8 @@ export const useStrategyStore = create<StrategyState>()(
 
       // Strategy State Setters
       setStrategies: (strategies: Strategy[]) => set({ strategies }),
-      setCurrentStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy | null) => set({ currentStrategy: strategy }),
-      addStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy) => set((state) => {
+      setCurrentStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy | PriceActionStrategy | null) => set({ currentStrategy: strategy }),
+      addStrategy: (strategy: GrowthDCAStrategy | HumanGridStrategy | SmartGridStrategy | UTCStrategy | PriceActionStrategy) => set((state) => {
         if (strategy.strategyType === 'HUMAN_GRID') {
           return { humanGridStrategies: [...state.humanGridStrategies, strategy as HumanGridStrategy] };
         }
@@ -534,6 +611,9 @@ export const useStrategyStore = create<StrategyState>()(
         }
         if (strategy.strategyType === 'UTC') {
           return { utcStrategies: [...state.utcStrategies, strategy as UTCStrategy] };
+        }
+        if (strategy.strategyType === 'PRICE_ACTION') {
+          return { priceActionStrategies: [...state.priceActionStrategies, strategy as PriceActionStrategy] };
         }
         return { growthDCAStrategies: [...state.growthDCAStrategies, strategy as GrowthDCAStrategy] };
       }),
@@ -764,6 +844,47 @@ export const useStrategyStore = create<StrategyState>()(
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || error.message || 'Failed to create UTC strategy';
           console.error("Failed to create UTC strategy:", error);
+          console.error("Error response:", error.response?.data);
+          set({ error: errorMessage, isLoading: false });
+          throw new Error(errorMessage);
+        }
+      },
+
+      // ✅ Create Price Action Strategy
+      createPriceAction: async (strategyInput: Omit<PriceActionStrategy, 'strategyType' | 'assetType'>) => {
+        console.log("=== Creating Price Action Strategy ===");
+        set({ isLoading: true, error: null });
+        
+        try {
+          const strategy: PriceActionStrategy = {
+            ...strategyInput,
+            strategyType: 'PRICE_ACTION',
+            assetType: 'CRYPTO',
+          };
+
+          const apiPayload = convertPriceActionToApiPayload(strategy);
+          console.log("Price Action API Payload:", JSON.stringify(apiPayload, null, 2));
+
+          const response = await apiClient.post(apiurls.strategies.create, apiPayload);
+
+          console.log("API Response:", response.data);
+
+          if (response.data?.data) {
+            const newStrategy = response.data.data as PriceActionStrategy;
+            get().addStrategy(newStrategy);
+            set({ isLoading: false });
+            
+            // Refresh strategies list
+            await get().fetchStrategies();
+            
+            console.log("Price Action strategy created successfully:", newStrategy);
+            return newStrategy;
+          }
+
+          throw new Error('Invalid response from server');
+        } catch (error: any) {
+          const errorMessage = error.response?.data?.message || error.message || 'Failed to create Price Action strategy';
+          console.error("Failed to create Price Action strategy:", error);
           console.error("Error response:", error.response?.data);
           set({ error: errorMessage, isLoading: false });
           throw new Error(errorMessage);
