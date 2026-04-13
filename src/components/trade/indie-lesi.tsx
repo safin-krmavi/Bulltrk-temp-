@@ -18,7 +18,7 @@ import { apiurls } from "@/api/apiurls"
 export default function IndyLESI() {
   const [isOpen, setIsOpen] = React.useState(true)
   const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false)
-  
+
   // Account details from AccountDetailsCard
   const [selectedApiId, setSelectedApiId] = useState<string>("");
   const [exchange, setExchange] = useState("");
@@ -203,16 +203,16 @@ export default function IndyLESI() {
     setLaRsiAlpha("0.2");
     setError("");
     setSuccess("");
-    
-    toast.success("Form reset", {
-      description: "All fields have been cleared"
-    });
+
+    // toast.success("Form reset", {
+    //   description: "All fields have been cleared"
+    // });
   };
 
   return (
     <div className="w-full max-w-md mx-auto">
       <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
-      
+
       {/* Required Fields Warning */}
       {showRequiredFieldsWarning && (
         <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">

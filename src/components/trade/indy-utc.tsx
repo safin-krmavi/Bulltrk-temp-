@@ -27,13 +27,13 @@ export default function IndyUTC() {
   const [symbol, setSymbol] = useState("");
 
   // Get balance state and methods from store
-  const { 
-    balances, 
-    isLoadingBalances, 
-    balancesError, 
+  const {
+    balances,
+    isLoadingBalances,
+    balancesError,
     getBalanceByAsset,
     createUTC,
-    isLoading: isCreating 
+    isLoading: isCreating
   } = useStrategyStore();
 
   // Form state
@@ -70,16 +70,16 @@ export default function IndyUTC() {
   // ✅ Get quote asset for balance display
   const quoteAsset = React.useMemo(() => {
     if (!symbol) return 'USDT';
-    
+
     const knownQuotes = ['USDT', 'USDC', 'BUSD', 'BTC', 'ETH', 'BNB', 'INR', 'TUSD', 'DAI', 'FDUSD'];
     const sortedQuotes = knownQuotes.sort((a, b) => b.length - a.length);
-    
+
     for (const quote of sortedQuotes) {
       if (symbol.toUpperCase().endsWith(quote)) {
         return quote;
       }
     }
-    
+
     return 'USDT';
   }, [symbol]);
 
@@ -180,7 +180,7 @@ export default function IndyUTC() {
   // ✅ Handle form submission
   const handleProceed = async (e: React.MouseEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -209,9 +209,9 @@ export default function IndyUTC() {
       console.log("Strategy Data:", strategyData);
 
       const createdStrategy = await createUTC(strategyData);
-      
+
       console.log("UTC Strategy created successfully:", createdStrategy);
-      
+
       toast.success("UTC Strategy created successfully!", {
         description: `Strategy "${strategyName}" has been created and is now active.`
       });
@@ -253,7 +253,7 @@ export default function IndyUTC() {
     setUtSellEnabled(false);
     setUtOscillatorEnabled(false);
 
-    toast.success("Form reset successfully");
+    // toast.success("Form reset successfully");
   };
 
   // ✅ Close popup and navigate
@@ -265,7 +265,7 @@ export default function IndyUTC() {
   return (
     <div className="w-full max-w-md mx-auto">
       <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
-      
+
       <form className="space-y-4 mt-4 dark:text-white">
         <Collapsible open={isIndyOpen} onOpenChange={setIsIndyOpen}>
           <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
@@ -279,10 +279,10 @@ export default function IndyUTC() {
                 Strategy Name
                 <Info className="h-3 w-3 text-muted-foreground" />
               </Label>
-              <Input 
-                placeholder="Enter Name" 
-                value={strategyName} 
-                onChange={e => setStrategyName(e.target.value)} 
+              <Input
+                placeholder="Enter Name"
+                value={strategyName}
+                onChange={e => setStrategyName(e.target.value)}
                 className="h-10"
               />
             </div>
@@ -294,10 +294,10 @@ export default function IndyUTC() {
                 <Info className="h-3 w-3 text-muted-foreground" />
               </Label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Value" 
-                  value={investment} 
-                  onChange={e => setInvestment(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={investment}
+                  onChange={e => setInvestment(e.target.value)}
                   type="number"
                   step="0.01"
                   className="h-10"
@@ -330,10 +330,10 @@ export default function IndyUTC() {
                 <Info className="h-3 w-3 text-muted-foreground" />
               </Label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Value" 
-                  value={investmentCap} 
-                  onChange={e => setInvestmentCap(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={investmentCap}
+                  onChange={e => setInvestmentCap(e.target.value)}
                   type="number"
                   step="0.01"
                   className="h-10"
@@ -375,10 +375,10 @@ export default function IndyUTC() {
             {/* Leverage */}
             <div className="space-y-2">
               <Label className="text-sm">Leverage</Label>
-              <Input 
-                placeholder="Value" 
-                value={leverage} 
-                onChange={e => setLeverage(e.target.value)} 
+              <Input
+                placeholder="Value"
+                value={leverage}
+                onChange={e => setLeverage(e.target.value)}
                 type="number"
                 step="1"
                 className="h-10"
@@ -393,10 +393,10 @@ export default function IndyUTC() {
                   <Info className="h-3 w-3 text-muted-foreground" />
                 </Label>
                 <div className="flex gap-1">
-                  <Input 
-                    placeholder="Value" 
-                    value={lowerLimit} 
-                    onChange={e => setLowerLimit(e.target.value)} 
+                  <Input
+                    placeholder="Value"
+                    value={lowerLimit}
+                    onChange={e => setLowerLimit(e.target.value)}
                     type="number"
                     step="0.000001"
                     className="h-10 min-w-0"
@@ -411,17 +411,17 @@ export default function IndyUTC() {
                   </Select>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="flex items-center gap-1 text-sm">
                   Upper Limit
                   <Info className="h-3 w-3 text-muted-foreground" />
                 </Label>
                 <div className="flex gap-1">
-                  <Input 
-                    placeholder="Value" 
-                    value={upperLimit} 
-                    onChange={e => setUpperLimit(e.target.value)} 
+                  <Input
+                    placeholder="Value"
+                    value={upperLimit}
+                    onChange={e => setUpperLimit(e.target.value)}
                     type="number"
                     step="0.000001"
                     className="h-10 min-w-0"
@@ -442,10 +442,10 @@ export default function IndyUTC() {
             <div className="space-y-2">
               <Label className="text-sm">Price Trigger Start</Label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Value" 
-                  value={priceTriggerStart} 
-                  onChange={e => setPriceTriggerStart(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={priceTriggerStart}
+                  onChange={e => setPriceTriggerStart(e.target.value)}
                   type="number"
                   step="0.000001"
                   className="h-10"
@@ -465,10 +465,10 @@ export default function IndyUTC() {
             <div className="space-y-2">
               <Label className="text-sm">Price Trigger Stop</Label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Value" 
-                  value={priceTriggerStop} 
-                  onChange={e => setPriceTriggerStop(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={priceTriggerStop}
+                  onChange={e => setPriceTriggerStop(e.target.value)}
                   type="number"
                   step="0.000001"
                   className="h-10"
@@ -488,10 +488,10 @@ export default function IndyUTC() {
             <div className="space-y-2">
               <Label className="text-sm">Stop Loss By</Label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Value" 
-                  value={stopLossBy} 
-                  onChange={e => setStopLossBy(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={stopLossBy}
+                  onChange={e => setStopLossBy(e.target.value)}
                   type="number"
                   step="0.01"
                   className="h-10"
@@ -535,10 +535,10 @@ export default function IndyUTC() {
                     Sensitivity
                     <Info className="h-3 w-3" />
                   </Label>
-                  <Input 
-                    placeholder="2" 
-                    value={utBuySensitivity} 
-                    onChange={e => setUtBuySensitivity(e.target.value)} 
+                  <Input
+                    placeholder="2"
+                    value={utBuySensitivity}
+                    onChange={e => setUtBuySensitivity(e.target.value)}
                     type="number"
                     step="1"
                     className="h-10 text-sm"
@@ -550,10 +550,10 @@ export default function IndyUTC() {
                     ATR Period
                     <Info className="h-3 w-3" />
                   </Label>
-                  <Input 
-                    placeholder="300" 
-                    value={utBuyAtrPeriod} 
-                    onChange={e => setUtBuyAtrPeriod(e.target.value)} 
+                  <Input
+                    placeholder="300"
+                    value={utBuyAtrPeriod}
+                    onChange={e => setUtBuyAtrPeriod(e.target.value)}
                     type="number"
                     step="1"
                     className="h-10 text-sm"
@@ -582,10 +582,10 @@ export default function IndyUTC() {
                     Sensitivity
                     <Info className="h-3 w-3" />
                   </Label>
-                  <Input 
-                    placeholder="2" 
-                    value={utSellSensitivity} 
-                    onChange={e => setUtSellSensitivity(e.target.value)} 
+                  <Input
+                    placeholder="2"
+                    value={utSellSensitivity}
+                    onChange={e => setUtSellSensitivity(e.target.value)}
                     type="number"
                     step="1"
                     className="h-10 text-sm"
@@ -597,10 +597,10 @@ export default function IndyUTC() {
                     ATR Period
                     <Info className="h-3 w-3" />
                   </Label>
-                  <Input 
-                    placeholder="1" 
-                    value={utSellAtrPeriod} 
-                    onChange={e => setUtSellAtrPeriod(e.target.value)} 
+                  <Input
+                    placeholder="1"
+                    value={utSellAtrPeriod}
+                    onChange={e => setUtSellAtrPeriod(e.target.value)}
                     type="number"
                     step="1"
                     className="h-10 text-sm"
@@ -629,10 +629,10 @@ export default function IndyUTC() {
                     Length
                     <Info className="h-3 w-3" />
                   </Label>
-                  <Input 
-                    placeholder="80" 
-                    value={utOscillatorLength} 
-                    onChange={e => setUtOscillatorLength(e.target.value)} 
+                  <Input
+                    placeholder="80"
+                    value={utOscillatorLength}
+                    onChange={e => setUtOscillatorLength(e.target.value)}
                     type="number"
                     step="1"
                     className="h-10 text-sm"
@@ -644,10 +644,10 @@ export default function IndyUTC() {
                     Fast Length
                     <Info className="h-3 w-3" />
                   </Label>
-                  <Input 
-                    placeholder="27" 
-                    value={utOscillatorFastLength} 
-                    onChange={e => setUtOscillatorFastLength(e.target.value)} 
+                  <Input
+                    placeholder="27"
+                    value={utOscillatorFastLength}
+                    onChange={e => setUtOscillatorFastLength(e.target.value)}
                     type="number"
                     step="1"
                     className="h-10 text-sm"
@@ -661,8 +661,8 @@ export default function IndyUTC() {
 
         {/* Action Buttons */}
         <div className="flex gap-4 pt-2">
-          <Button 
-            className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525] h-11" 
+          <Button
+            className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525] h-11"
             onClick={handleProceed}
             disabled={isCreating}
           >
@@ -675,10 +675,10 @@ export default function IndyUTC() {
               'Proceed'
             )}
           </Button>
-          <Button 
-            variant="outline" 
-            className="flex-1 h-11" 
-            type="button" 
+          <Button
+            variant="outline"
+            className="flex-1 h-11"
+            type="button"
             onClick={handleReset}
             disabled={isCreating}
           >
@@ -695,7 +695,7 @@ export default function IndyUTC() {
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Your UTC strategy has been created and is now active.
             </p>
-            <Button 
+            <Button
               onClick={handleClosePopup}
               className="w-full bg-[#4A1515] text-white hover:bg-[#5A2525]"
             >

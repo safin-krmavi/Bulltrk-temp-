@@ -39,11 +39,11 @@ export default function SmartGrid() {
   const [minimumInvestment, setMinimumInvestment] = React.useState(""); // New field
 
   // Get strategy store
-  const { 
-    createSmartGrid, 
+  const {
+    createSmartGrid,
     calculateSmartGridLimits,
-    isLoading, 
-    error, 
+    isLoading,
+    error,
     clearError,
     fetchBalances,
     getBalanceByAsset,
@@ -97,18 +97,18 @@ export default function SmartGrid() {
     }
 
     setIsCalculatingLimits(true);
-    
+
     try {
-      console.log("Calculating limits with:", { 
-        exchange, 
-        segment, 
-        symbol, 
+      console.log("Calculating limits with:", {
+        exchange,
+        segment,
+        symbol,
         dataSetDays: dataSet,
       });
-      
+
       // ✅ Call API and receive investment value
-      const { 
-        lowerLimit: calcLower, 
+      const {
+        lowerLimit: calcLower,
         upperLimit: calcUpper,
         levels: calcLevels,
         profitPercentage: calcProfitPercentage,
@@ -169,7 +169,7 @@ export default function SmartGrid() {
     if (symbol && balances.length > 0) {
       const quoteAsset = symbol.replace(/^[A-Z]+/, '');
       const balance = getBalanceByAsset(quoteAsset);
-      
+
       if (balance) {
         setAvailableBalance(parseFloat(balance.free).toFixed(2));
       } else {
@@ -308,7 +308,7 @@ export default function SmartGrid() {
   const handleProceed = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     clearError();
 
     if (!validateForm()) {
@@ -326,7 +326,7 @@ export default function SmartGrid() {
     const toastId = toast.loading("Creating Smart Grid strategy...", {
       description: "Please wait while we process your request"
     });
-    
+
     try {
       const strategyData: Omit<SmartGridStrategy, 'strategyType' | 'assetType'> = {
         name: strategyName,
@@ -344,22 +344,22 @@ export default function SmartGrid() {
         gridMode: 'STATIC',
         executionMode: executionMode,
       };
-      
+
       console.log("Smart Grid strategy data being sent:", strategyData);
-      
+
       await createSmartGrid(strategyData);
-      
+
       toast.success("Strategy created successfully! 🎉", {
         id: toastId,
         description: `${strategyName} is now active and running in ${executionMode} mode`,
         duration: 5000
       });
-      
+
       setShowProceedPopup(false);
       handleReset();
     } catch (err: any) {
       console.error("Strategy creation error:", err);
-      
+
       toast.error("Failed to create strategy", {
         id: toastId,
         description: err.message || "Please check your inputs and try again",
@@ -379,12 +379,12 @@ export default function SmartGrid() {
     setProfitUnit("%");
     setInvestment("");
     setMinimumInvestment("");
-    
+
     clearError();
-    
-    toast.success("Form reset", {
-      description: "All fields have been cleared"
-    });
+
+    // toast.success("Form reset", {
+    //   description: "All fields have been cleared"
+    // });
   };
 
   // Determine available type options based on segment
@@ -400,7 +400,7 @@ export default function SmartGrid() {
   return (
     <div className="w-full max-w-md mx-auto">
       <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
-      
+
       {/* ✅ Required Fields Warning */}
       {showRequiredFieldsWarning && (
         <Alert className="mt-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
@@ -411,7 +411,7 @@ export default function SmartGrid() {
           </AlertDescription>
         </Alert>
       )}
-      
+
       <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 border border-t-0 font-medium text-white hover:bg-[#5A2525]">
@@ -425,10 +425,10 @@ export default function SmartGrid() {
                 Strategy Name
                 <span className="text-muted-foreground text-xs">ⓘ</span>
               </Label>
-              <Input 
-                placeholder="Enter Name" 
-                value={strategyName} 
-                onChange={e => setStrategyName(e.target.value)} 
+              <Input
+                placeholder="Enter Name"
+                value={strategyName}
+                onChange={e => setStrategyName(e.target.value)}
               />
             </div>
 
@@ -437,10 +437,10 @@ export default function SmartGrid() {
               <Label>Select Type</Label>
               <div className="grid grid-cols-3 gap-2">
                 {availableTypes.map(val => (
-                  <Button 
-                    key={val} 
-                    variant={type === val ? "default" : "outline"} 
-                    type="button" 
+                  <Button
+                    key={val}
+                    variant={type === val ? "default" : "outline"}
+                    type="button"
                     onClick={() => handleTypeSelect(val as 'NEUTRAL' | 'LONG' | 'SHORT')}
                     className={type === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
                   >
@@ -451,26 +451,26 @@ export default function SmartGrid() {
             </div>
 
             {/* Data Set (Days) */}
-<div className="space-y-2">
-  <Label className="flex items-center gap-2">
-    Data Set
-    <span className="text-muted-foreground text-xs">ⓘ</span>
-  </Label>
-  <div className="grid grid-cols-4 gap-2">
-    {['30', '90', '180', '365'].map((val, index) => (
-      <Button 
-        key={index} 
-        variant={dataSet === val ? "default" : "outline"} 
-        size="sm" 
-        type="button" 
-        onClick={() => handleDataSetSelect(val)}
-        className={dataSet === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
-      >
-        {val}D
-      </Button>
-    ))}
-  </div>
-</div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                Data Set
+                <span className="text-muted-foreground text-xs">ⓘ</span>
+              </Label>
+              <div className="grid grid-cols-4 gap-2">
+                {['30', '90', '180', '365'].map((val, index) => (
+                  <Button
+                    key={index}
+                    variant={dataSet === val ? "default" : "outline"}
+                    size="sm"
+                    type="button"
+                    onClick={() => handleDataSetSelect(val)}
+                    className={dataSet === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
+                  >
+                    {val}D
+                  </Button>
+                ))}
+              </div>
+            </div>
 
             {/* Lower and Upper Limit - Auto-calculated */}
             <div className="grid grid-cols-2 gap-4">
@@ -480,9 +480,9 @@ export default function SmartGrid() {
                   <span className="text-muted-foreground text-xs">ⓘ</span>
                 </Label>
                 <div className="flex gap-2">
-                  <Input 
-                    placeholder="Value" 
-                    value={lowerLimit} 
+                  <Input
+                    placeholder="Value"
+                    value={lowerLimit}
                     readOnly
                     type="number"
                     step="0.000001"
@@ -498,16 +498,16 @@ export default function SmartGrid() {
                   </Select>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-sm">
                   Upper Limit
                   <span className="text-muted-foreground text-xs">ⓘ</span>
                 </Label>
                 <div className="flex gap-2">
-                  <Input 
-                    placeholder="Long" 
-                    value={upperLimit} 
+                  <Input
+                    placeholder="Long"
+                    value={upperLimit}
                     readOnly
                     type="number"
                     step="0.000001"
@@ -528,10 +528,10 @@ export default function SmartGrid() {
             {/* Levels */}
             <div className="space-y-2">
               <Label>Levels</Label>
-              <Input 
-                placeholder="Value" 
-                value={levels} 
-                onChange={e => setLevels(e.target.value)} 
+              <Input
+                placeholder="Value"
+                value={levels}
+                onChange={e => setLevels(e.target.value)}
                 type="number"
                 min="1"
               />
@@ -545,10 +545,10 @@ export default function SmartGrid() {
               </Label>
               <div className="grid grid-cols-2 gap-2">
                 <div className="relative">
-                  <Input 
-                    placeholder="Value" 
-                    value={profitPerLevel} 
-                    onChange={e => setProfitPerLevel(e.target.value)} 
+                  <Input
+                    placeholder="Value"
+                    value={profitPerLevel}
+                    onChange={e => setProfitPerLevel(e.target.value)}
                     type="number"
                     step="0.1"
                   />
@@ -559,8 +559,8 @@ export default function SmartGrid() {
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">-</span>
                   <div className="relative flex-1">
-                    <Input 
-                      placeholder="Value" 
+                    <Input
+                      placeholder="Value"
                       type="number"
                       step="0.1"
                       disabled
@@ -580,10 +580,10 @@ export default function SmartGrid() {
                 <span className="text-muted-foreground text-xs">ⓘ</span>
               </Label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Value" 
-                  value={investment} 
-                  onChange={e => setInvestment(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={investment}
+                  onChange={e => setInvestment(e.target.value)}
                   type="number"
                   step="0.01"
                 />
@@ -614,10 +614,10 @@ export default function SmartGrid() {
                 Minimum Investment
               </Label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Value" 
-                  value={minimumInvestment} 
-                  onChange={e => setMinimumInvestment(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={minimumInvestment}
+                  onChange={e => setMinimumInvestment(e.target.value)}
                   type="number"
                   step="0.01"
                   className="bg-gray-50 dark:bg-[#2A2A2D]"
@@ -642,18 +642,18 @@ export default function SmartGrid() {
         )}
 
         <div className="flex gap-4">
-          <Button 
-            className="flex-1 bg-[#4A1515] hover:bg-[#5A2525]" 
-            onClick={handleProceed} 
+          <Button
+            className="flex-1 bg-[#4A1515] hover:bg-[#5A2525]"
+            onClick={handleProceed}
             disabled={isLoading}
             type="button"
           >
             {isLoading ? "Processing..." : "Proceed"}
           </Button>
-          <Button 
-            variant="outline" 
-            className="flex-1 bg-[#D97706] text-white hover:bg-[#B45309]" 
-            type="button" 
+          <Button
+            variant="outline"
+            className="flex-1 bg-[#D97706] text-white hover:bg-[#B45309]"
+            type="button"
             onClick={handleReset}
             disabled={isLoading}
           >

@@ -74,16 +74,16 @@ export default function IndyTrend() {
   // ✅ Get quote asset for balance display
   const quoteAsset = React.useMemo(() => {
     if (!symbol) return 'USDT';
-    
+
     const knownQuotes = ['USDT', 'USDC', 'BUSD', 'BTC', 'ETH', 'BNB', 'INR', 'TUSD', 'DAI', 'FDUSD'];
     const sortedQuotes = knownQuotes.sort((a, b) => b.length - a.length);
-    
+
     for (const quote of sortedQuotes) {
       if (symbol.toUpperCase().endsWith(quote)) {
         return quote;
       }
     }
-    
+
     return 'USDT';
   }, [symbol]);
 
@@ -115,7 +115,7 @@ export default function IndyTrend() {
 
   const handleProceed = (e: React.MouseEvent) => {
     e.preventDefault();
-    
+
     // Validation
     if (!selectedApiId || !strategyName || !investment || !investmentCap || !lowerLimit || !upperLimit) {
       toast.error("Please fill all required fields");
@@ -179,45 +179,45 @@ export default function IndyTrend() {
     setPriceTriggerStart("");
     setPriceTriggerStop("");
     setStopLossBy("");
-    
+
     // Reset Supertrend
     setSupertrendEnabled(true);
     setSupertrendDirection("Neutral");
     setSupertrendTimeframe("1H");
     setSupertrendAtrPeriod("10");
     setSupertrendFactor("3");
-    
+
     // Reset RSI 1
     setRsi1Enabled(true);
     setRsi1Length("21");
     setRsi1Source("Close");
     setRsi1Timeframe("65");
-    
+
     // Reset RSI 2
     setRsi2Enabled(true);
     setRsi2Length("21");
     setRsi2Source("Close");
     setRsi2Timeframe("65");
-    
+
     // Reset RSI 3
     setRsi3Enabled(true);
     setRsi3Length("21");
     setRsi3Source("Close");
     setRsi3Timeframe("65");
-    
+
     // Reset ADX
     setAdxEnabled(true);
     setAdxSmoothing("21");
     setAdxDiLength("Close");
     setAdxSig("65");
 
-    toast.success("Form reset successfully");
+    // toast.success("Form reset successfully");
   };
 
   return (
     <div className="w-full max-w-md mx-auto">
       <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
-      
+
       <form className="space-y-4 mt-4 dark:text-white">
         <Collapsible open={isIndyOpen} onOpenChange={setIsIndyOpen}>
           <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
@@ -231,10 +231,10 @@ export default function IndyTrend() {
                 Strategy Name
                 <Info className="h-3 w-3 text-muted-foreground" />
               </Label>
-              <Input 
-                placeholder="Enter Name" 
-                value={strategyName} 
-                onChange={e => setStrategyName(e.target.value)} 
+              <Input
+                placeholder="Enter Name"
+                value={strategyName}
+                onChange={e => setStrategyName(e.target.value)}
                 className="h-10"
               />
             </div>
@@ -246,10 +246,10 @@ export default function IndyTrend() {
                 <Info className="h-3 w-3 text-muted-foreground" />
               </Label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Value" 
-                  value={investment} 
-                  onChange={e => setInvestment(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={investment}
+                  onChange={e => setInvestment(e.target.value)}
                   type="number"
                   step="0.01"
                   className="h-10"
@@ -282,10 +282,10 @@ export default function IndyTrend() {
                 <Info className="h-3 w-3 text-muted-foreground" />
               </Label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Value" 
-                  value={investmentCap} 
-                  onChange={e => setInvestmentCap(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={investmentCap}
+                  onChange={e => setInvestmentCap(e.target.value)}
                   type="number"
                   step="0.01"
                   className="h-10"
@@ -304,10 +304,10 @@ export default function IndyTrend() {
             {/* Leverage */}
             <div className="space-y-2">
               <Label className="text-sm">Leverage</Label>
-              <Input 
-                placeholder="Value" 
-                value={leverage} 
-                onChange={e => setLeverage(e.target.value)} 
+              <Input
+                placeholder="Value"
+                value={leverage}
+                onChange={e => setLeverage(e.target.value)}
                 type="number"
                 step="1"
                 className="h-10"
@@ -322,10 +322,10 @@ export default function IndyTrend() {
                   <Info className="h-3 w-3 text-muted-foreground" />
                 </Label>
                 <div className="flex gap-1">
-                  <Input 
-                    placeholder="Value" 
-                    value={lowerLimit} 
-                    onChange={e => setLowerLimit(e.target.value)} 
+                  <Input
+                    placeholder="Value"
+                    value={lowerLimit}
+                    onChange={e => setLowerLimit(e.target.value)}
                     type="number"
                     step="0.000001"
                     className="h-10"
@@ -340,17 +340,17 @@ export default function IndyTrend() {
                   </Select>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label className="flex items-center gap-1 text-sm">
                   Upper Limit
                   <Info className="h-3 w-3 text-muted-foreground" />
                 </Label>
                 <div className="flex gap-1">
-                  <Input 
-                    placeholder="Value" 
-                    value={upperLimit} 
-                    onChange={e => setUpperLimit(e.target.value)} 
+                  <Input
+                    placeholder="Value"
+                    value={upperLimit}
+                    onChange={e => setUpperLimit(e.target.value)}
                     type="number"
                     step="0.000001"
                     className="h-10"
@@ -371,10 +371,10 @@ export default function IndyTrend() {
             <div className="space-y-2">
               <Label className="text-sm">Price Trigger Start</Label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Value" 
-                  value={priceTriggerStart} 
-                  onChange={e => setPriceTriggerStart(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={priceTriggerStart}
+                  onChange={e => setPriceTriggerStart(e.target.value)}
                   type="number"
                   step="0.000001"
                   className="h-10"
@@ -394,10 +394,10 @@ export default function IndyTrend() {
             <div className="space-y-2">
               <Label className="text-sm">Price Trigger Stop</Label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Value" 
-                  value={priceTriggerStop} 
-                  onChange={e => setPriceTriggerStop(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={priceTriggerStop}
+                  onChange={e => setPriceTriggerStop(e.target.value)}
                   type="number"
                   step="0.000001"
                   className="h-10"
@@ -417,10 +417,10 @@ export default function IndyTrend() {
             <div className="space-y-2">
               <Label className="text-sm">Stop Loss By</Label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Value" 
-                  value={stopLossBy} 
-                  onChange={e => setStopLossBy(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={stopLossBy}
+                  onChange={e => setStopLossBy(e.target.value)}
                   type="number"
                   step="0.01"
                   className="h-10"
@@ -448,17 +448,17 @@ export default function IndyTrend() {
             {/* Supertrend Section */}
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="supertrend" 
-                  checked={supertrendEnabled} 
-                  onCheckedChange={(checked) => setSupertrendEnabled(checked as boolean)} 
+                <Checkbox
+                  id="supertrend"
+                  checked={supertrendEnabled}
+                  onCheckedChange={(checked) => setSupertrendEnabled(checked as boolean)}
                   className="h-5 w-5"
                 />
                 <Label htmlFor="supertrend" className="text-base font-normal cursor-pointer">
                   Supertrend
                 </Label>
               </div>
-              
+
               {/* Direction Buttons - Always visible */}
               <div className="grid grid-cols-3 gap-2">
                 {['Neutral', 'Long', 'Short'].map((dir) => (
@@ -493,10 +493,10 @@ export default function IndyTrend() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">ATR Period</Label>
-                  <Input 
-                    placeholder="10" 
-                    value={supertrendAtrPeriod} 
-                    onChange={e => setSupertrendAtrPeriod(e.target.value)} 
+                  <Input
+                    placeholder="10"
+                    value={supertrendAtrPeriod}
+                    onChange={e => setSupertrendAtrPeriod(e.target.value)}
                     type="number"
                     className="h-10 text-sm"
                     disabled={!supertrendEnabled}
@@ -504,10 +504,10 @@ export default function IndyTrend() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Factor</Label>
-                  <Input 
-                    placeholder="3" 
-                    value={supertrendFactor} 
-                    onChange={e => setSupertrendFactor(e.target.value)} 
+                  <Input
+                    placeholder="3"
+                    value={supertrendFactor}
+                    onChange={e => setSupertrendFactor(e.target.value)}
                     type="number"
                     className="h-10 text-sm"
                     disabled={!supertrendEnabled}
@@ -519,25 +519,25 @@ export default function IndyTrend() {
             {/* RSI 1 Section */}
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="rsi1" 
-                  checked={rsi1Enabled} 
-                  onCheckedChange={(checked) => setRsi1Enabled(checked as boolean)} 
+                <Checkbox
+                  id="rsi1"
+                  checked={rsi1Enabled}
+                  onCheckedChange={(checked) => setRsi1Enabled(checked as boolean)}
                   className="h-5 w-5"
                 />
                 <Label htmlFor="rsi1" className="text-base font-normal cursor-pointer">
                   RSI 1
                 </Label>
               </div>
-              
+
               {/* Length, Source, Timeframe - Always visible */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Length</Label>
-                  <Input 
-                    placeholder="21" 
-                    value={rsi1Length} 
-                    onChange={e => setRsi1Length(e.target.value)} 
+                  <Input
+                    placeholder="21"
+                    value={rsi1Length}
+                    onChange={e => setRsi1Length(e.target.value)}
                     type="number"
                     className="h-10 text-sm"
                     disabled={!rsi1Enabled}
@@ -559,10 +559,10 @@ export default function IndyTrend() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Timeframe</Label>
-                  <Input 
-                    placeholder="65" 
-                    value={rsi1Timeframe} 
-                    onChange={e => setRsi1Timeframe(e.target.value)} 
+                  <Input
+                    placeholder="65"
+                    value={rsi1Timeframe}
+                    onChange={e => setRsi1Timeframe(e.target.value)}
                     type="number"
                     className="h-10 text-sm"
                     disabled={!rsi1Enabled}
@@ -574,25 +574,25 @@ export default function IndyTrend() {
             {/* RSI 2 Section */}
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="rsi2" 
-                  checked={rsi2Enabled} 
-                  onCheckedChange={(checked) => setRsi2Enabled(checked as boolean)} 
+                <Checkbox
+                  id="rsi2"
+                  checked={rsi2Enabled}
+                  onCheckedChange={(checked) => setRsi2Enabled(checked as boolean)}
                   className="h-5 w-5"
                 />
                 <Label htmlFor="rsi2" className="text-base font-normal cursor-pointer">
                   RSI 2
                 </Label>
               </div>
-              
+
               {/* Length, Source, Timeframe - Always visible */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Length</Label>
-                  <Input 
-                    placeholder="21" 
-                    value={rsi2Length} 
-                    onChange={e => setRsi2Length(e.target.value)} 
+                  <Input
+                    placeholder="21"
+                    value={rsi2Length}
+                    onChange={e => setRsi2Length(e.target.value)}
                     type="number"
                     className="h-10 text-sm"
                     disabled={!rsi2Enabled}
@@ -614,10 +614,10 @@ export default function IndyTrend() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Timeframe</Label>
-                  <Input 
-                    placeholder="65" 
-                    value={rsi2Timeframe} 
-                    onChange={e => setRsi2Timeframe(e.target.value)} 
+                  <Input
+                    placeholder="65"
+                    value={rsi2Timeframe}
+                    onChange={e => setRsi2Timeframe(e.target.value)}
                     type="number"
                     className="h-10 text-sm"
                     disabled={!rsi2Enabled}
@@ -629,25 +629,25 @@ export default function IndyTrend() {
             {/* RSI 3 Section */}
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="rsi3" 
-                  checked={rsi3Enabled} 
-                  onCheckedChange={(checked) => setRsi3Enabled(checked as boolean)} 
+                <Checkbox
+                  id="rsi3"
+                  checked={rsi3Enabled}
+                  onCheckedChange={(checked) => setRsi3Enabled(checked as boolean)}
                   className="h-5 w-5"
                 />
                 <Label htmlFor="rsi3" className="text-base font-normal cursor-pointer">
                   RSI 3
                 </Label>
               </div>
-              
+
               {/* Length, Source, Timeframe - Always visible */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Length</Label>
-                  <Input 
-                    placeholder="21" 
-                    value={rsi3Length} 
-                    onChange={e => setRsi3Length(e.target.value)} 
+                  <Input
+                    placeholder="21"
+                    value={rsi3Length}
+                    onChange={e => setRsi3Length(e.target.value)}
                     type="number"
                     className="h-10 text-sm"
                     disabled={!rsi3Enabled}
@@ -669,10 +669,10 @@ export default function IndyTrend() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Timeframe</Label>
-                  <Input 
-                    placeholder="65" 
-                    value={rsi3Timeframe} 
-                    onChange={e => setRsi3Timeframe(e.target.value)} 
+                  <Input
+                    placeholder="65"
+                    value={rsi3Timeframe}
+                    onChange={e => setRsi3Timeframe(e.target.value)}
                     type="number"
                     className="h-10 text-sm"
                     disabled={!rsi3Enabled}
@@ -684,25 +684,25 @@ export default function IndyTrend() {
             {/* ADX Section */}
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="adx" 
-                  checked={adxEnabled} 
-                  onCheckedChange={(checked) => setAdxEnabled(checked as boolean)} 
+                <Checkbox
+                  id="adx"
+                  checked={adxEnabled}
+                  onCheckedChange={(checked) => setAdxEnabled(checked as boolean)}
                   className="h-5 w-5"
                 />
                 <Label htmlFor="adx" className="text-base font-normal cursor-pointer">
                   ADX
                 </Label>
               </div>
-              
+
               {/* Smoothing, DI Length, Sig - Always visible */}
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Smoothing</Label>
-                  <Input 
-                    placeholder="21" 
-                    value={adxSmoothing} 
-                    onChange={e => setAdxSmoothing(e.target.value)} 
+                  <Input
+                    placeholder="21"
+                    value={adxSmoothing}
+                    onChange={e => setAdxSmoothing(e.target.value)}
                     type="number"
                     className="h-10 text-sm"
                     disabled={!adxEnabled}
@@ -710,20 +710,20 @@ export default function IndyTrend() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">DI Length</Label>
-                  <Input 
-                    placeholder="Close" 
-                    value={adxDiLength} 
-                    onChange={e => setAdxDiLength(e.target.value)} 
+                  <Input
+                    placeholder="Close"
+                    value={adxDiLength}
+                    onChange={e => setAdxDiLength(e.target.value)}
                     className="h-10 text-sm"
                     disabled={!adxEnabled}
                   />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Sig</Label>
-                  <Input 
-                    placeholder="65" 
-                    value={adxSig} 
-                    onChange={e => setAdxSig(e.target.value)} 
+                  <Input
+                    placeholder="65"
+                    value={adxSig}
+                    onChange={e => setAdxSig(e.target.value)}
                     type="number"
                     className="h-10 text-sm"
                     disabled={!adxEnabled}
@@ -736,16 +736,16 @@ export default function IndyTrend() {
 
         {/* Action Buttons */}
         <div className="flex gap-4 pt-2">
-          <Button 
-            className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525] h-11" 
+          <Button
+            className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525] h-11"
             onClick={handleProceed}
           >
             Proceed
           </Button>
-          <Button 
-            variant="outline" 
-            className="flex-1 h-11" 
-            type="button" 
+          <Button
+            variant="outline"
+            className="flex-1 h-11"
+            type="button"
             onClick={handleReset}
           >
             Reset

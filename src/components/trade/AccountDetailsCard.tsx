@@ -18,6 +18,7 @@ interface AccountDetailsCardProps {
     segment: string;
     pair: string;
   }) => void;
+  allowedSegments?: string[];
 }
 
 const SEGMENTS = [
@@ -41,15 +42,30 @@ interface BrokerageConnection {
 export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
   title = "Account Details",
   onDataChange,
+  allowedSegments,
 }) => {
   const [open, setOpen] = React.useState(true);
   const [selectedApi, setSelectedApi] = React.useState("");
-  const [segment, setSegment] = React.useState("SPOT");
+  
+  // Filter segments based on allowedSegments prop
+  const filteredSegments = React.useMemo(() => {
+    if (!allowedSegments || allowedSegments.length === 0) return SEGMENTS;
+    const allowedUpper = allowedSegments.map(s => s.toUpperCase());
+    return SEGMENTS.filter(s => allowedUpper.includes(s.value));
+  }, [allowedSegments]);
+
+  const [segment, setSegment] = React.useState(() => {
+    // Default to SPOT if allowed, otherwise first allowed segment, otherwise SEGMENTS[0]
+    if (!allowedSegments || allowedSegments.includes("SPOT")) return "SPOT";
+    return filteredSegments[0]?.value || "SPOT";
+  });
+
   const [pair, setPair] = React.useState("");
   const [pairSearch, setPairSearch] = React.useState("");
   const [connections, setConnections] = useState<BrokerageConnection[]>([]);
   const [isLoadingConnections, setIsLoadingConnections] = useState(false);
   const [isPairDropdownOpen, setIsPairDropdownOpen] = React.useState(false);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
 
   const { user } = useAuthStore();
   const { fetchSymbols, getSymbolsByExchange, isLoadingSymbols } = useStrategyStore();
@@ -119,12 +135,24 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
     }
   }, [selectedApi, segment, pair, connections, onDataChange]);
 
-  // Reset search when dropdown closes
+  // Reset search and handle focus when dropdown opens/closes
   useEffect(() => {
     if (!isPairDropdownOpen) {
       setPairSearch("");
+    } else {
+      // Small timeout to ensure the DOM is ready
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
     }
   }, [isPairDropdownOpen]);
+
+  // Ensure focus stays on input when search updates
+  useEffect(() => {
+    if (isPairDropdownOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [pairSearch, isPairDropdownOpen]);
 
   const fetchConnections = async () => {
     setIsLoadingConnections(true);
@@ -259,7 +287,7 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
                 <SelectValue placeholder="Select segment" />
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-[#232326]">
-                {SEGMENTS.map((seg) => (
+                {filteredSegments.map((seg) => (
                   <SelectItem key={seg.value} value={seg.value}>
                     {seg.label}
                   </SelectItem>
@@ -294,11 +322,16 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
                     <div className="relative">
                       <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
+                        ref={searchInputRef}
                         placeholder="Search pairs..."
                         value={pairSearch}
                         onChange={(e) => setPairSearch(e.target.value)}
                         className="pl-8 h-9 bg-white dark:bg-[#1a1a1d]"
+                        onKeyDown={(e) => e.stopPropagation()}
+                        onKeyUp={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
                         onClick={(e) => e.stopPropagation()}
+                        autoComplete="off"
                       />
                     </div>
                     {pairSearch && (

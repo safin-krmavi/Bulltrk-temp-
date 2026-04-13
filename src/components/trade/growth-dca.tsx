@@ -50,12 +50,26 @@ export default function GrowthDCA() {
   const [priceStop, setPriceStop] = useState("");
   const [stopLossPct, setStopLossPct] = useState("");
 
+  // Helper to get current time in 12-hour format
+  const getCurrentTime = () => {
+    const now = new Date();
+    let hour = now.getHours();
+    const minute = now.getMinutes();
+    const period = hour >= 12 ? "PM" : "AM";
+
+    // Convert to 12-hour format
+    if (hour === 0) hour = 12;
+    else if (hour > 12) hour -= 12;
+
+    return {
+      hour: hour.toString(),
+      minute: minute.toString().padStart(2, "0"),
+      period: period as "AM" | "PM"
+    };
+  };
+
   // Shared time state for DAILY, WEEKLY, and MONTHLY
-  const [sharedTime, setSharedTime] = useState({
-    hour: "12",
-    minute: "00",
-    period: "AM" as "AM" | "PM"
-  });
+  const [sharedTime, setSharedTime] = useState(getCurrentTime);
 
   // Separate state for frequency-specific selections
   const [weeklyDays, setWeeklyDays] = useState<string[]>([]);
@@ -63,10 +77,10 @@ export default function GrowthDCA() {
   const [hourInterval, setHourInterval] = useState<string>("1");
 
   // Get strategy store
-  const { 
-    createGrowthDCA, 
-    isLoading, 
-    error, 
+  const {
+    createGrowthDCA,
+    isLoading,
+    error,
     clearError,
     fetchBalances,
     getBalanceByAsset,
@@ -81,13 +95,13 @@ export default function GrowthDCA() {
   // Convert 12-hour time to 24-hour format
   const convertTo24Hour = (hour: string, minute: string, period: "AM" | "PM") => {
     let hour24 = parseInt(hour) || 12;
-    
+
     if (period === "AM") {
       if (hour24 === 12) hour24 = 0;
     } else {
       if (hour24 !== 12) hour24 += 12;
     }
-    
+
     const min = parseInt(minute) || 0;
     return `${hour24.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
   };
@@ -96,13 +110,13 @@ export default function GrowthDCA() {
   const buildFrequencyData = (): GrowthDCAStrategy['frequency'] | null => {
     const time24 = convertTo24Hour(sharedTime.hour, sharedTime.minute, sharedTime.period);
 
-    switch(frequency) {
+    switch (frequency) {
       case 'DAILY':
         return {
           type: 'DAILY' as const,
           time: time24,
         };
-      
+
       case 'WEEKLY':
         if (weeklyDays.length === 0) {
           toast.error("Please select at least one day for weekly frequency");
@@ -113,7 +127,7 @@ export default function GrowthDCA() {
           days: weeklyDays,
           time: time24,
         };
-      
+
       case 'MONTHLY':
         if (monthlyDates.length === 0) {
           toast.error("Please select at least one date for monthly frequency");
@@ -124,7 +138,7 @@ export default function GrowthDCA() {
           dates: monthlyDates.sort((a, b) => a - b),
           time: time24,
         };
-      
+
       case 'HOURLY':
         const interval = parseInt(hourInterval || "1");
         if (interval < 1 || interval > 24) {
@@ -135,7 +149,7 @@ export default function GrowthDCA() {
           type: 'HOURLY' as const,
           intervalHours: interval,
         };
-      
+
       default:
         return null;
     }
@@ -150,15 +164,11 @@ export default function GrowthDCA() {
 
   // Get input display value - return undefined when there's no value so placeholder shows
   const getInputDisplayValue = (freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY'): string | undefined => {
-    // DAILY input - show time if configured, otherwise undefined for placeholder
+    // DAILY input - show time
     if (freq === 'DAILY') {
-      // Only show time if it's not the default values
-      if (sharedTime.hour !== "12" || sharedTime.minute !== "00" || sharedTime.period !== "AM") {
-        return getFormattedTime();
-      }
-      return undefined;
+      return getFormattedTime();
     }
-    
+
     // WEEKLY input shows only selected days when active
     if (freq === 'WEEKLY') {
       if (frequency === 'WEEKLY' && weeklyDays.length > 0) {
@@ -170,7 +180,7 @@ export default function GrowthDCA() {
       }
       return undefined;
     }
-    
+
     // MONTHLY input shows only selected dates when active
     if (freq === 'MONTHLY') {
       if (frequency === 'MONTHLY' && monthlyDates.length > 0) {
@@ -182,7 +192,7 @@ export default function GrowthDCA() {
       }
       return undefined;
     }
-    
+
     // HOURLY input shows interval
     if (freq === 'HOURLY') {
       // Only show if interval is not default value
@@ -194,7 +204,7 @@ export default function GrowthDCA() {
       }
       return undefined;
     }
-    
+
     return undefined;
   };
 
@@ -228,8 +238,8 @@ export default function GrowthDCA() {
 
   // Toggle day selection for weekly frequency
   const toggleDay = (day: string) => {
-    setWeeklyDays(prev => 
-      prev.includes(day) 
+    setWeeklyDays(prev =>
+      prev.includes(day)
         ? prev.filter(d => d !== day)
         : [...prev, day]
     );
@@ -237,8 +247,8 @@ export default function GrowthDCA() {
 
   // Toggle date selection for monthly frequency
   const toggleDate = (date: number) => {
-    setMonthlyDates(prev => 
-      prev.includes(date) 
+    setMonthlyDates(prev =>
+      prev.includes(date)
         ? prev.filter(d => d !== date)
         : [...prev, date]
     );
@@ -333,6 +343,45 @@ export default function GrowthDCA() {
       });
       return false;
     }
+
+    // Time buffer validation (at least 2 minutes from now)
+    if (frequency !== 'HOURLY') {
+      const now = new Date();
+      const targetTime24 = convertTo24Hour(sharedTime.hour, sharedTime.minute, sharedTime.period);
+      const [hour, min] = targetTime24.split(':').map(Number);
+      
+      const targetDate = new Date(now);
+      targetDate.setHours(hour, min, 0, 0);
+      
+      const diffInMinutes = (targetDate.getTime() - now.getTime()) / (1000 * 60);
+      
+      // If target is within the next 2 minutes
+      if (diffInMinutes >= 0 && diffInMinutes < 2) {
+        // Check if it's scheduled for today
+        let isToday = false;
+        if (frequency === 'DAILY') {
+          isToday = true;
+        } else if (frequency === 'WEEKLY') {
+          const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+          const todayName = days[now.getDay()].toUpperCase();
+          if (weeklyDays.map(d => d.toUpperCase()).includes(todayName)) {
+            isToday = true;
+          }
+        } else if (frequency === 'MONTHLY') {
+          if (monthlyDates.includes(now.getDate())) {
+            isToday = true;
+          }
+        }
+
+        if (isToday) {
+          toast.error("Invalid scheduled time", {
+            description: "Please schedule at least 2 minutes ahead of current time"
+          });
+          return false;
+        }
+      }
+    }
+
     if (frequency === 'HOURLY') {
       const interval = parseInt(hourInterval || "0");
       if (interval < 1 || interval > 24) {
@@ -349,7 +398,7 @@ export default function GrowthDCA() {
   // Prepare strategy data for popup
   const getStrategyData = () => {
     const frequencyData = buildFrequencyData();
-    
+
     return {
       selectedApi: selectedApiId,
       exchange: exchange,
@@ -371,7 +420,7 @@ export default function GrowthDCA() {
   const handleProceed = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     clearError();
 
     if (!validateForm()) {
@@ -389,10 +438,10 @@ export default function GrowthDCA() {
     const toastId = toast.loading("Creating strategy...", {
       description: "Please wait while we process your request"
     });
-    
+
     try {
       const frequencyData = buildFrequencyData();
-      
+
       if (!frequencyData) {
         toast.dismiss(toastId);
         return;
@@ -408,28 +457,28 @@ export default function GrowthDCA() {
         frequency: frequencyData,
         takeProfitPct: Number(takeProfitPct),
         executionMode: executionMode,
-        
+
         // ✅ Only add optional fields if they have values
         ...(stopLossPct && { stopLossPct: Number(stopLossPct) }),
         ...(priceStart && { priceStart: Number(priceStart) }),
         ...(priceStop && { priceStop: Number(priceStop) }),
       };
-      
+
       console.log("Strategy data being sent:", strategyData);
-      
+
       await createGrowthDCA(strategyData);
-      
+
       toast.success("Strategy created successfully! 🎉", {
         id: toastId,
         description: `${strategyName} is now active and running in LIVE mode`,
         duration: 5000
       });
-      
+
       setShowProceedPopup(false);
       handleReset();
     } catch (err: any) {
       console.error("Strategy creation error:", err);
-      
+
       toast.error("Failed to create strategy", {
         id: toastId,
         description: err.message || "Please check your inputs and try again",
@@ -447,18 +496,18 @@ export default function GrowthDCA() {
     setPriceStart("");
     setPriceStop("");
     setStopLossPct("");
-    
+
     // Reset shared time and frequency-specific states
-    setSharedTime({ hour: "12", minute: "00", period: "AM" });
+    setSharedTime(getCurrentTime());
     setWeeklyDays([]);
     setMonthlyDates([]);
     setHourInterval("1");
-    
+
     clearError();
-    
-    toast.success("Form reset", {
-      description: "All fields have been cleared"
-    });
+
+    // toast.success("Form reset", {
+    //   description: "All fields have been cleared"
+    // });
   };
 
   // Callback to receive data from AccountDetailsCard
@@ -491,7 +540,7 @@ export default function GrowthDCA() {
     if (symbol && balances.length > 0) {
       const quoteAsset = symbol.replace(/^[A-Z]+/, '');
       const balance = getBalanceByAsset(quoteAsset);
-      
+
       if (balance) {
         setAvailableBalance(parseFloat(balance.free).toFixed(2));
       } else {
@@ -507,7 +556,7 @@ export default function GrowthDCA() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
+      <AccountDetailsCard onDataChange={handleAccountDetailsChange} allowedSegments={['SPOT']} />
       <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525] border border-t-0">
@@ -518,7 +567,7 @@ export default function GrowthDCA() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Strategy Name
-                <span className="text-muted-foreground">ⓘ</span>
+                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
               </Label>
               <Input placeholder="Enter Name" value={strategyName} onChange={e => setStrategyName(e.target.value)} />
             </div>
@@ -526,7 +575,7 @@ export default function GrowthDCA() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Investment Per Run
-                <span className="text-muted-foreground">ⓘ</span>
+                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
               </Label>
               <div className="flex gap-2">
                 <Input placeholder="Value" value={investmentPerRun} onChange={e => setInvestmentPerRun(e.target.value)} type="text" />
@@ -554,7 +603,7 @@ export default function GrowthDCA() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Investment CAP
-                <span className="text-muted-foreground">ⓘ</span>
+                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
               </Label>
               <div className="flex gap-2">
                 <Input placeholder="Value" value={investmentCap} onChange={e => setInvestmentCap(e.target.value)} type="text" />
@@ -572,18 +621,18 @@ export default function GrowthDCA() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Duration
-                <span className="text-muted-foreground">ⓘ</span>
+                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
               </Label>
               <div className="grid grid-cols-4 gap-2">
                 {(['DAILY', 'WEEKLY', 'MONTHLY', 'HOURLY'] as const).map(val => {
                   const displayValue = getInputDisplayValue(val);
                   const placeholderText = val.charAt(0) + val.slice(1).toLowerCase();
                   const hasValue = displayValue !== undefined && displayValue !== '';
-                  
+
                   return (
-                    <Popover 
-                      key={val} 
-                      open={activeFrequencyPopover === val} 
+                    <Popover
+                      key={val}
+                      open={activeFrequencyPopover === val}
                       onOpenChange={(open) => {
                         if (!open) {
                           closePopover();
@@ -594,12 +643,12 @@ export default function GrowthDCA() {
                         <div
                           onClick={() => handleFrequencyClick(val)}
                           className={`relative h-10 px-3 flex items-center justify-center cursor-pointer text-xs text-center font-medium rounded-md border transition-colors
-                            ${hasValue 
-                              ? 'text-gray-800 dark:text-gray-100' 
+                            ${hasValue
+                              ? 'text-gray-800 dark:text-gray-100'
                               : 'text-gray-500 dark:text-gray-400'
                             }
-                            ${frequency === val 
-                              ? 'bg-orange-100 dark:bg-orange-500/30 border-orange-500' 
+                            ${frequency === val
+                              ? 'bg-orange-100 dark:bg-orange-500/30 border-orange-500'
                               : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
                             }
                             hover:bg-gray-200 dark:hover:bg-gray-600
@@ -609,8 +658,8 @@ export default function GrowthDCA() {
                           {hasValue ? displayValue : placeholderText}
                         </div>
                       </PopoverTrigger>
-                      <PopoverContent 
-                        className="w-56 p-3 bg-white dark:bg-[#232326]" 
+                      <PopoverContent
+                        className="w-56 p-3 bg-white dark:bg-[#232326]"
                         align="start"
                         onInteractOutside={(e) => {
                           if ((e.target as HTMLElement).closest('.popover-content')) {
@@ -651,7 +700,7 @@ export default function GrowthDCA() {
                                     <ChevronDown className="h-3 w-3" />
                                   )}
                                 </button>
-                                
+
                                 {isDaysDropdownOpen && (
                                   <div className="absolute z-50 w-full mt-1 bg-white dark:bg-[#232326] border rounded-md shadow-lg max-h-48 overflow-auto">
                                     {WEEKDAYS.map((day) => (
@@ -686,11 +735,10 @@ export default function GrowthDCA() {
                                       e.stopPropagation();
                                       toggleDate(date);
                                     }}
-                                    className={`h-7 w-7 text-xs rounded-md flex items-center justify-center transition-colors ${
-                                      monthlyDates.includes(date)
-                                        ? 'bg-orange-500 text-white hover:bg-orange-600'
-                                        : 'bg-gray-100 dark:bg-[#1a1a1d] hover:bg-gray-200 dark:hover:bg-[#2a2a2d]'
-                                    }`}
+                                    className={`h-7 w-7 text-xs rounded-md flex items-center justify-center transition-colors ${monthlyDates.includes(date)
+                                      ? 'bg-orange-500 text-white hover:bg-orange-600'
+                                      : 'bg-gray-100 dark:bg-[#1a1a1d] hover:bg-gray-200 dark:hover:bg-[#2a2a2d]'
+                                      }`}
                                   >
                                     {date}
                                   </button>
@@ -889,10 +937,10 @@ export default function GrowthDCA() {
           >
             {isLoading ? "Processing..." : "Proceed"}
           </Button>
-          <Button 
-            variant="outline" 
-            className="flex-1 bg-[#D97706] text-white hover:bg-[#B45309]" 
-            type="button" 
+          <Button
+            variant="outline"
+            className="flex-1 bg-[#D97706] text-white hover:bg-[#B45309]"
+            type="button"
             onClick={handleReset}
             disabled={isLoading}
           >

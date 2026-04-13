@@ -36,10 +36,10 @@ export default function HumanGrid() {
   const [stopLossBy, setStopLossBy] = React.useState("");
 
   // Get strategy store
-  const { 
-    createHumanGrid, 
-    isLoading, 
-    error, 
+  const {
+    createHumanGrid,
+    isLoading,
+    error,
     clearError,
     fetchBalances,
     getBalanceByAsset,
@@ -138,7 +138,7 @@ export default function HumanGrid() {
       });
       return false;
     }
-    
+
     // Only validate leverage and direction for FUTURES
     if (isFutures) {
       if (!leverage || Number(leverage) < 1) {
@@ -148,7 +148,7 @@ export default function HumanGrid() {
         return false;
       }
     }
-    
+
     if (!entryInterval || Number(entryInterval) <= 0) {
       toast.error("Invalid entry interval", {
         description: "Enter a valid entry interval"
@@ -202,7 +202,7 @@ export default function HumanGrid() {
   const handleProceed = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     clearError();
 
     if (!validateForm()) {
@@ -220,7 +220,7 @@ export default function HumanGrid() {
     const toastId = toast.loading("Creating strategy...", {
       description: "Please wait while we process your request"
     });
-    
+
     try {
       const strategyData: Omit<HumanGridStrategy, 'strategyType' | 'assetType'> = {
         name: strategyName,
@@ -234,26 +234,26 @@ export default function HumanGrid() {
         entryInterval: Number(entryInterval),
         bookProfitBy: Number(bookProfitBy),
         executionMode: executionMode,
-        
+
         // Only add optional fields if they have values
         ...(stopLossBy && { stopLossPct: Number(stopLossBy) }),
       };
-      
+
       console.log("Human Grid strategy data being sent:", strategyData);
-      
+
       await createHumanGrid(strategyData);
-      
+
       toast.success("Strategy created successfully! 🎉", {
         id: toastId,
         description: `${strategyName} is now active and running in ${executionMode} mode`,
         duration: 5000
       });
-      
+
       setShowProceedPopup(false);
       handleReset();
     } catch (err: any) {
       console.error("Strategy creation error:", err);
-      
+
       toast.error("Failed to create strategy", {
         id: toastId,
         description: err.message || "Please check your inputs and try again",
@@ -276,9 +276,9 @@ export default function HumanGrid() {
 
     clearError();
 
-    toast.success("Form reset", {
-      description: "All fields have been cleared"
-    });
+    // toast.success("Form reset", {
+    //   description: "All fields have been cleared"
+    // });
   };
 
   // Fetch balances when exchange and segment change
@@ -298,7 +298,7 @@ export default function HumanGrid() {
     if (symbol && balances.length > 0) {
       const quoteAsset = symbol.replace(/^[A-Z]+/, '');
       const balance = getBalanceByAsset(quoteAsset);
-      
+
       if (balance) {
         setAvailableBalance(parseFloat(balance.free).toFixed(2));
       } else {
@@ -315,7 +315,7 @@ export default function HumanGrid() {
   return (
     <div className="w-full max-w-md mx-auto">
       <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
-      
+
       <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525] border border-t-0">
@@ -326,25 +326,25 @@ export default function HumanGrid() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Strategy Name
-                <span className="text-muted-foreground">ⓘ</span>
+                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
               </Label>
-              <Input 
-                placeholder="Enter Name" 
-                value={strategyName} 
-                onChange={e => setStrategyName(e.target.value)} 
+              <Input
+                placeholder="Enter Name"
+                value={strategyName}
+                onChange={e => setStrategyName(e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Investment
-                <span className="text-muted-foreground">ⓘ</span>
+                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
               </Label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Value" 
-                  value={investment} 
-                  onChange={e => setInvestment(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={investment}
+                  onChange={e => setInvestment(e.target.value)}
                   type="text"
                   step="0.01"
                 />
@@ -372,13 +372,13 @@ export default function HumanGrid() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Investment CAP
-                <span className="text-muted-foreground">ⓘ</span>
+                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
               </Label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="Value" 
-                  value={investmentCap} 
-                  onChange={e => setInvestmentCap(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={investmentCap}
+                  onChange={e => setInvestmentCap(e.target.value)}
                   type="text"
                   step="0.01"
                 />
@@ -397,10 +397,10 @@ export default function HumanGrid() {
               <div className="space-y-2">
                 <Label>Lower Limit</Label>
                 <div className="flex gap-2">
-                  <Input 
-                    placeholder="Value" 
-                    value={lowerLimit} 
-                    onChange={e => setLowerLimit(e.target.value)} 
+                  <Input
+                    placeholder="Value"
+                    value={lowerLimit}
+                    onChange={e => setLowerLimit(e.target.value)}
                     type="text"
                     step="0.01"
                   />
@@ -417,10 +417,10 @@ export default function HumanGrid() {
               <div className="space-y-2">
                 <Label>Upper Limit</Label>
                 <div className="flex gap-2">
-                  <Input 
-                    placeholder="Value" 
-                    value={upperLimit} 
-                    onChange={e => setUpperLimit(e.target.value)} 
+                  <Input
+                    placeholder="Value"
+                    value={upperLimit}
+                    onChange={e => setUpperLimit(e.target.value)}
                     type="text"
                     step="0.01"
                   />
@@ -436,7 +436,7 @@ export default function HumanGrid() {
               </div>
             </div>
 
-            {/* ✅ Only show Leverage and Direction for FUTURES */}
+            {/* Only show Leverage and Direction for FUTURES */}
             {isFutures && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -444,10 +444,10 @@ export default function HumanGrid() {
                     Leverage
                     {/* <span className="text-xs text-orange-500">(Futures only)</span> */}
                   </Label>
-                  <Input 
-                    placeholder="Value" 
-                    value={leverage} 
-                    onChange={e => setLeverage(e.target.value)} 
+                  <Input
+                    placeholder="Value"
+                    value={leverage}
+                    onChange={e => setLeverage(e.target.value)}
                     type="text"
                     min="1"
                     step="1"
@@ -474,13 +474,13 @@ export default function HumanGrid() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Entry Interval
-                <span className="text-muted-foreground">ⓘ</span>
+                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
               </Label>
               <div className="relative">
-                <Input 
-                  placeholder="Value" 
-                  value={entryInterval} 
-                  onChange={e => setEntryInterval(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={entryInterval}
+                  onChange={e => setEntryInterval(e.target.value)}
                   type="text"
                   step="0.01"
                 />
@@ -491,27 +491,27 @@ export default function HumanGrid() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Book Profit By
-                <span className="text-muted-foreground">ⓘ</span>
+                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
               </Label>
               <div className="relative">
-                <Input 
-                  placeholder="Value" 
-                  value={bookProfitBy} 
-                  onChange={e => setBookProfitBy(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={bookProfitBy}
+                  onChange={e => setBookProfitBy(e.target.value)}
                   type="text"
                   step="0.01"
                 />
-                <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">%</span>
+                <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">Pts</span>
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Stop Loss By</Label>
               <div className="relative">
-                <Input 
-                  placeholder="Value" 
-                  value={stopLossBy} 
-                  onChange={e => setStopLossBy(e.target.value)} 
+                <Input
+                  placeholder="Value"
+                  value={stopLossBy}
+                  onChange={e => setStopLossBy(e.target.value)}
                   type="text"
                   step="0.01"
                 />
@@ -524,18 +524,18 @@ export default function HumanGrid() {
         {error && <div className="text-red-500 text-sm p-2 border border-red-300 rounded bg-red-50 dark:bg-red-900/20">{error}</div>}
 
         <div className="flex gap-4">
-          <Button 
-            className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525]" 
-            onClick={handleProceed} 
+          <Button
+            className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525]"
+            onClick={handleProceed}
             type="button"
             disabled={isLoading}
           >
             {isLoading ? "Processing..." : "Proceed"}
           </Button>
-          <Button 
-            variant="outline" 
-            className="flex-1 bg-[#D97706] text-white hover:bg-[#B45309]" 
-            type="button" 
+          <Button
+            variant="outline"
+            className="flex-1 bg-[#D97706] text-white hover:bg-[#B45309]"
+            type="button"
             onClick={handleReset}
             disabled={isLoading}
           >

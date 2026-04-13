@@ -26,10 +26,10 @@ export default function PriceAction() {
     const [symbol, setSymbol] = useState("");
 
     // Get strategy store
-    const { 
-        createPriceAction, 
-        isLoading, 
-        balances, 
+    const {
+        createPriceAction,
+        isLoading,
+        balances,
         isLoadingBalances,
         getBalanceByAsset,
         fetchBalances
@@ -65,7 +65,7 @@ export default function PriceAction() {
     // Fetch balances when exchange/segment change
     useEffect(() => {
         if (exchange && segment) {
-            fetchBalances(exchange, segment).catch(() => {});
+            fetchBalances(exchange, segment).catch(() => { });
         }
     }, [exchange, segment, fetchBalances]);
 
@@ -149,7 +149,7 @@ export default function PriceAction() {
         setPriceStop("");
         setTakeProfitPct("");
         setStopLossByPercent("");
-        toast.success("Form reset");
+        // toast.success("Form reset");
     };
 
     // Build data for the review popup
@@ -208,11 +208,10 @@ export default function PriceAction() {
                                             key={opt.value}
                                             type="button"
                                             onClick={() => setRiskLevel(opt.value)}
-                                            className={`flex-1 py-2.5 text-sm font-medium transition-colors relative ${
-                                                riskLevel === opt.value
+                                            className={`flex-1 py-2.5 text-sm font-medium transition-colors relative ${riskLevel === opt.value
                                                     ? 'text-white'
                                                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                            }`}
+                                                }`}
                                         >
                                             {riskLevel === opt.value ? (
                                                 <span className="bg-[#D97706] text-white px-4 py-1.5 rounded-md inline-block">

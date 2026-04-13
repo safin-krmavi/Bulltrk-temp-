@@ -12,13 +12,13 @@ interface StrategyData {
   exchange: string;
   segment: string;
   pair: string;
-  
+
   // Common Strategy Details
   name: string;
   investmentPerRun: number;
   investmentCap: number;
   strategyType?: 'GROWTH_DCA' | 'HUMAN_GRID' | 'SMART_GRID' | 'PRICE_ACTION';
-  
+
   // Growth DCA specific fields
   frequency?: string;
   frequencyData?: any;
@@ -26,7 +26,7 @@ interface StrategyData {
   priceStart?: number;
   priceStop?: number;
   stopLossPct?: number;
-  
+
   // Human Grid specific fields
   lowerLimit?: number;
   upperLimit?: number;
@@ -34,7 +34,7 @@ interface StrategyData {
   direction?: string;
   entryInterval?: number;
   bookProfitBy?: number;
-  
+
   // Smart Grid specific fields
   levels?: number;
   profitPercentage?: number;
@@ -60,11 +60,11 @@ interface ProceedPopupProps {
   isLoading?: boolean;
 }
 
-export function ProceedPopup({ 
-  strategyData, 
-  onClose, 
+export function ProceedPopup({
+  strategyData,
+  onClose,
   onConfirm,
-  isLoading = false 
+  isLoading = false
 }: ProceedPopupProps) {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
@@ -101,7 +101,7 @@ export function ProceedPopup({
         { label: 'Direction', value: strategyData.direction || 'NEUTRAL' },
       ];
     }
-    
+
     if (isHumanGrid) {
       return [
         { label: 'Strategy Name', value: strategyData.name },
@@ -115,7 +115,7 @@ export function ProceedPopup({
         ...(isFutures && strategyData.direction ? [{ label: 'Direction', value: strategyData.direction }] : []),
       ];
     }
-    
+
     if (isPriceAction) {
       return [
         { label: 'Strategy Name', value: strategyData.name },
@@ -127,8 +127,20 @@ export function ProceedPopup({
         { label: 'Investment CAP', value: `${strategyData.investmentCap || 0} USDT` },
       ];
     }
-    
+
     // Growth DCA
+    const formatTime = (time24?: string) => {
+      if (!time24) return null;
+      try {
+        const [hour, min] = time24.split(':').map(Number);
+        const period = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${min.toString().padStart(2, '0')} ${period}`;
+      } catch (e) {
+        return time24;
+      }
+    };
+
     return [
       { label: 'Strategy Name', value: strategyData.name },
       { label: 'Strategy Type', value: 'Growth DCA' },
@@ -136,6 +148,18 @@ export function ProceedPopup({
       { label: 'Investment Per Run', value: `${strategyData.investmentPerRun} USDT` },
       { label: 'Investment CAP', value: `${strategyData.investmentCap} USDT` },
       { label: 'Frequency', value: strategyData.frequency || 'N/A' },
+      ...(strategyData.frequency === 'WEEKLY' && strategyData.frequencyData?.days 
+        ? [{ label: 'Days', value: strategyData.frequencyData.days.join(', ') }] 
+        : []),
+      ...(strategyData.frequency === 'MONTHLY' && strategyData.frequencyData?.dates 
+        ? [{ label: 'Dates', value: strategyData.frequencyData.dates.join(', ') }] 
+        : []),
+      ...(strategyData.frequency === 'HOURLY' && strategyData.frequencyData?.intervalHours 
+        ? [{ label: 'Interval', value: `Every ${strategyData.frequencyData.intervalHours} hours` }] 
+        : []),
+      ...(strategyData.frequency !== 'HOURLY' && strategyData.frequencyData?.time 
+        ? [{ label: 'Scheduled Time', value: formatTime(strategyData.frequencyData.time) || 'N/A' }] 
+        : []),
       { label: 'Take Profit %', value: `${strategyData.takeProfitPct || 0}%` },
     ];
   };
@@ -150,7 +174,7 @@ export function ProceedPopup({
         { label: 'Stop Loss %', value: strategyData.stopLossPct ? `${strategyData.stopLossPct}%` : 'N/A' },
       ];
     }
-    
+
     if (isHumanGrid) {
       return [
         { label: 'Entry Interval', value: `${strategyData.entryInterval} Pts` },
@@ -158,7 +182,7 @@ export function ProceedPopup({
         { label: 'Stop Loss %', value: strategyData.stopLossPct ? `${strategyData.stopLossPct}%` : 'N/A' },
       ];
     }
-    
+
     if (isPriceAction) {
       return [
         { label: 'Price Trigger Start', value: strategyData.priceStart ? `${strategyData.priceStart} USDT` : 'N/A' },
@@ -167,12 +191,12 @@ export function ProceedPopup({
         { label: 'Stop Loss By', value: strategyData.stopLossPct ? `${strategyData.stopLossPct}%` : 'N/A' },
       ];
     }
-    
+
     // Growth DCA
     return [
-      { label: 'Price Start', value: strategyData.priceStart?.toString() || 'N/A' },
-      { label: 'Price Stop', value: strategyData.priceStop?.toString() || 'N/A' },
-      { label: 'Stop Loss %', value: strategyData.stopLossPct ? `${strategyData.stopLossPct}%` : 'N/A' },
+      { label: 'Price Start', value: (strategyData.priceStart && strategyData.priceStart !== 0) ? `${strategyData.priceStart} USDT` : 'N/A' },
+      { label: 'Price Stop', value: (strategyData.priceStop && strategyData.priceStop !== 0) ? `${strategyData.priceStop} USDT` : 'N/A' },
+      { label: 'Stop Loss %', value: (strategyData.stopLossPct && strategyData.stopLossPct !== 0) ? `${strategyData.stopLossPct}%` : 'N/A' },
     ];
   };
 
@@ -202,12 +226,12 @@ export function ProceedPopup({
     <>
       <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
         <Card className="w-full max-w-3xl bg-white dark:bg-[#232326]">
-          <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-white dark:bg-[#232326]">
+          <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-white dark:bg-[#232326] rounded-lg">
             <h2 className="text-lg font-semibold">Strategy Review</h2>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={onClose} 
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
               disabled={isLoading}
               className="hover:bg-gray-100 dark:hover:bg-gray-800 h-8 w-8"
             >
@@ -237,45 +261,45 @@ export function ProceedPopup({
 
               {/* Terms & Conditions */}
               <div className="flex items-start space-x-2 pt-2">
-                <Checkbox 
-                  id="terms" 
+                <Checkbox
+                  id="terms"
                   checked={agreedToTerms}
                   onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
                   disabled={isLoading}
                   className="mt-0.5"
                 />
-                <label 
-                  htmlFor="terms" 
+                <label
+                  htmlFor="terms"
                   className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer leading-tight"
                 >
-                  I Agree to Bulltrek's Terms &amp; Conditions, Privacy policy and disclaimers
+                  I Agree to Bulltrek's Terms &amp; Conditions, Privacy policy and disclaimers <span className="text-red-500">*</span>
                 </label>
               </div>
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-2">
-                <Button 
+                <Button
                   className="flex-1 bg-[#5D1D21] hover:bg-[#4D1721] text-white h-9 text-sm"
                   onClick={() => onConfirm('LIVE')}
                   disabled={!agreedToTerms || isLoading}
                 >
                   {isLoading ? "Processing..." : "Run On Live Market"}
                 </Button>
-                <Button 
+                <Button
                   className="flex-1 bg-[#5D1D21] hover:bg-[#4D1721] text-white h-9 text-sm"
                   onClick={onClose}
                   disabled={isLoading}
                 >
                   Edit
                 </Button>
-                <Button 
+                <Button
                   className="flex-1 bg-[#5D1D21] hover:bg-[#4D1721] text-white h-9 text-sm"
                   onClick={() => onConfirm('PUBLISHED')}
                   disabled={!agreedToTerms || isLoading}
                 >
                   Publish
                 </Button>
-                <Button 
+                <Button
                   className="flex-1 bg-[#D97706] hover:bg-[#B45309] text-white h-9 text-sm font-semibold"
                   onClick={() => setShowBacktestInput(true)}
                   disabled={isLoading}
@@ -286,7 +310,7 @@ export function ProceedPopup({
 
               {/* Note */}
               <div className="text-center text-xs text-gray-500 dark:text-gray-400 pt-1">
-                ** For Buttons see respective user **
+
               </div>
             </div>
           </CardContent>
