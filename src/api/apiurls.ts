@@ -18,7 +18,8 @@ export const apiurls = {
     exchangemanagement:{
      getSymbolbyprecision:"/crypto/exchange/symbol-precision?exchange=&tradeType=",
      getSymbol:"/crypto/exchange/symbol-pairs",
-     getbalance:"/crypto/exchange/get-balances"
+     getbalance:"/crypto/exchange/get-balances",
+     availableBalances: "/crypto/exchange/available-balances"
     },
     strategies: {
         create: "/strategy/strategies",

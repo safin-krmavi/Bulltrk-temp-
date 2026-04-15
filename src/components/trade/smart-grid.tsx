@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState } from "react"
 import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { toast } from "sonner"
@@ -25,6 +24,7 @@ export default function SmartGrid() {
   const [exchange, setExchange] = useState("");
   const [segment, setSegment] = useState("SPOT");
   const [symbol, setSymbol] = useState("");
+  const [quoteAsset, setQuoteAsset] = useState("USDT");
 
   // Form state - Updated according to new structure
   const [strategyName, setStrategyName] = React.useState("");
@@ -45,9 +45,8 @@ export default function SmartGrid() {
     isLoading,
     error,
     clearError,
-    fetchBalances,
-    getBalanceByAsset,
-    balances,
+    allExchangesBalances,
+    fetchAllExchangesBalances,
     isLoadingBalances,
     balancesError
   } = useStrategyStore();
@@ -61,12 +60,14 @@ export default function SmartGrid() {
     exchange: string;
     segment: string;
     pair: string;
+    quote: string;
   }) => {
     console.log("Account details received:", data);
     setSelectedApiId(data.selectedApi);
     setExchange(data.exchange);
     setSegment(data.segment);
     setSymbol(data.pair);
+    setQuoteAsset(data.quote);
   };
 
   // Handlers for type buttons
@@ -152,36 +153,30 @@ export default function SmartGrid() {
     }
   }, [segment, type]);
 
-  // Fetch balances when exchange and segment change
+  // Fetch balances for the quote asset when it changes
   React.useEffect(() => {
-    if (exchange && segment) {
-      fetchBalances(exchange, segment).catch(err => {
-        console.error("Failed to fetch balances:", err);
-        toast.error("Failed to load balance", {
-          description: "Unable to fetch account balance"
-        });
+    if (quoteAsset) {
+      fetchAllExchangesBalances(quoteAsset).catch(err => {
+        console.error("Failed to fetch multi-exchange balances:", err);
       });
     }
-  }, [exchange, segment, fetchBalances]);
+  }, [quoteAsset, fetchAllExchangesBalances]);
 
-  // Update available balance
+  // Update available balance when exchange, segment or balance data changes
   React.useEffect(() => {
-    if (symbol && balances.length > 0) {
-      const quoteAsset = symbol.replace(/^[A-Z]+/, '');
-      const balance = getBalanceByAsset(quoteAsset);
-
-      if (balance) {
-        setAvailableBalance(parseFloat(balance.free).toFixed(2));
+    if (allExchangesBalances && exchange && segment) {
+      const exchangeKey = exchange.toUpperCase();
+      const segmentKey = segment.toUpperCase() as 'SPOT' | 'FUTURES';
+      
+      const balance = allExchangesBalances.balances?.[exchangeKey]?.[segmentKey];
+      
+      if (balance !== undefined) {
+        setAvailableBalance(balance.toFixed(2));
       } else {
-        const usdtBalance = getBalanceByAsset('USDT');
-        if (usdtBalance) {
-          setAvailableBalance(parseFloat(usdtBalance.free).toFixed(2));
-        } else {
-          setAvailableBalance("0");
-        }
+        setAvailableBalance("0");
       }
     }
-  }, [symbol, balances, getBalanceByAsset]);
+  }, [exchange, segment, allExchangesBalances]);
 
   // ✅ Update validation - minimumInvestment is now optional for user input
   const validateForm = () => {
@@ -488,14 +483,9 @@ export default function SmartGrid() {
                     step="0.000001"
                     className="bg-gray-100 dark:bg-[#2A2A2D] cursor-not-allowed"
                   />
-                  <Select value="USDT" disabled>
-                    <SelectTrigger className="w-[80px] bg-gray-100 dark:bg-[#2A2A2D]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="USDT">USDT</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {symbol || "—"}
+                  </div>
                 </div>
               </div>
 
@@ -513,14 +503,9 @@ export default function SmartGrid() {
                     step="0.000001"
                     className="bg-gray-100 dark:bg-[#2A2A2D] cursor-not-allowed"
                   />
-                  <Select value="USDT" disabled>
-                    <SelectTrigger className="w-[80px] bg-gray-100 dark:bg-[#2A2A2D]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="USDT">USDT</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {symbol || "—"}
+                  </div>
                 </div>
               </div>
             </div>
@@ -587,14 +572,9 @@ export default function SmartGrid() {
                   type="number"
                   step="0.01"
                 />
-                <Select value="USDT" disabled>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USDT">USDT</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                  {symbol || "—"}
+                </div>
               </div>
               {isLoadingBalances ? (
                 <p className="text-sm text-gray-500 flex items-center gap-2">
@@ -604,7 +584,7 @@ export default function SmartGrid() {
               ) : balancesError ? (
                 <p className="text-sm text-red-500">Failed to load balance</p>
               ) : (
-                <p className="text-sm text-orange-500">Avbl: {availableBalance} USDT</p>
+                <p className="text-sm text-orange-500">Avbl: {availableBalance} {quoteAsset}</p>
               )}
             </div>
 
@@ -622,14 +602,9 @@ export default function SmartGrid() {
                   step="0.01"
                   className="bg-gray-50 dark:bg-[#2A2A2D]"
                 />
-                <Select value="USDT" disabled>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USDT">USDT</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                  {symbol || "—"}
+                </div>
               </div>
             </div>
           </CollapsibleContent>

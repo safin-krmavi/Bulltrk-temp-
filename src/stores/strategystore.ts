@@ -286,6 +286,16 @@ export interface BalanceData {
   total: string;
 }
 
+export interface ExchangeAvailableBalances {
+  currency: string;
+  balances: {
+    [exchange: string]: {
+      SPOT?: number;
+      FUTURES?: number;
+    };
+  };
+}
+
 export interface StrategyState {
   // Strategy State
   strategies: Strategy[];
@@ -306,6 +316,7 @@ export interface StrategyState {
 
   // Balance State
   balances: BalanceData[];
+  allExchangesBalances: ExchangeAvailableBalances | null;
   isLoadingBalances: boolean;
   balancesError: string | null;
 
@@ -364,6 +375,7 @@ export interface StrategyState {
 
   // Balance API Methods
   fetchBalances: (exchange: string, type: string) => Promise<void>;
+  fetchAllExchangesBalances: (currency: string) => Promise<void>;
   getBalanceByAsset: (asset: string) => BalanceData | null;
 }
 
@@ -596,6 +608,7 @@ export const useStrategyStore = create<StrategyState>()(
 
       // Initial Balance State
       balances: [],
+      allExchangesBalances: null,
       isLoadingBalances: false,
       balancesError: null,
 
@@ -1017,6 +1030,24 @@ export const useStrategyStore = create<StrategyState>()(
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || 'Failed to fetch balances';
           set({ balancesError: errorMessage, isLoadingBalances: false, balances: [] });
+        }
+      },
+      
+      // Fetch All Exchanges Available Balances
+      fetchAllExchangesBalances: async (currency: string) => {
+        if (!currency) return;
+        set({ isLoadingBalances: true, balancesError: null });
+        try {
+          const response = await apiClient.get(`${apiurls.exchangemanagement.availableBalances}?currency=${currency.toUpperCase()}`);
+          
+          if (response.data?.data) {
+            set({ allExchangesBalances: response.data.data, isLoadingBalances: false });
+          } else {
+            set({ allExchangesBalances: null, isLoadingBalances: false });
+          }
+        } catch (error: any) {
+          const errorMessage = error.response?.data?.message || 'Failed to fetch multi-exchange balances';
+          set({ balancesError: errorMessage, isLoadingBalances: false });
         }
       },
 

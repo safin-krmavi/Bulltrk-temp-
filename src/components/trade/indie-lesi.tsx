@@ -14,6 +14,7 @@ import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { toast } from "sonner"
 import apiClient from "@/api/apiClient"
 import { apiurls } from "@/api/apiurls"
+import { useStrategyStore } from "@/stores/strategystore"
 
 export default function IndyLESI() {
   const [isOpen, setIsOpen] = React.useState(true)
@@ -24,6 +25,7 @@ export default function IndyLESI() {
   const [exchange, setExchange] = useState("");
   const [segment, setSegment] = useState("SPOT");
   const [symbol, setSymbol] = useState("");
+  const [quoteAsset, setQuoteAsset] = useState("USDT");
   const [showRequiredFieldsWarning, setShowRequiredFieldsWarning] = React.useState(false);
 
   // Form state
@@ -56,7 +58,16 @@ export default function IndyLESI() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
-  const [availableBalance] = useState<string>("0");
+  const [availableBalance, setAvailableBalance] = useState<string>("0");
+
+  const { 
+    allExchangesBalances, 
+    fetchAllExchangesBalances, 
+    isLoadingBalances, 
+    balancesError,
+    fetchBalances,
+    getBalanceByAsset
+  } = useStrategyStore();
 
   // Callback to receive data from AccountDetailsCard
   const handleAccountDetailsChange = (data: {
@@ -64,12 +75,14 @@ export default function IndyLESI() {
     exchange: string;
     segment: string;
     pair: string;
+    quote: string;
   }) => {
     console.log("Account details received:", data);
     setSelectedApiId(data.selectedApi);
     setExchange(data.exchange);
     setSegment(data.segment);
     setSymbol(data.pair);
+    setQuoteAsset(data.quote);
   };
 
   // Update required fields warning
@@ -77,6 +90,47 @@ export default function IndyLESI() {
     const hasRequiredFields = selectedApiId && exchange && segment && symbol;
     setShowRequiredFieldsWarning(!hasRequiredFields);
   }, [selectedApiId, exchange, segment, symbol]);
+
+  // Fetch balances for the quote asset when it changes
+  React.useEffect(() => {
+    if (quoteAsset) {
+      fetchAllExchangesBalances(quoteAsset).catch(err => {
+        console.error("Failed to fetch multi-exchange balances:", err);
+      });
+    }
+  }, [quoteAsset, fetchAllExchangesBalances]);
+
+  // Update available balance when exchange, segment or balance data changes
+  React.useEffect(() => {
+    if (allExchangesBalances && exchange && segment) {
+      const exchangeKey = exchange.toUpperCase();
+      const segmentKey = segment.toUpperCase() as 'SPOT' | 'FUTURES';
+      
+      const balance = allExchangesBalances.balances?.[exchangeKey]?.[segmentKey];
+      
+      if (balance !== undefined) {
+        setAvailableBalance(balance.toFixed(2));
+      } else {
+        setAvailableBalance("0");
+      }
+    }
+  }, [exchange, segment, allExchangesBalances]);
+
+  // Fallback to fetchBalances if multi-exchange balance is not available yet
+  // This ensures backward compatibility or loading data for the first time
+  React.useEffect(() => {
+    if (exchange && segment && !allExchangesBalances) {
+      fetchBalances(exchange, segment).catch(err => console.error(err));
+    }
+  }, [exchange, segment, allExchangesBalances, fetchBalances]);
+
+  // Update available balance from old balances if allExchangesBalances is not available
+  React.useEffect(() => {
+    if (!allExchangesBalances && quoteAsset) {
+      const balance = getBalanceByAsset(quoteAsset);
+      if (balance) setAvailableBalance(parseFloat(balance.free).toFixed(2));
+    }
+  }, [allExchangesBalances, quoteAsset, getBalanceByAsset]);
 
   // Get missing fields for warning
   const getMissingFields = () => {
@@ -258,16 +312,20 @@ export default function IndyLESI() {
                   type="number"
                   step="0.01"
                 />
-                <Select value="USDT" disabled>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USDT">USDT</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                  {quoteAsset}
+                </div>
               </div>
-              <p className="text-sm text-orange-500">Avbl: {availableBalance} USDT</p>
+              {isLoadingBalances ? (
+                <p className="text-sm text-gray-500 flex items-center gap-2">
+                  <span className="inline-block w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></span>
+                  Loading balance...
+                </p>
+              ) : balancesError ? (
+                <p className="text-sm text-red-500">Failed to load balance</p>
+              ) : (
+                <p className="text-sm text-orange-500">Avbl: {availableBalance} {quoteAsset}</p>
+              )}
             </div>
 
             {/* Investment CAP */}
@@ -284,14 +342,9 @@ export default function IndyLESI() {
                   type="number"
                   step="0.01"
                 />
-                <Select value="USDT" disabled>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USDT">USDT</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                  {quoteAsset}
+                </div>
               </div>
             </div>
 
@@ -340,14 +393,9 @@ export default function IndyLESI() {
                     type="number"
                     step="0.01"
                   />
-                  <Select value="USDT" disabled>
-                    <SelectTrigger className="w-[80px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="USDT">USDT</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {quoteAsset}
+                  </div>
                 </div>
               </div>
 
@@ -364,14 +412,9 @@ export default function IndyLESI() {
                     type="number"
                     step="0.01"
                   />
-                  <Select value="USDT" disabled>
-                    <SelectTrigger className="w-[80px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="USDT">USDT</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {quoteAsset}
+                  </div>
                 </div>
               </div>
             </div>
@@ -387,14 +430,9 @@ export default function IndyLESI() {
                   type="number"
                   step="0.01"
                 />
-                <Select value="USDT" disabled>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USDT">USDT</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                  {symbol || "—"}
+                </div>
               </div>
             </div>
 
@@ -409,14 +447,9 @@ export default function IndyLESI() {
                   type="number"
                   step="0.01"
                 />
-                <Select value="USDT" disabled>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USDT">USDT</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                  {symbol || "—"}
+                </div>
               </div>
             </div>
 

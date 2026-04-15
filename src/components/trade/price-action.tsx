@@ -5,7 +5,6 @@ import { ChevronDown, ChevronUp, Info } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useState, useMemo, useEffect } from "react"
 import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { useStrategyStore, PriceActionStrategy } from "@/stores/strategystore"
@@ -29,10 +28,9 @@ export default function PriceAction() {
     const {
         createPriceAction,
         isLoading,
-        balances,
+        allExchangesBalances,
+        fetchAllExchangesBalances,
         isLoadingBalances,
-        getBalanceByAsset,
-        fetchBalances
     } = useStrategyStore();
 
     // Main form state
@@ -62,20 +60,23 @@ export default function PriceAction() {
         return 'USDT';
     }, [symbol]);
 
-    // Fetch balances when exchange/segment change
+    // Fetch balances for the quote asset when it changes
     useEffect(() => {
-        if (exchange && segment) {
-            fetchBalances(exchange, segment).catch(() => { });
+        if (quoteAsset) {
+            fetchAllExchangesBalances(quoteAsset).catch(() => { });
         }
-    }, [exchange, segment, fetchBalances]);
+    }, [quoteAsset, fetchAllExchangesBalances]);
 
-    // Update balance when symbol or balances change
+    // Update available balance when exchange, segment or balance data changes
     useEffect(() => {
-        if (symbol && balances.length > 0) {
-            const balance = getBalanceByAsset(quoteAsset);
-            setAvailableBalance(balance ? parseFloat(balance.free).toFixed(2) : "0");
+        if (allExchangesBalances && exchange && segment) {
+            const exchangeKey = exchange.toUpperCase();
+            const segmentKey = segment.toUpperCase() as 'SPOT' | 'FUTURES';
+
+            const balance = allExchangesBalances.balances?.[exchangeKey]?.[segmentKey];
+            setAvailableBalance(balance !== undefined ? balance.toFixed(2) : "0");
         }
-    }, [symbol, balances, quoteAsset, getBalanceByAsset]);
+    }, [exchange, segment, allExchangesBalances]);
 
     // AccountDetailsCard callback
     const handleAccountDetailsChange = (data: {
@@ -83,11 +84,14 @@ export default function PriceAction() {
         exchange: string;
         segment: string;
         pair: string;
+        quote: string;
     }) => {
         setSelectedApiId(data.selectedApi);
         setExchange(data.exchange);
         setSegment(data.segment);
         setSymbol(data.pair);
+        // Note: quoteAsset is derived from symbol in this file, 
+        // but we could just use data.quote if we wanted to simplify.
     };
 
     const validateForm = () => {
@@ -209,8 +213,8 @@ export default function PriceAction() {
                                             type="button"
                                             onClick={() => setRiskLevel(opt.value)}
                                             className={`flex-1 py-2.5 text-sm font-medium transition-colors relative ${riskLevel === opt.value
-                                                    ? 'text-white'
-                                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                                ? 'text-white'
+                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                                                 }`}
                                         >
                                             {riskLevel === opt.value ? (
@@ -245,16 +249,9 @@ export default function PriceAction() {
                                     Time Frame
                                     <Info className="h-3.5 w-3.5 text-muted-foreground" />
                                 </Label>
-                                <Select value={timeFrame} onValueChange={setTimeFrame}>
-                                    <SelectTrigger className="h-12 rounded-lg border-gray-200 dark:border-gray-700">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {['1m', '5m', '15m', '30m', '1h', '4h', '1d'].map(tf => (
-                                            <SelectItem key={tf} value={tf}>{tf}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                                    {quoteAsset}
+                                </div>
                             </div>
 
                             {/* Investment */}
@@ -272,14 +269,9 @@ export default function PriceAction() {
                                         step="0.01"
                                         className="h-12 rounded-lg border-gray-200 dark:border-gray-700 flex-1"
                                     />
-                                    <Select value={quoteAsset} disabled>
-                                        <SelectTrigger className="w-[110px] h-12 rounded-lg border-gray-200 dark:border-gray-700">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value={quoteAsset}>{quoteAsset}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                                        {quoteAsset}
+                                    </div>
                                 </div>
                                 {isLoadingBalances ? (
                                     <p className="text-sm text-gray-500 flex items-center gap-2">
@@ -308,14 +300,9 @@ export default function PriceAction() {
                                         step="0.01"
                                         className="h-12 rounded-lg border-gray-200 dark:border-gray-700 flex-1"
                                     />
-                                    <Select value={quoteAsset} disabled>
-                                        <SelectTrigger className="w-[110px] h-12 rounded-lg border-gray-200 dark:border-gray-700">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value={quoteAsset}>{quoteAsset}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                                        {quoteAsset}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -352,14 +339,9 @@ export default function PriceAction() {
                                         step="0.01"
                                         className="h-12 rounded-lg border-gray-200 dark:border-gray-700 flex-1"
                                     />
-                                    <Select value={quoteAsset} disabled>
-                                        <SelectTrigger className="w-[110px] h-12 rounded-lg border-gray-200 dark:border-gray-700">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value={quoteAsset}>{quoteAsset}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                                        {quoteAsset}
+                                    </div>
                                 </div>
                             </div>
 
@@ -377,14 +359,9 @@ export default function PriceAction() {
                                         step="0.01"
                                         className="h-12 rounded-lg border-gray-200 dark:border-gray-700 flex-1"
                                     />
-                                    <Select value={quoteAsset} disabled>
-                                        <SelectTrigger className="w-[110px] h-12 rounded-lg border-gray-200 dark:border-gray-700">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value={quoteAsset}>{quoteAsset}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                                        {quoteAsset}
+                                    </div>
                                 </div>
                             </div>
 

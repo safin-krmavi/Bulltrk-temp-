@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ChevronDown, ChevronUp, Loader2, Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authstore";
 import { useStrategyStore } from "../../stores/strategystore";
@@ -12,11 +11,12 @@ import { toast } from "sonner";
 
 interface AccountDetailsCardProps {
   title?: string;
-  onDataChange?: (data: { 
+  onDataChange?: (data: {
     selectedApi: string;
     exchange: string;
     segment: string;
     pair: string;
+    quote: string;
   }) => void;
   allowedSegments?: string[];
 }
@@ -46,7 +46,7 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
 }) => {
   const [open, setOpen] = React.useState(true);
   const [selectedApi, setSelectedApi] = React.useState("");
-  
+
   // Filter segments based on allowedSegments prop
   const filteredSegments = React.useMemo(() => {
     if (!allowedSegments || allowedSegments.length === 0) return SEGMENTS;
@@ -73,19 +73,19 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
   // Get filtered symbols based on selected exchange and segment
   const availableSymbols = React.useMemo(() => {
     if (!selectedApi || !segment) return [];
-    
+
     const selectedConnection = connections.find(c => c.id === selectedApi);
     if (!selectedConnection) return [];
-    
+
     return getSymbolsByExchange(selectedConnection.exchange, segment);
   }, [selectedApi, segment, connections, getSymbolsByExchange]);
 
   // Filter symbols based on search query
   const filteredSymbols = React.useMemo(() => {
     if (!pairSearch.trim()) return availableSymbols;
-    
+
     const searchLower = pairSearch.toLowerCase();
-    return availableSymbols.filter(symbol => 
+    return availableSymbols.filter(symbol =>
       symbol.symbol.toLowerCase().includes(searchLower) ||
       symbol.base.toLowerCase().includes(searchLower) ||
       symbol.quote.toLowerCase().includes(searchLower)
@@ -123,36 +123,42 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
   useEffect(() => {
     if (onDataChange) {
       const selectedConnection = connections.find(c => c.id === selectedApi);
+      const selectedPairInfo = availableSymbols.find(s => s.symbol === pair);
       const dataToSend = {
         selectedApi: selectedApi,
         exchange: selectedConnection?.exchange || "",
         segment,
         pair,
+        quote: selectedPairInfo?.quote || "USDT",
       };
-      
+
       console.log("Sending data to parent:", dataToSend);
       onDataChange(dataToSend);
+
+      // Broadcast selection so parent pages on other routes can sync chart symbol.
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("account-details-change", { detail: dataToSend })
+        );
+      }
     }
-  }, [selectedApi, segment, pair, connections, onDataChange]);
+  }, [selectedApi, segment, pair, connections, onDataChange, availableSymbols]);
 
   // Reset search and handle focus when dropdown opens/closes
   useEffect(() => {
     if (!isPairDropdownOpen) {
       setPairSearch("");
-    } else {
-      // Small timeout to ensure the DOM is ready
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 100);
     }
   }, [isPairDropdownOpen]);
 
-  // Ensure focus stays on input when search updates
-  useEffect(() => {
-    if (isPairDropdownOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [pairSearch, isPairDropdownOpen]);
+  // Ensure focus stays on input when search updates - but avoid unnecessary calls if already focused
+  // useEffect(() => {
+  //   if (isPairDropdownOpen && searchInputRef.current) {
+  //     if (document.activeElement !== searchInputRef.current) {
+  //       searchInputRef.current.focus();
+  //     }
+  //   }
+  // }, [pairSearch, isPairDropdownOpen]);
 
   const fetchConnections = async () => {
     setIsLoadingConnections(true);
@@ -165,34 +171,34 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
       const url = apiurls.credentials.getConnections.replace(':userId', user.id);
       console.log("Fetching connections from:", url);
       const response = await apiClient.get(url);
-      
+
       console.log("Connections response:", response.data);
-      
+
       if (response.data?.data) {
-        const connectionsData = Array.isArray(response.data.data) 
-          ? response.data.data 
+        const connectionsData = Array.isArray(response.data.data)
+          ? response.data.data
           : [response.data.data];
-        
+
         // ✅ Sort connections to prioritize Binance FIRST
         const sortedConnections = connectionsData.sort((a: { exchange: string; }, b: { exchange: string; }) => {
           const aIsBinance = a.exchange.toUpperCase() === 'BINANCE';
           const bIsBinance = b.exchange.toUpperCase() === 'BINANCE';
-          
+
           if (aIsBinance && !bIsBinance) return -1;
           if (!aIsBinance && bIsBinance) return 1;
           return 0;
         });
-        
+
         console.log("Sorted connections (Binance first):", sortedConnections.map((c: { exchange: any; }) => c.exchange));
-        
+
         // ✅ Set connections FIRST before auto-selecting
         setConnections(sortedConnections);
-        
+
         // ✅ Auto-select Binance connection if available, otherwise select first
         if (sortedConnections.length > 0 && !selectedApi) {
           const binanceConnection = sortedConnections.find((c: { exchange: string; }) => c.exchange.toUpperCase() === 'BINANCE');
           const connectionToSelect = binanceConnection || sortedConnections[0];
-          
+
           console.log("Auto-selecting connection:", connectionToSelect.exchange, connectionToSelect.id);
           setSelectedApi(connectionToSelect.id);
         }
@@ -234,8 +240,8 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
             <label className="text-sm font-medium">
               API Connect <span className="text-red-500">*</span>
             </label>
-            <Select 
-              value={selectedApi} 
+            <Select
+              value={selectedApi}
               onValueChange={(value) => {
                 console.log("API connection selected:", value);
                 setSelectedApi(value);
@@ -276,8 +282,8 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
             <label className="text-sm font-medium">
               Segment <span className="text-red-500">*</span>
             </label>
-            <Select 
-              value={segment} 
+            <Select
+              value={segment}
               onValueChange={(value) => {
                 console.log("Segment selected:", value);
                 setSegment(value);
@@ -301,82 +307,87 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
             <label className="text-sm font-medium">
               Enter Pair <span className="text-red-500">*</span>
             </label>
-            <Select 
-              value={pair} 
-              onValueChange={(value) => {
-                console.log("Pair selected:", value);
-                setPair(value);
-                setPairSearch("");
-              }}
-              disabled={isLoadingSymbols || availableSymbols.length === 0 || !selectedApi}
-              open={isPairDropdownOpen}
-              onOpenChange={setIsPairDropdownOpen}
-            >
-              <SelectTrigger className="w-full bg-white dark:bg-[#1a1a1d] border border-border dark:border-gray-600 rounded-md h-12 text-base">
-                <SelectValue placeholder="Select trading pair" />
-              </SelectTrigger>
-              <SelectContent className="bg-white dark:bg-[#232326]">
-                {/* Search Input */}
-                {!isLoadingSymbols && availableSymbols.length > 0 && (
-                  <div className="sticky top-0 z-10 bg-white dark:bg-[#232326] p-2 border-b dark:border-gray-700">
-                    <div className="relative">
-                      <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        ref={searchInputRef}
-                        placeholder="Search pairs..."
-                        value={pairSearch}
-                        onChange={(e) => setPairSearch(e.target.value)}
-                        className="pl-8 h-9 bg-white dark:bg-[#1a1a1d]"
-                        onKeyDown={(e) => e.stopPropagation()}
-                        onKeyUp={(e) => e.stopPropagation()}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={(e) => e.stopPropagation()}
-                        autoComplete="off"
-                      />
-                    </div>
-                    {pairSearch && (
-                      <p className="text-xs text-gray-500 mt-1 px-1">
-                        {filteredSymbols.length} of {availableSymbols.length} pairs
-                      </p>
-                    )}
-                  </div>
-                )}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isLoadingSymbols && availableSymbols.length > 0 && selectedApi) {
+                    setIsPairDropdownOpen((prev) => !prev);
+                  }
+                }}
+                disabled={isLoadingSymbols || availableSymbols.length === 0 || !selectedApi}
+                className="w-full bg-white dark:bg-[#1a1a1d] border border-border dark:border-gray-600 rounded-md h-12 text-base px-3 flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className={pair ? "text-foreground dark:text-white" : "text-muted-foreground"}>
+                  {pair || "Select trading pair"}
+                </span>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </button>
 
-                {/* Scrollable Content */}
-                <div className="max-h-[250px] overflow-y-auto">
-                  {isLoadingSymbols ? (
-                    <SelectItem value="loading" disabled>
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Loading pairs...
+              {isPairDropdownOpen && (
+                <>
+                  {/* Backdrop to close on outside click */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsPairDropdownOpen(false)}
+                  />
+                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-[#232326] border border-border dark:border-gray-600 rounded-md shadow-lg">
+                    {/* Search Input */}
+                    <div className="p-2 border-b dark:border-gray-700">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input
+                          ref={searchInputRef}
+                          placeholder="Search pairs..."
+                          value={pairSearch}
+                          onChange={(e) => setPairSearch(e.target.value)}
+                          className="pl-8 h-9 w-full rounded-md border border-input bg-white dark:bg-[#1a1a1d] px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck={false}
+                          autoFocus
+                        />
                       </div>
-                    </SelectItem>
-                  ) : availableSymbols.length === 0 ? (
-                    <SelectItem value="none" disabled>
-                      {selectedApi ? "No trading pairs found for this exchange/segment" : "Select API connection first"}
-                    </SelectItem>
-                  ) : filteredSymbols.length === 0 ? (
-                    <SelectItem value="no-results" disabled>
-                      <div className="text-center py-2">
-                        <p className="text-sm text-gray-500">No pairs found</p>
-                        <p className="text-xs text-gray-400">Try a different search</p>
-                      </div>
-                    </SelectItem>
-                  ) : (
-                    filteredSymbols.map((symbol) => (
-                      <SelectItem key={symbol.symbol} value={symbol.symbol}>
-                        <div className="flex items-center justify-between w-full">
-                          <span className="font-medium">{symbol.symbol}</span>
-                          <span className="text-xs text-gray-500 ml-2">
-                            {symbol.base}/{symbol.quote}
-                          </span>
+                      {pairSearch && (
+                        <p className="text-xs text-gray-500 mt-1 px-1">
+                          {filteredSymbols.length} of {availableSymbols.length} pairs
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Scrollable List */}
+                    <div className="max-h-[250px] overflow-y-auto">
+                      {filteredSymbols.length === 0 ? (
+                        <div className="text-center py-4">
+                          <p className="text-sm text-gray-500">No pairs found</p>
+                          <p className="text-xs text-gray-400">Try a different search</p>
                         </div>
-                      </SelectItem>
-                    ))
-                  )}
-                </div>
-              </SelectContent>
-            </Select>
+                      ) : (
+                        filteredSymbols.map((symbol) => (
+                          <div
+                            key={symbol.symbol}
+                            onClick={() => {
+                              setPair(symbol.symbol);
+                              setPairSearch("");
+                              setIsPairDropdownOpen(false);
+                            }}
+                            className={`flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-[#2a2a2d] ${pair === symbol.symbol ? "bg-orange-50 dark:bg-orange-500/10" : ""
+                              }`}
+                          >
+                            <span className="font-medium text-sm">{symbol.symbol}</span>
+                            <span className="text-xs text-gray-500 ml-2">
+                              {symbol.base}/{symbol.quote}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             {isLoadingSymbols && (
               <p className="text-xs text-orange-500">Loading trading pairs...</p>
             )}

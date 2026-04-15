@@ -39,6 +39,7 @@ export default function GrowthDCA() {
   const [exchange, setExchange] = useState("");
   const [segment, setSegment] = useState("SPOT");
   const [symbol, setSymbol] = useState("");
+  const [quoteAsset, setQuoteAsset] = useState("USDT");
 
   // Form state
   const [strategyName, setStrategyName] = useState("");
@@ -82,9 +83,8 @@ export default function GrowthDCA() {
     isLoading,
     error,
     clearError,
-    fetchBalances,
-    getBalanceByAsset,
-    balances,
+    allExchangesBalances,
+    fetchAllExchangesBalances,
     isLoadingBalances,
     balancesError
   } = useStrategyStore();
@@ -349,12 +349,12 @@ export default function GrowthDCA() {
       const now = new Date();
       const targetTime24 = convertTo24Hour(sharedTime.hour, sharedTime.minute, sharedTime.period);
       const [hour, min] = targetTime24.split(':').map(Number);
-      
+
       const targetDate = new Date(now);
       targetDate.setHours(hour, min, 0, 0);
-      
+
       const diffInMinutes = (targetDate.getTime() - now.getTime()) / (1000 * 60);
-      
+
       // If target is within the next 2 minutes
       if (diffInMinutes >= 0 && diffInMinutes < 2) {
         // Check if it's scheduled for today
@@ -516,43 +516,39 @@ export default function GrowthDCA() {
     exchange: string;
     segment: string;
     pair: string;
+    quote: string;
   }) => {
     setSelectedApiId(data.selectedApi);
     setExchange(data.exchange);
     setSegment(data.segment);
     setSymbol(data.pair);
+    setQuoteAsset(data.quote);
   };
 
-  // Fetch balances when exchange and segment change
+  // Fetch balances for the quote asset when it changes
   React.useEffect(() => {
-    if (exchange && segment) {
-      fetchBalances(exchange, segment).catch(err => {
-        console.error("Failed to fetch balances:", err);
-        toast.error("Failed to load balance", {
-          description: "Unable to fetch account balance"
-        });
+    if (quoteAsset) {
+      fetchAllExchangesBalances(quoteAsset).catch(err => {
+        console.error("Failed to fetch multi-exchange balances:", err);
       });
     }
-  }, [exchange, segment, fetchBalances]);
+  }, [quoteAsset, fetchAllExchangesBalances]);
 
-  // Update available balance when symbol or balances change
+  // Update available balance when exchange, segment or balance data changes
   React.useEffect(() => {
-    if (symbol && balances.length > 0) {
-      const quoteAsset = symbol.replace(/^[A-Z]+/, '');
-      const balance = getBalanceByAsset(quoteAsset);
-
-      if (balance) {
-        setAvailableBalance(parseFloat(balance.free).toFixed(2));
+    if (allExchangesBalances && exchange && segment) {
+      const exchangeKey = exchange.toUpperCase();
+      const segmentKey = segment.toUpperCase() as 'SPOT' | 'FUTURES';
+      
+      const balance = allExchangesBalances.balances?.[exchangeKey]?.[segmentKey];
+      
+      if (balance !== undefined) {
+        setAvailableBalance(balance.toFixed(2));
       } else {
-        const usdtBalance = getBalanceByAsset('USDT');
-        if (usdtBalance) {
-          setAvailableBalance(parseFloat(usdtBalance.free).toFixed(2));
-        } else {
-          setAvailableBalance("0");
-        }
+        setAvailableBalance("0");
       }
     }
-  }, [symbol, balances, getBalanceByAsset]);
+  }, [exchange, segment, allExchangesBalances]);
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -579,14 +575,9 @@ export default function GrowthDCA() {
               </Label>
               <div className="flex gap-2">
                 <Input placeholder="Value" value={investmentPerRun} onChange={e => setInvestmentPerRun(e.target.value)} type="text" />
-                <Select value="USDT" disabled>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USDT">USDT</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                  {symbol || "—"}
+                </div>
               </div>
               {isLoadingBalances ? (
                 <p className="text-sm text-gray-500 flex items-center gap-2">
@@ -596,7 +587,7 @@ export default function GrowthDCA() {
               ) : balancesError ? (
                 <p className="text-sm text-red-500">Failed to load balance</p>
               ) : (
-                <p className="text-sm text-orange-500">Avbl: {availableBalance} USDT</p>
+                <p className="text-sm text-orange-500">Avbl: {availableBalance} {quoteAsset}</p>
               )}
             </div>
 
@@ -607,14 +598,9 @@ export default function GrowthDCA() {
               </Label>
               <div className="flex gap-2">
                 <Input placeholder="Value" value={investmentCap} onChange={e => setInvestmentCap(e.target.value)} type="text" />
-                <Select value="USDT" disabled>
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USDT">USDT</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                  {symbol || "—"}
+                </div>
               </div>
             </div>
 

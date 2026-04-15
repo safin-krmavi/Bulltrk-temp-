@@ -24,7 +24,7 @@ export default function IndyTrend() {
   const [symbol, setSymbol] = useState("");
 
   // Get balance state from store
-  const { balances, isLoadingBalances, balancesError, getBalanceByAsset } = useStrategyStore();
+  const { allExchangesBalances, isLoadingBalances, balancesError, fetchAllExchangesBalances } = useStrategyStore();
 
   // Form state
   const [strategyName, setStrategyName] = React.useState("");
@@ -71,33 +71,32 @@ export default function IndyTrend() {
   // Available balance
   const [availableBalance, setAvailableBalance] = React.useState("0");
 
-  // ✅ Get quote asset for balance display
-  const quoteAsset = React.useMemo(() => {
-    if (!symbol) return 'USDT';
+  const [quoteAsset, setQuoteAsset] = useState("USDT");
 
-    const knownQuotes = ['USDT', 'USDC', 'BUSD', 'BTC', 'ETH', 'BNB', 'INR', 'TUSD', 'DAI', 'FDUSD'];
-    const sortedQuotes = knownQuotes.sort((a, b) => b.length - a.length);
-
-    for (const quote of sortedQuotes) {
-      if (symbol.toUpperCase().endsWith(quote)) {
-        return quote;
-      }
-    }
-
-    return 'USDT';
-  }, [symbol]);
-
-  // ✅ Update available balance when symbol or balances change
+  // Fetch balances for the quote asset when it changes
   React.useEffect(() => {
-    if (symbol && balances.length > 0) {
-      const balance = getBalanceByAsset(quoteAsset);
-      if (balance) {
-        setAvailableBalance(parseFloat(balance.free).toFixed(2));
+    if (quoteAsset) {
+      fetchAllExchangesBalances(quoteAsset).catch(err => {
+        console.error("Failed to fetch multi-exchange balances:", err);
+      });
+    }
+  }, [quoteAsset, fetchAllExchangesBalances]);
+
+  // Update available balance when exchange, segment or balance data changes
+  React.useEffect(() => {
+    if (allExchangesBalances && exchange && segment) {
+      const exchangeKey = exchange.toUpperCase();
+      const segmentKey = segment.toUpperCase() as 'SPOT' | 'FUTURES';
+      
+      const balance = allExchangesBalances.balances?.[exchangeKey]?.[segmentKey];
+      
+      if (balance !== undefined) {
+        setAvailableBalance(balance.toFixed(2));
       } else {
         setAvailableBalance("0");
       }
     }
-  }, [symbol, balances, quoteAsset, getBalanceByAsset]);
+  }, [exchange, segment, allExchangesBalances]);
 
   // ✅ Callback to receive data from AccountDetailsCard
   const handleAccountDetailsChange = (data: {
@@ -105,12 +104,14 @@ export default function IndyTrend() {
     exchange: string;
     segment: string;
     pair: string;
+    quote: string;
   }) => {
     console.log("Account details received:", data);
     setSelectedApiId(data.selectedApi);
     setExchange(data.exchange);
     setSegment(data.segment);
     setSymbol(data.pair);
+    setQuoteAsset(data.quote);
   };
 
   const handleProceed = (e: React.MouseEvent) => {
@@ -254,14 +255,9 @@ export default function IndyTrend() {
                   step="0.01"
                   className="h-10"
                 />
-                <Select value={quoteAsset} disabled>
-                  <SelectTrigger className="w-[100px] h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={quoteAsset}>{quoteAsset}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                  {quoteAsset}
+                </div>
               </div>
               {isLoadingBalances ? (
                 <p className="text-sm text-gray-500 flex items-center gap-2">
@@ -290,14 +286,9 @@ export default function IndyTrend() {
                   step="0.01"
                   className="h-10"
                 />
-                <Select value={quoteAsset} disabled>
-                  <SelectTrigger className="w-[100px] h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={quoteAsset}>{quoteAsset}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                  {quoteAsset}
+                </div>
               </div>
             </div>
 
@@ -330,14 +321,9 @@ export default function IndyTrend() {
                     step="0.000001"
                     className="h-10"
                   />
-                  <Select value={quoteAsset} disabled>
-                    <SelectTrigger className="w-[70px] h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={quoteAsset}>{quoteAsset}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {quoteAsset}
+                  </div>
                 </div>
               </div>
 
@@ -355,14 +341,9 @@ export default function IndyTrend() {
                     step="0.000001"
                     className="h-10"
                   />
-                  <Select value={quoteAsset} disabled>
-                    <SelectTrigger className="w-[70px] h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={quoteAsset}>{quoteAsset}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {quoteAsset}
+                  </div>
                 </div>
               </div>
             </div>
@@ -379,14 +360,9 @@ export default function IndyTrend() {
                   step="0.000001"
                   className="h-10"
                 />
-                <Select value={quoteAsset} disabled>
-                  <SelectTrigger className="w-[100px] h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={quoteAsset}>{quoteAsset}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                  {quoteAsset}
+                </div>
               </div>
             </div>
 
@@ -402,14 +378,9 @@ export default function IndyTrend() {
                   step="0.000001"
                   className="h-10"
                 />
-                <Select value={quoteAsset} disabled>
-                  <SelectTrigger className="w-[100px] h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={quoteAsset}>{quoteAsset}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                  {symbol || "—"}
+                </div>
               </div>
             </div>
 
