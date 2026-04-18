@@ -71,10 +71,16 @@ export default function PriceAction() {
     useEffect(() => {
         if (allExchangesBalances && exchange && segment) {
             const exchangeKey = exchange.toUpperCase();
-            const segmentKey = segment.toUpperCase() as 'SPOT' | 'FUTURES';
+            const segmentKey = segment.toUpperCase();
 
-            const balance = allExchangesBalances.balances?.[exchangeKey]?.[segmentKey];
-            setAvailableBalance(balance !== undefined ? balance.toFixed(2) : "0");
+            const exchangeData = allExchangesBalances.exchanges?.[exchangeKey];
+            const balanceData = exchangeData?.balances?.find(b => b.type === segmentKey);
+
+            if (balanceData) {
+                setAvailableBalance(balanceData.free.toFixed(2));
+            } else {
+                setAvailableBalance("0");
+            }
         }
     }, [exchange, segment, allExchangesBalances]);
 

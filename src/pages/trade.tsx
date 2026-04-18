@@ -129,7 +129,7 @@ export default function TradePage() {
       autosize: true,
       symbol: chartSymbol,
       interval: '1D',
-      theme: 'dark',
+      theme: 'light',
       style: '1',               // candlestick
       locale: 'en',
       timezone: 'Etc/UTC',
@@ -150,7 +150,7 @@ export default function TradePage() {
       <div
         id="chartContainer"
         ref={chartContainerRef}
-        className="flex-1 w-full border dark:border-gray-800 rounded-xl overflow-hidden shadow-sm bg-[#131722]"
+        className="flex-1 w-full border dark:border-gray-800 rounded-xl overflow-hidden shadow-sm bg-white"
         style={{ height: 'calc(100vh - 160px)', minHeight: '600px' }}
       />
 

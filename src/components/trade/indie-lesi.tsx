@@ -104,12 +104,13 @@ export default function IndyLESI() {
   React.useEffect(() => {
     if (allExchangesBalances && exchange && segment) {
       const exchangeKey = exchange.toUpperCase();
-      const segmentKey = segment.toUpperCase() as 'SPOT' | 'FUTURES';
+      const segmentKey = segment.toUpperCase();
       
-      const balance = allExchangesBalances.balances?.[exchangeKey]?.[segmentKey];
+      const exchangeData = allExchangesBalances.exchanges?.[exchangeKey];
+      const balanceData = exchangeData?.balances?.find(b => b.type === segmentKey);
       
-      if (balance !== undefined) {
-        setAvailableBalance(balance.toFixed(2));
+      if (balanceData) {
+        setAvailableBalance(balanceData.free.toFixed(2));
       } else {
         setAvailableBalance("0");
       }
@@ -225,7 +226,7 @@ export default function IndyLESI() {
       handleReset();
     } catch (err: any) {
       console.error("Strategy creation error:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Something went wrong.";
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || "Something went wrong.";
       setError(errorMsg);
       toast.error("Failed to create strategy", {
         description: errorMsg,

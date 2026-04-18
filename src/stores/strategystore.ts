@@ -286,13 +286,22 @@ export interface BalanceData {
   total: string;
 }
 
+export interface ExchangeBalance {
+  type: string;
+  free: number;
+}
+
+export interface ExchangeInfo {
+  exchange: string;
+  balances: ExchangeBalance[];
+  total: number;
+}
+
 export interface ExchangeAvailableBalances {
   currency: string;
-  balances: {
-    [exchange: string]: {
-      SPOT?: number;
-      FUTURES?: number;
-    };
+  grandTotal: number;
+  exchanges: {
+    [key: string]: ExchangeInfo;
   };
 }
 
@@ -672,7 +681,7 @@ export const useStrategyStore = create<StrategyState>()(
             set({ strategies: [], isLoading: false });
           }
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || 'Failed to fetch strategies';
+          const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to fetch strategies';
           console.error("Failed to fetch strategies:", error);
           set({ error: errorMessage, isLoading: false, strategies: [] });
           throw new Error(errorMessage);
@@ -696,7 +705,7 @@ export const useStrategyStore = create<StrategyState>()(
           
           throw new Error('Invalid response from server');
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || 'Failed to fetch strategy';
+          const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to fetch strategy';
           console.error("Failed to fetch strategy:", error);
           set({ error: errorMessage, isLoading: false });
           throw new Error(errorMessage);
@@ -733,7 +742,7 @@ export const useStrategyStore = create<StrategyState>()(
 
           throw new Error('Invalid response from server');
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || 'Failed to create strategy';
+          const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to create strategy';
           console.error("Failed to create strategy:", error);
           set({ error: errorMessage, isLoading: false });
           throw new Error(errorMessage);
@@ -773,7 +782,7 @@ export const useStrategyStore = create<StrategyState>()(
 
           throw new Error('Invalid response from server');
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || error.message || 'Failed to create Human Grid strategy';
+          const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to create Human Grid strategy';
           console.error("Failed to create Human Grid strategy:", error);
           console.error("Error response:", error.response?.data);
           set({ error: errorMessage, isLoading: false });
@@ -814,7 +823,7 @@ export const useStrategyStore = create<StrategyState>()(
 
           throw new Error('Invalid response from server');
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || error.message || 'Failed to create Smart Grid strategy';
+          const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to create Smart Grid strategy';
           console.error("Failed to create Smart Grid strategy:", error);
           console.error("Error response:", error.response?.data);
           set({ error: errorMessage, isLoading: false });
@@ -855,7 +864,7 @@ export const useStrategyStore = create<StrategyState>()(
 
           throw new Error('Invalid response from server');
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || error.message || 'Failed to create UTC strategy';
+          const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to create UTC strategy';
           console.error("Failed to create UTC strategy:", error);
           console.error("Error response:", error.response?.data);
           set({ error: errorMessage, isLoading: false });
@@ -896,7 +905,7 @@ export const useStrategyStore = create<StrategyState>()(
 
           throw new Error('Invalid response from server');
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || error.message || 'Failed to create Price Action strategy';
+          const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to create Price Action strategy';
           console.error("Failed to create Price Action strategy:", error);
           console.error("Error response:", error.response?.data);
           set({ error: errorMessage, isLoading: false });
@@ -928,7 +937,7 @@ export const useStrategyStore = create<StrategyState>()(
 
           throw new Error('Invalid response from server');
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || 'Failed to update strategy';
+          const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to update strategy';
           console.error("Failed to update strategy:", error);
           set({ error: errorMessage, isLoading: false });
           throw new Error(errorMessage);
@@ -952,7 +961,7 @@ export const useStrategyStore = create<StrategyState>()(
           
           console.log("Strategy deleted successfully");
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || 'Failed to delete strategy';
+          const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to delete strategy';
           console.error("Failed to delete strategy:", error);
           set({ error: errorMessage, isLoading: false });
           throw new Error(errorMessage);
@@ -983,7 +992,7 @@ export const useStrategyStore = create<StrategyState>()(
             set({ symbolsData: [], isLoadingSymbols: false });
           }
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || 'Failed to fetch symbols';
+          const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to fetch symbols';
           set({ symbolsError: errorMessage, isLoadingSymbols: false, symbolsData: [] });
           throw new Error(errorMessage);
         }
@@ -1028,7 +1037,7 @@ export const useStrategyStore = create<StrategyState>()(
             set({ balances: [], isLoadingBalances: false });
           }
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || 'Failed to fetch balances';
+          const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to fetch balances';
           set({ balancesError: errorMessage, isLoadingBalances: false, balances: [] });
         }
       },
@@ -1041,12 +1050,12 @@ export const useStrategyStore = create<StrategyState>()(
           const response = await apiClient.get(`${apiurls.exchangemanagement.availableBalances}?currency=${currency.toUpperCase()}`);
           
           if (response.data?.data) {
-            set({ allExchangesBalances: response.data.data, isLoadingBalances: false });
+            set({ allExchangesBalances: response.data.data as ExchangeAvailableBalances, isLoadingBalances: false });
           } else {
             set({ allExchangesBalances: null, isLoadingBalances: false });
           }
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || 'Failed to fetch multi-exchange balances';
+          const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to fetch multi-exchange balances';
           set({ balancesError: errorMessage, isLoadingBalances: false });
         }
       },
@@ -1110,7 +1119,7 @@ export const useStrategyStore = create<StrategyState>()(
 
           throw new Error('Invalid response from server');
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || error.message || 'Failed to calculate limits';
+          const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to calculate limits';
           console.error("Failed to calculate Smart Grid limits:", error);
           console.error("Error response:", error.response?.data);
           throw new Error(errorMessage);
