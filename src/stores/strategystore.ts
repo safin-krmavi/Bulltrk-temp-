@@ -57,11 +57,11 @@ export interface GrowthDCAStrategy {
     dates?: number[];
     intervalHours?: number;
   };
-  takeProfitPct: number;
+  takeProfitPct?: number;
   stopLossPct?: number;
   priceStart?: number;
   priceStop?: number;
-  executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED'; 
+  executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED';
   status?: 'active' | 'paused' | 'stopped';
   createdAt?: string;
   updatedAt?: string;
@@ -173,11 +173,11 @@ interface GrowthDCAApiPayload {
   investmentPerRun: number;
   investmentCap: number;
   frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY';
-  takeProfitPct: number;
+  takeProfitPct?: number;
   stopLossPct?: number;
   priceStart?: number;
   priceStop?: number;
-  executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED'; 
+  executionMode: 'LIVE' | 'PAPER' | 'PUBLISHED';
   time?: string;
   hourInterval?: number;
   daysOfWeek?: number[];
@@ -331,12 +331,12 @@ export interface StrategyState {
 
   // Add Smart Grid Limits
   calculateSmartGridLimits: (
-    exchange: string, 
-    segment: string, 
-    symbol: string, 
+    exchange: string,
+    segment: string,
+    symbol: string,
     dataSetDays: number
-  ) => Promise<{ 
-    lowerLimit: number; 
+  ) => Promise<{
+    lowerLimit: number;
     upperLimit: number;
     levels: number;
     profitPercentage: number;
@@ -353,7 +353,7 @@ export interface StrategyState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
-  
+
 
   // Symbols Actions
   setSymbolsData: (data: SymbolTypeData[]) => void;
@@ -642,8 +642,8 @@ export const useStrategyStore = create<StrategyState>()(
       updateStrategy: (id: string, updates: Partial<Strategy>) => set((state) => ({
         strategies: state.strategies.map((s) => s.id === id ? { ...s, ...updates } : s),
       })),
-      removeStrategy: (id: string) => set((state) => ({ 
-        strategies: state.strategies.filter((s) => s.id !== id) 
+      removeStrategy: (id: string) => set((state) => ({
+        strategies: state.strategies.filter((s) => s.id !== id)
       })),
       setLoading: (loading: boolean) => set({ isLoading: loading }),
       setError: (error: string | null) => set({ error }),
@@ -667,14 +667,14 @@ export const useStrategyStore = create<StrategyState>()(
         try {
           console.log("Fetching all strategies...");
           const response = await apiClient.get(apiurls.strategies.getAll);
-          
+
           console.log("Strategies API response:", response.data);
-          
+
           if (response.data?.data) {
-            const strategiesData = Array.isArray(response.data.data) 
-              ? response.data.data 
+            const strategiesData = Array.isArray(response.data.data)
+              ? response.data.data
               : [response.data.data];
-            
+
             set({ strategies: strategiesData, isLoading: false });
             console.log("Strategies loaded:", strategiesData.length);
           } else {
@@ -694,15 +694,15 @@ export const useStrategyStore = create<StrategyState>()(
         try {
           const url = apiurls.strategies.getById.replace(':id', id);
           console.log("Fetching strategy:", url);
-          
+
           const response = await apiClient.get(url);
-          
+
           if (response.data?.data) {
             const strategy = response.data.data as Strategy;
             set({ isLoading: false });
             return strategy;
           }
-          
+
           throw new Error('Invalid response from server');
         } catch (error: any) {
           const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to fetch strategy';
@@ -716,7 +716,7 @@ export const useStrategyStore = create<StrategyState>()(
       createGrowthDCA: async (strategyInput: Omit<GrowthDCAStrategy, 'strategyType' | 'assetType'>) => {
         console.log("=== Creating Growth DCA Strategy ===");
         set({ isLoading: true, error: null });
-        
+
         try {
           const strategy: GrowthDCAStrategy = {
             ...strategyInput,
@@ -733,10 +733,10 @@ export const useStrategyStore = create<StrategyState>()(
             const newStrategy = response.data.data as GrowthDCAStrategy;
             get().addStrategy(newStrategy);
             set({ isLoading: false });
-            
+
             // Refresh strategies list
             await get().fetchStrategies();
-            
+
             return newStrategy;
           }
 
@@ -753,7 +753,7 @@ export const useStrategyStore = create<StrategyState>()(
       createHumanGrid: async (strategyInput: Omit<HumanGridStrategy, 'strategyType' | 'assetType'>) => {
         console.log("=== Creating Human Grid Strategy ===");
         set({ isLoading: true, error: null });
-        
+
         try {
           const strategy: HumanGridStrategy = {
             ...strategyInput,
@@ -772,10 +772,10 @@ export const useStrategyStore = create<StrategyState>()(
             const newStrategy = response.data.data as HumanGridStrategy;
             get().addStrategy(newStrategy);
             set({ isLoading: false });
-            
+
             // Refresh strategies list
             await get().fetchStrategies();
-            
+
             console.log("Human Grid strategy created successfully:", newStrategy);
             return newStrategy;
           }
@@ -794,7 +794,7 @@ export const useStrategyStore = create<StrategyState>()(
       createSmartGrid: async (strategyInput: Omit<SmartGridStrategy, 'strategyType' | 'assetType'>) => {
         console.log("=== Creating Smart Grid Strategy ===");
         set({ isLoading: true, error: null });
-        
+
         try {
           const strategy: SmartGridStrategy = {
             ...strategyInput,
@@ -813,10 +813,10 @@ export const useStrategyStore = create<StrategyState>()(
             const newStrategy = response.data.data as SmartGridStrategy;
             get().addStrategy(newStrategy);
             set({ isLoading: false });
-            
+
             // Refresh strategies list
             await get().fetchStrategies();
-            
+
             console.log("Smart Grid strategy created successfully:", newStrategy);
             return newStrategy;
           }
@@ -835,7 +835,7 @@ export const useStrategyStore = create<StrategyState>()(
       createUTC: async (strategyInput: Omit<UTCStrategy, 'strategyType' | 'assetType'>) => {
         console.log("=== Creating UTC Strategy ===");
         set({ isLoading: true, error: null });
-        
+
         try {
           const strategy: UTCStrategy = {
             ...strategyInput,
@@ -854,10 +854,10 @@ export const useStrategyStore = create<StrategyState>()(
             const newStrategy = response.data.data as UTCStrategy;
             get().addStrategy(newStrategy);
             set({ isLoading: false });
-            
+
             // Refresh strategies list
             await get().fetchStrategies();
-            
+
             console.log("UTC strategy created successfully:", newStrategy);
             return newStrategy;
           }
@@ -876,7 +876,7 @@ export const useStrategyStore = create<StrategyState>()(
       createPriceAction: async (strategyInput: Omit<PriceActionStrategy, 'strategyType' | 'assetType'>) => {
         console.log("=== Creating Price Action Strategy ===");
         set({ isLoading: true, error: null });
-        
+
         try {
           const strategy: PriceActionStrategy = {
             ...strategyInput,
@@ -895,10 +895,10 @@ export const useStrategyStore = create<StrategyState>()(
             const newStrategy = response.data.data as PriceActionStrategy;
             get().addStrategy(newStrategy);
             set({ isLoading: false });
-            
+
             // Refresh strategies list
             await get().fetchStrategies();
-            
+
             console.log("Price Action strategy created successfully:", newStrategy);
             return newStrategy;
           }
@@ -927,10 +927,10 @@ export const useStrategyStore = create<StrategyState>()(
             const updatedStrategy = response.data.data as Strategy;
             get().updateStrategy(id, updatedStrategy);
             set({ isLoading: false });
-            
+
             // Refresh strategies list
             await get().fetchStrategies();
-            
+
             console.log("Strategy updated successfully:", updatedStrategy);
             return updatedStrategy;
           }
@@ -952,13 +952,13 @@ export const useStrategyStore = create<StrategyState>()(
           console.log("Deleting strategy:", url);
 
           await apiClient.delete(url);
-          
+
           get().removeStrategy(id);
           set({ isLoading: false });
-          
+
           // Refresh strategies list
           await get().fetchStrategies();
-          
+
           console.log("Strategy deleted successfully");
         } catch (error: any) {
           const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to delete strategy';
@@ -971,7 +971,7 @@ export const useStrategyStore = create<StrategyState>()(
       // Fetch Symbols (with caching)
       fetchSymbols: async () => {
         const { lastFetched } = get();
-        
+
         // Cache for 5 minutes
         if (lastFetched && Date.now() - lastFetched < 5 * 60 * 1000) {
           console.log("Using cached symbols data");
@@ -981,12 +981,12 @@ export const useStrategyStore = create<StrategyState>()(
         set({ isLoadingSymbols: true, symbolsError: null });
         try {
           const response = await apiClient.get(apiurls.exchangemanagement.getSymbol);
-          
+
           if (response.data?.data) {
-            const symbolsData = Array.isArray(response.data.data) 
-              ? response.data.data 
+            const symbolsData = Array.isArray(response.data.data)
+              ? response.data.data
               : [response.data.data];
-            
+
             set({ symbolsData, isLoadingSymbols: false, lastFetched: Date.now() });
           } else {
             set({ symbolsData: [], isLoadingSymbols: false });
@@ -1001,24 +1001,24 @@ export const useStrategyStore = create<StrategyState>()(
       // Get Symbols by Exchange and Segment
       getSymbolsByExchange: (exchange: string, segment: string) => {
         const { symbolsData } = get();
-        
+
         const segmentTypeMap: { [key: string]: string } = {
           'SPOT': 'CRYPTO_SPOT',
           'FUTURES': 'CRYPTO_FUTURES',
           'MARGIN': 'CRYPTO_MARGIN',
         };
-        
+
         const typeToFind = segmentTypeMap[segment.toUpperCase()] || `CRYPTO_${segment.toUpperCase()}`;
         const typeData = symbolsData.find(td => td.type === typeToFind);
-        
+
         if (!typeData) return [];
-        
+
         const exchangeData = typeData.data.find(
           ed => ed.exchange.toUpperCase() === exchange.toUpperCase()
         );
-        
+
         if (!exchangeData) return [];
-        
+
         return exchangeData.data;
       },
 
@@ -1041,14 +1041,14 @@ export const useStrategyStore = create<StrategyState>()(
           set({ balancesError: errorMessage, isLoadingBalances: false, balances: [] });
         }
       },
-      
+
       // Fetch All Exchanges Available Balances
       fetchAllExchangesBalances: async (currency: string) => {
         if (!currency) return;
         set({ isLoadingBalances: true, balancesError: null });
         try {
           const response = await apiClient.get(`${apiurls.exchangemanagement.availableBalances}?currency=${currency.toUpperCase()}`);
-          
+
           if (response.data?.data) {
             set({ allExchangesBalances: response.data.data as ExchangeAvailableBalances, isLoadingBalances: false });
           } else {
@@ -1075,7 +1075,7 @@ export const useStrategyStore = create<StrategyState>()(
       ) => {
         console.log("=== Calculating Smart Grid Limits ===");
         console.log({ exchange, segment, symbol, dataSetDays });
-        
+
         try {
           const response = await apiClient.post(apiurls.strategies.limits, {
             exchange: exchange.toUpperCase(),
@@ -1088,29 +1088,29 @@ export const useStrategyStore = create<StrategyState>()(
 
           if (response.data?.data) {
             // ✅ Extract all fields including investment
-            const { 
-              lowerLimit, 
-              upperLimit, 
-              levels, 
+            const {
+              lowerLimit,
+              upperLimit,
+              levels,
               profitPercentage,
               minimumInvestment: calculatedMinInvestment,
               investment: calculatedInvestment  // ✅ Extract investment from API
             } = response.data.data;
-            
-            console.log("Calculated limits:", { 
-              lowerLimit, 
-              upperLimit, 
-              levels, 
+
+            console.log("Calculated limits:", {
+              lowerLimit,
+              upperLimit,
+              levels,
               profitPercentage,
               minimumInvestment: calculatedMinInvestment,
               investment: calculatedInvestment  // ✅ Log investment
             });
-            
+
             // ✅ Return all calculated values including investment
-            return { 
-              lowerLimit, 
-              upperLimit, 
-              levels, 
+            return {
+              lowerLimit,
+              upperLimit,
+              levels,
               profitPercentage,
               minimumInvestment: calculatedMinInvestment,
               investment: calculatedInvestment  // ✅ Return investment

@@ -304,7 +304,8 @@ export default function GrowthDCA() {
       });
       return false;
     }
-    if (!takeProfitPct || Number(takeProfitPct) <= 0) {
+    // ✅ Take profit is optional — only validate if provided
+    if (takeProfitPct && Number(takeProfitPct) <= 0) {
       toast.error("Invalid take profit percentage", {
         description: "Enter a valid percentage greater than 0"
       });
@@ -456,10 +457,9 @@ export default function GrowthDCA() {
         investmentPerRun: Number(investmentPerRun),
         investmentCap: Number(investmentCap),
         frequency: frequencyData,
-        takeProfitPct: Number(takeProfitPct),
         executionMode: executionMode,
-
         // ✅ Only add optional fields if they have values
+        ...(takeProfitPct && Number(takeProfitPct) > 0 && { takeProfitPct: Number(takeProfitPct) }),
         ...(stopLossPct && { stopLossPct: Number(stopLossPct) }),
         ...(priceStart && { priceStart: Number(priceStart) }),
         ...(priceStop && { priceStop: Number(priceStop) }),
