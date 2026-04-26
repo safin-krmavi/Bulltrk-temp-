@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useState } from "react"
 import { AccountDetailsCard } from "./AccountDetailsCard"
 import { useStrategyStore, GrowthDCAStrategy } from "@/stores/strategystore"
@@ -554,6 +555,7 @@ export default function GrowthDCA() {
   return (
     <div className="w-full max-w-md mx-auto">
       <AccountDetailsCard onDataChange={handleAccountDetailsChange} allowedSegments={['SPOT']} />
+      <TooltipProvider>
       <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525] border border-t-0">
@@ -564,7 +566,15 @@ export default function GrowthDCA() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Strategy Name
-                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-muted-foreground">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>You can keep desired Strategy name for refrence and reports</p>
+                  </TooltipContent>
+                </Tooltip>
+                <span className="text-red-500">*</span>
               </Label>
               <Input placeholder="Enter Name" value={strategyName} onChange={e => setStrategyName(e.target.value)} />
             </div>
@@ -572,7 +582,15 @@ export default function GrowthDCA() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Investment Per Run
-                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-muted-foreground">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>investment per Trade</p>
+                  </TooltipContent>
+                </Tooltip>
+                <span className="text-red-500">*</span>
               </Label>
               <div className="flex gap-2">
                 <Input placeholder="Value" value={investmentPerRun} onChange={e => setInvestmentPerRun(e.target.value)} type="text" />
@@ -595,7 +613,15 @@ export default function GrowthDCA() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Investment CAP
-                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-muted-foreground">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Strategy Stop when Total Investment of the Strategy is equal to cap value</p>
+                  </TooltipContent>
+                </Tooltip>
+                <span className="text-red-500">*</span>
               </Label>
               <div className="flex gap-2">
                 <Input placeholder="Value" value={investmentCap} onChange={e => setInvestmentCap(e.target.value)} type="text" />
@@ -608,7 +634,15 @@ export default function GrowthDCA() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Duration
-                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-muted-foreground">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Please Select the Recurring Duration of strategy</p>
+                  </TooltipContent>
+                </Tooltip>
+                <span className="text-red-500">*</span>
               </Label>
               <div className="grid grid-cols-4 gap-2">
                 {(['DAILY', 'WEEKLY', 'MONTHLY', 'HOURLY'] as const).map(val => {
@@ -877,7 +911,14 @@ export default function GrowthDCA() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Take Profit %
-                <span className="text-muted-foreground">ⓘ</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-muted-foreground">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>If You wish to book profit by percentage based on buy price. Please Make sure to check your Transaction fees on respective exchange</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <div className="relative">
                 <Input placeholder="Value" value={takeProfitPct} onChange={e => setTakeProfitPct(e.target.value)} type="text" />
@@ -935,6 +976,7 @@ export default function GrowthDCA() {
           </Button>
         </div>
       </form>
+      </TooltipProvider>
 
       {showProceedPopup && (
         <ProceedPopup

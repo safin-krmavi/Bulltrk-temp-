@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from "react"
-import { ChevronDown, AlertCircle } from 'lucide-react'
+import { ChevronDown, AlertCircle, Info } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,6 +15,7 @@ import { toast } from "sonner"
 import apiClient from "@/api/apiClient"
 import { apiurls } from "@/api/apiurls"
 import { useStrategyStore } from "@/stores/strategystore"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 export default function IndyLESI() {
   const [isOpen, setIsOpen] = React.useState(true)
@@ -279,6 +280,7 @@ export default function IndyLESI() {
         </Alert>
       )}
 
+      <TooltipProvider>
       <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 border border-t-0 font-medium text-white hover:bg-[#5A2525]">
@@ -288,9 +290,16 @@ export default function IndyLESI() {
           <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
             {/* Strategy Name */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
+              <Label className="flex items-center gap-2 text-sm">
                 Strategy Name
-                <span className="text-muted-foreground text-xs">ⓘ</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>You can keep desired Strategy name for reference and reports</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <Input
                 placeholder="Enter Name"
@@ -301,9 +310,16 @@ export default function IndyLESI() {
 
             {/* Investment */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
+              <Label className="flex items-center gap-2 text-sm">
                 Investment
-                <span className="text-muted-foreground text-xs">ⓘ</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Investment per Trade</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -331,9 +347,16 @@ export default function IndyLESI() {
 
             {/* Investment CAP */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
+              <Label className="flex items-center gap-2 text-sm">
                 Investment CAP
-                <span className="text-muted-foreground text-xs">ⓘ</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Strategy stops when total investment of the strategy is equal to cap value</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -351,9 +374,16 @@ export default function IndyLESI() {
 
             {/* Time Frame */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
+              <Label className="flex items-center gap-2 text-sm">
                 Time Frame
-                <span className="text-muted-foreground text-xs">ⓘ</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Please select the timeframe you wish to use on this strategy</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <Select value={timeFrame} onValueChange={setTimeFrame}>
                 <SelectTrigger className="w-full">
@@ -369,7 +399,17 @@ export default function IndyLESI() {
 
             {/* Leverage */}
             <div className="space-y-2">
-              <Label>Leverage</Label>
+              <Label className="flex items-center gap-2 text-sm">
+                Leverage
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Set the leverage multiplier for this strategy</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <Input
                 placeholder="Value"
                 value={leverage}
@@ -384,7 +424,14 @@ export default function IndyLESI() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-sm">
                   Lower Limit
-                  <span className="text-muted-foreground text-xs">ⓘ</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the Lowest / Starting Price range</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </Label>
                 <div className="flex gap-2">
                   <Input
@@ -403,7 +450,14 @@ export default function IndyLESI() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-sm">
                   Upper Limit
-                  <span className="text-muted-foreground text-xs">ⓘ</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the Maximum / Ending Price range</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </Label>
                 <div className="flex gap-2">
                   <Input
@@ -422,7 +476,17 @@ export default function IndyLESI() {
 
             {/* Price Trigger Start */}
             <div className="space-y-2">
-              <Label>Price Trigger Start</Label>
+              <Label className="flex items-center gap-2 text-sm">
+                Price Trigger Start
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Set the price at which this strategy should begin execution</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Value"
@@ -439,7 +503,17 @@ export default function IndyLESI() {
 
             {/* Price Trigger Stop */}
             <div className="space-y-2">
-              <Label>Price Trigger Stop</Label>
+              <Label className="flex items-center gap-2 text-sm">
+                Price Trigger Stop
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Set the price at which this strategy should stop executing</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Value"
@@ -456,7 +530,17 @@ export default function IndyLESI() {
 
             {/* Stop Loss By */}
             <div className="space-y-2">
-              <Label>Stop Loss By</Label>
+              <Label className="flex items-center gap-2 text-sm">
+                Stop Loss By
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Set the stop loss percentage to limit potential losses</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Value"
@@ -570,7 +654,14 @@ export default function IndyLESI() {
                 <div className="space-y-1">
                   <Label className="flex items-center gap-1 text-sm">
                     Source
-                    <span className="text-muted-foreground text-xs">ⓘ</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                        <p>Select the price source for LaRSI calculation</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </Label>
                   <Select value={laRsiSource} onValueChange={setLaRsiSource}>
                     <SelectTrigger className="w-full">
@@ -590,7 +681,14 @@ export default function IndyLESI() {
                 <div className="space-y-1">
                   <Label className="flex items-center gap-1 text-sm">
                     Alpha
-                    <span className="text-muted-foreground text-xs">ⓘ</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                        <p>Set the alpha value for LaRSI sensitivity</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </Label>
                   <Input
                     placeholder="0.2"
@@ -640,6 +738,7 @@ export default function IndyLESI() {
           </Button>
         </div>
       </form>
+      </TooltipProvider>
     </div>
   );
 }

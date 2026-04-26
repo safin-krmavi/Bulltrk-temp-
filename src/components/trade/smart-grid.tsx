@@ -10,6 +10,7 @@ import { useState } from "react"
 import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { toast } from "sonner"
 import { useStrategyStore, SmartGridStrategy } from "@/stores/strategystore"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ProceedPopup } from "@/components/dashboard/proceed-popup"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
@@ -167,10 +168,10 @@ export default function SmartGrid() {
     if (allExchangesBalances && exchange && segment) {
       const exchangeKey = exchange.toUpperCase();
       const segmentKey = segment.toUpperCase();
-      
+
       const exchangeData = allExchangesBalances.exchanges?.[exchangeKey];
       const balanceData = exchangeData?.balances?.find(b => b.type === segmentKey);
-      
+
       if (balanceData) {
         setAvailableBalance(balanceData.free.toFixed(2));
       } else {
@@ -408,235 +409,289 @@ export default function SmartGrid() {
         </Alert>
       )}
 
-      <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
-        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 border border-t-0 font-medium text-white hover:bg-[#5A2525]">
-            <span>Smart Grid</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
-            {/* Strategy Name */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Strategy Name
-                <span className="text-muted-foreground text-xs">ⓘ</span>
-              </Label>
-              <Input
-                placeholder="Enter Name"
-                value={strategyName}
-                onChange={e => setStrategyName(e.target.value)}
-              />
-            </div>
-
-            {/* Select Type */}
-            <div className="space-y-2">
-              <Label>Select Type</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {availableTypes.map(val => (
-                  <Button
-                    key={val}
-                    variant={type === val ? "default" : "outline"}
-                    type="button"
-                    onClick={() => handleTypeSelect(val as 'NEUTRAL' | 'LONG' | 'SHORT')}
-                    className={type === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
-                  >
-                    {val}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Data Set (Days) */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Data Set
-                <span className="text-muted-foreground text-xs">ⓘ</span>
-              </Label>
-              <div className="grid grid-cols-4 gap-2">
-                {['30', '90', '180', '365'].map((val, index) => (
-                  <Button
-                    key={index}
-                    variant={dataSet === val ? "default" : "outline"}
-                    size="sm"
-                    type="button"
-                    onClick={() => handleDataSetSelect(val)}
-                    className={dataSet === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
-                  >
-                    {val}D
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Lower and Upper Limit - Auto-calculated */}
-            <div className="grid grid-cols-2 gap-4">
+      <TooltipProvider>
+        <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
+          <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 border border-t-0 font-medium text-white hover:bg-[#5A2525]">
+              <span>Smart Grid</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
+              {/* Strategy Name */}
               <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
-                  Lower Limit
-                  <span className="text-muted-foreground text-xs">ⓘ</span>
+                <Label className="flex items-center gap-2">
+                  Strategy Name
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground text-xs">ⓘ</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>You can keep desired Strategy name for reference and reports</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Value"
-                    value={lowerLimit}
-                    readOnly
-                    type="number"
-                    step="0.000001"
-                    className="bg-gray-100 dark:bg-[#2A2A2D] cursor-not-allowed"
-                  />
-                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                    {symbol || "—"}
-                  </div>
-                </div>
+                <Input
+                  placeholder="Enter Name"
+                  value={strategyName}
+                  onChange={e => setStrategyName(e.target.value)}
+                />
               </div>
 
+              {/* Select Type */}
               <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
-                  Upper Limit
-                  <span className="text-muted-foreground text-xs">ⓘ</span>
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Long"
-                    value={upperLimit}
-                    readOnly
-                    type="number"
-                    step="0.000001"
-                    className="bg-gray-100 dark:bg-[#2A2A2D] cursor-not-allowed"
-                  />
-                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                    {symbol || "—"}
-                  </div>
+                <Label>Select Type</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {availableTypes.map(val => (
+                    <Button
+                      key={val}
+                      variant={type === val ? "default" : "outline"}
+                      type="button"
+                      onClick={() => handleTypeSelect(val as 'NEUTRAL' | 'LONG' | 'SHORT')}
+                      className={type === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
+                    >
+                      {val}
+                    </Button>
+                  ))}
                 </div>
               </div>
-            </div>
 
-            {/* Levels */}
-            <div className="space-y-2">
-              <Label>Levels</Label>
-              <Input
-                placeholder="Value"
-                value={levels}
-                onChange={e => setLevels(e.target.value)}
-                type="number"
-                min="1"
-              />
-            </div>
-
-            {/* Profit per Level - Updated with dual input */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Profit per Level
-                <span className="text-muted-foreground text-xs">ⓘ</span>
-              </Label>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="relative">
-                  <Input
-                    placeholder="Value"
-                    value={profitPerLevel}
-                    onChange={e => setProfitPerLevel(e.target.value)}
-                    type="number"
-                    step="0.1"
-                  />
-                  <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">
-                    {profitUnit}
-                  </span>
+              {/* Data Set (Days) */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  Data Set
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground text-xs">ⓘ</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Please select the Timeframe of Historical Data to determine the price range</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {['30', '90', '180', '365'].map((val, index) => (
+                    <Button
+                      key={index}
+                      variant={dataSet === val ? "default" : "outline"}
+                      size="sm"
+                      type="button"
+                      onClick={() => handleDataSetSelect(val)}
+                      className={dataSet === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
+                    >
+                      {val}D
+                    </Button>
+                  ))}
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">-</span>
-                  <div className="relative flex-1">
+              </div>
+
+              {/* Lower and Upper Limit - Auto-calculated */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    Lower Limit
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-muted-foreground text-xs">ⓘ</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                        <p>Set the Lowest / Starting Price range</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <div className="flex gap-2">
                     <Input
                       placeholder="Value"
+                      value={lowerLimit}
+                      readOnly
+                      type="number"
+                      step="0.000001"
+                      className="bg-gray-100 dark:bg-[#2A2A2D] cursor-not-allowed"
+                    />
+                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                      {symbol || "—"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    Upper Limit
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-muted-foreground text-xs">ⓘ</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                        <p>Set the Maximum / Ending Price range</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Long"
+                      value={upperLimit}
+                      readOnly
+                      type="number"
+                      step="0.000001"
+                      className="bg-gray-100 dark:bg-[#2A2A2D] cursor-not-allowed"
+                    />
+                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                      {symbol || "—"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Levels */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  Levels
+                </Label>
+                <Input
+                  placeholder="Value"
+                  value={levels}
+                  onChange={e => setLevels(e.target.value)}
+                  type="number"
+                  min="1"
+                />
+              </div>
+
+              {/* Profit per Level - Updated with dual input */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  Profit per Level
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground text-xs">ⓘ</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the profit percentage target for each grid level trade</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
+                    <Input
+                      placeholder="Value"
+                      value={profitPerLevel}
+                      onChange={e => setProfitPerLevel(e.target.value)}
                       type="number"
                       step="0.1"
-                      disabled
                     />
                     <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">
                       {profitUnit}
                     </span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">-</span>
+                    <div className="relative flex-1">
+                      <Input
+                        placeholder="Value"
+                        type="number"
+                        step="0.1"
+                        disabled
+                      />
+                      <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">
+                        {profitUnit}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Investment */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Investment
-                <span className="text-muted-foreground text-xs">ⓘ</span>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={investment}
-                  onChange={e => setInvestment(e.target.value)}
-                  type="number"
-                  step="0.01"
-                />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {symbol || "—"}
+              {/* Investment */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  Investment
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground text-xs">ⓘ</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Investment per Trade</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Value"
+                    value={investment}
+                    onChange={e => setInvestment(e.target.value)}
+                    type="number"
+                    step="0.01"
+                  />
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {symbol || "—"}
+                  </div>
+                </div>
+                {isLoadingBalances ? (
+                  <p className="text-sm text-gray-500 flex items-center gap-2">
+                    <span className="inline-block w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></span>
+                    Loading balance...
+                  </p>
+                ) : balancesError ? (
+                  <p className="text-sm text-red-500">Failed to load balance</p>
+                ) : (
+                  <p className="text-sm text-orange-500">Avbl: {availableBalance} {quoteAsset}</p>
+                )}
+              </div>
+
+              {/* Minimum Investment - Now auto-calculated and displayed */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  Minimum Investment
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground text-xs">ⓘ</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Specify the minimum capital required for this strategy to operate</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Value"
+                    value={minimumInvestment}
+                    onChange={e => setMinimumInvestment(e.target.value)}
+                    type="number"
+                    step="0.01"
+                    className="bg-gray-50 dark:bg-[#2A2A2D]"
+                  />
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {symbol || "—"}
+                  </div>
                 </div>
               </div>
-              {isLoadingBalances ? (
-                <p className="text-sm text-gray-500 flex items-center gap-2">
-                  <span className="inline-block w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></span>
-                  Loading balance...
-                </p>
-              ) : balancesError ? (
-                <p className="text-sm text-red-500">Failed to load balance</p>
-              ) : (
-                <p className="text-sm text-orange-500">Avbl: {availableBalance} {quoteAsset}</p>
-              )}
-            </div>
+            </CollapsibleContent>
+          </Collapsible>
 
-            {/* Minimum Investment - Now auto-calculated and displayed */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Minimum Investment
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={minimumInvestment}
-                  onChange={e => setMinimumInvestment(e.target.value)}
-                  type="number"
-                  step="0.01"
-                  className="bg-gray-50 dark:bg-[#2A2A2D]"
-                />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {symbol || "—"}
-                </div>
-              </div>
+          {error && (
+            <div className="text-red-500 text-sm p-2 border border-red-300 rounded bg-red-50 dark:bg-red-900/20">
+              {error}
             </div>
-          </CollapsibleContent>
-        </Collapsible>
+          )}
 
-        {error && (
-          <div className="text-red-500 text-sm p-2 border border-red-300 rounded bg-red-50 dark:bg-red-900/20">
-            {error}
+          <div className="flex gap-4">
+            <Button
+              className="flex-1 bg-[#4A1515] hover:bg-[#5A2525]"
+              onClick={handleProceed}
+              disabled={isLoading}
+              type="button"
+            >
+              {isLoading ? "Processing..." : "Proceed"}
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 bg-[#D97706] text-white hover:bg-[#B45309]"
+              type="button"
+              onClick={handleReset}
+              disabled={isLoading}
+            >
+              Reset
+            </Button>
           </div>
-        )}
-
-        <div className="flex gap-4">
-          <Button
-            className="flex-1 bg-[#4A1515] hover:bg-[#5A2525]"
-            onClick={handleProceed}
-            disabled={isLoading}
-            type="button"
-          >
-            {isLoading ? "Processing..." : "Proceed"}
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1 bg-[#D97706] text-white hover:bg-[#B45309]"
-            type="button"
-            onClick={handleReset}
-            disabled={isLoading}
-          >
-            Reset
-          </Button>
-        </div>
-      </form>
+        </form>
+      </TooltipProvider>
 
       {showProceedPopup && (
         <ProceedPopup

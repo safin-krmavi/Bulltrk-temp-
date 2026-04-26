@@ -10,6 +10,7 @@ import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { useStrategyStore, HumanGridStrategy } from "@/stores/strategystore"
 import { toast } from "sonner"
 import { useState } from "react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ProceedPopup } from "@/components/dashboard/proceed-popup"
 
 export default function HumanGrid() {
@@ -312,6 +313,7 @@ export default function HumanGrid() {
     <div className="w-full max-w-md mx-auto">
       <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
 
+      <TooltipProvider>
       <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525] border border-t-0">
@@ -322,7 +324,15 @@ export default function HumanGrid() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Strategy Name
-                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-muted-foreground">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>You can keep desired Strategy name for reference and reports</p>
+                  </TooltipContent>
+                </Tooltip>
+                <span className="text-red-500">*</span>
               </Label>
               <Input
                 placeholder="Enter Name"
@@ -334,7 +344,15 @@ export default function HumanGrid() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Investment
-                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-muted-foreground">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Investment per Trade</p>
+                  </TooltipContent>
+                </Tooltip>
+                <span className="text-red-500">*</span>
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -363,7 +381,15 @@ export default function HumanGrid() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Investment CAP
-                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-muted-foreground">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Strategy stops when total investment of the strategy is equal to cap value</p>
+                  </TooltipContent>
+                </Tooltip>
+                <span className="text-red-500">*</span>
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -381,7 +407,17 @@ export default function HumanGrid() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Lower Limit</Label>
+                <Label className="flex items-center gap-2">
+                  Lower Limit
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground">ⓘ</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the Lowest / Starting Price range</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Value"
@@ -396,7 +432,17 @@ export default function HumanGrid() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Upper Limit</Label>
+                <Label className="flex items-center gap-2">
+                  Upper Limit
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground">ⓘ</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the Maximum / Ending Price range</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Value"
@@ -444,7 +490,15 @@ export default function HumanGrid() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Entry Interval
-                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-muted-foreground">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Enter at which intervals each entry should be taken</p>
+                  </TooltipContent>
+                </Tooltip>
+                <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
                 <Input
@@ -461,7 +515,15 @@ export default function HumanGrid() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 Book Profit By
-                <span className="text-muted-foreground">ⓘ</span><span className="text-red-500">*</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-muted-foreground">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>If you wish to book profit by percentage based on buy price, please make sure to check your transaction fees on the respective exchange</p>
+                  </TooltipContent>
+                </Tooltip>
+                <span className="text-red-500">*</span>
               </Label>
               <div className="relative">
                 <Input
@@ -476,7 +538,17 @@ export default function HumanGrid() {
             </div>
 
             <div className="space-y-2">
-              <Label>Stop Loss By</Label>
+              <Label className="flex items-center gap-2">
+                Stop Loss By
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-muted-foreground">ⓘ</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Set the stop loss percentage to limit potential losses</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <div className="relative">
                 <Input
                   placeholder="Value"
@@ -513,6 +585,7 @@ export default function HumanGrid() {
           </Button>
         </div>
       </form>
+      </TooltipProvider>
 
       {showProceedPopup && (
         <ProceedPopup

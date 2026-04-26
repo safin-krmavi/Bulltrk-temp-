@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { useState, useMemo, useEffect } from "react"
 import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { useStrategyStore, PriceActionStrategy } from "@/stores/strategystore"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { ProceedPopup } from "@/components/dashboard/proceed-popup"
 
@@ -193,248 +194,310 @@ export default function PriceAction() {
         <div className="w-full max-w-md mx-auto">
             <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
 
-            <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
-                {/* ─── Price Action Card ─── */}
-                <div className="border border-border rounded-lg overflow-hidden shadow-sm">
-                    {/* Header */}
-                    <div
-                        className="flex w-full items-center justify-between bg-[#4A1515] p-4 font-medium text-white cursor-pointer hover:bg-[#5A2525]"
-                        onClick={() => setIsMainOpen(v => !v)}
-                    >
-                        <span>Price Action</span>
-                        {isMainOpen
-                            ? <ChevronUp className="h-4 w-4" />
-                            : <ChevronDown className="h-4 w-4" />
-                        }
-                    </div>
+            <TooltipProvider>
+                <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
+                    {/* ─── Price Action Card ─── */}
+                    <div className="border border-border rounded-lg overflow-hidden shadow-sm">
+                        {/* Header */}
+                        <div
+                            className="flex w-full items-center justify-between bg-[#4A1515] p-4 font-medium text-white cursor-pointer hover:bg-[#5A2525]"
+                            onClick={() => setIsMainOpen(v => !v)}
+                        >
+                            <span>Price Action</span>
+                            {isMainOpen
+                                ? <ChevronUp className="h-4 w-4" />
+                                : <ChevronDown className="h-4 w-4" />
+                            }
+                        </div>
 
-                    {isMainOpen && (
-                        <div className="bg-white dark:bg-[#1A1A1D] p-4 space-y-5">
-                            {/* Risk Level Tabs */}
-                            <div>
-                                <div className="flex border-b border-gray-200 dark:border-gray-700">
-                                    {riskOptions.map((opt) => (
-                                        <button
-                                            key={opt.value}
-                                            type="button"
-                                            onClick={() => setRiskLevel(opt.value)}
-                                            className={`flex-1 py-2.5 text-sm font-medium transition-colors relative ${riskLevel === opt.value
-                                                ? 'text-white'
-                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                                                }`}
-                                        >
-                                            {riskLevel === opt.value ? (
-                                                <span className="bg-[#D97706] text-white px-4 py-1.5 rounded-md inline-block">
-                                                    {opt.label}
-                                                </span>
-                                            ) : (
-                                                opt.label
-                                            )}
-                                        </button>
-                                    ))}
+                        {isMainOpen && (
+                            <div className="bg-white dark:bg-[#1A1A1D] p-4 space-y-5">
+                                {/* Risk Level Tabs */}
+                                <div>
+                                    <div className="flex border-b border-gray-200 dark:border-gray-700">
+                                        {riskOptions.map((opt) => (
+                                            <button
+                                                key={opt.value}
+                                                type="button"
+                                                onClick={() => setRiskLevel(opt.value)}
+                                                className={`flex-1 py-2.5 text-sm font-medium transition-colors relative ${riskLevel === opt.value
+                                                    ? 'text-white'
+                                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                                    }`}
+                                            >
+                                                {riskLevel === opt.value ? (
+                                                    <span className="bg-[#D97706] text-white px-4 py-1.5 rounded-md inline-block">
+                                                        {opt.label}
+                                                    </span>
+                                                ) : (
+                                                    opt.label
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Strategy Name */}
-                            <div className="space-y-2">
-                                <Label className="flex items-center gap-1.5 font-semibold text-sm text-gray-800 dark:text-gray-100">
-                                    Strategy Name
-                                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                                </Label>
-                                <Input
-                                    placeholder="Enter Name"
-                                    value={strategyName}
-                                    onChange={e => setStrategyName(e.target.value)}
-                                    className="h-12 rounded-lg border-gray-200 dark:border-gray-700"
-                                />
-                            </div>
+                                {/* Strategy Name */}
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-1.5 font-semibold text-sm text-gray-800 dark:text-gray-100">
+                                        Strategy Name
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <span className="cursor-default"><Info className="h-3.5 w-3.5 text-muted-foreground" /></span>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                                                <p>You can keep desired Strategy name for reference and reports</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </Label>
+                                    <Input
+                                        placeholder="Enter Name"
+                                        value={strategyName}
+                                        onChange={e => setStrategyName(e.target.value)}
+                                        className="h-12 rounded-lg border-gray-200 dark:border-gray-700"
+                                    />
+                                </div>
 
-                            {/* Time Frame */}
-                            <div className="space-y-2">
+                                {/* Time Frame */}
+                                {/* <div className="space-y-2">
                                 <Label className="flex items-center gap-1.5 font-semibold text-sm text-gray-800 dark:text-gray-100">
                                     Time Frame
-                                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <span className="cursor-default"><Info className="h-3.5 w-3.5 text-muted-foreground" /></span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                                            <p>Please select the timeframe you wish to use on this strategy</p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </Label>
                                 <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
                                     {quoteAsset}
                                 </div>
-                            </div>
+                            </div> */}
 
-                            {/* Investment */}
-                            <div className="space-y-2">
-                                <Label className="flex items-center gap-1.5 font-semibold text-sm text-gray-800 dark:text-gray-100">
-                                    Investment
-                                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                                </Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="Value"
-                                        value={investment}
-                                        onChange={e => setInvestment(e.target.value)}
-                                        type="number"
-                                        step="0.01"
-                                        className="h-12 rounded-lg border-gray-200 dark:border-gray-700 flex-1"
-                                    />
-                                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                                        {quoteAsset}
+                                {/* Investment */}
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-1.5 font-semibold text-sm text-gray-800 dark:text-gray-100">
+                                        Investment
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <span className="cursor-default"><Info className="h-3.5 w-3.5 text-muted-foreground" /></span>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                                                <p>Investment per Trade</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="Value"
+                                            value={investment}
+                                            onChange={e => setInvestment(e.target.value)}
+                                            type="number"
+                                            step="0.01"
+                                            className="h-12 rounded-lg border-gray-200 dark:border-gray-700 flex-1"
+                                        />
+                                        <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                                            {quoteAsset}
+                                        </div>
+                                    </div>
+                                    {isLoadingBalances ? (
+                                        <p className="text-sm text-gray-500 flex items-center gap-2">
+                                            <span className="inline-block w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                                            Loading balance...
+                                        </p>
+                                    ) : (
+                                        <p className="text-sm text-orange-500 font-medium">
+                                            Avbl: {availableBalance} {quoteAsset}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Investment CAP */}
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-1.5 font-semibold text-sm text-gray-800 dark:text-gray-100">
+                                        Investment CAP
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <span className="cursor-default"><Info className="h-3.5 w-3.5 text-muted-foreground" /></span>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                                                <p>Strategy stops when total investment of the strategy is equal to cap value</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="Value"
+                                            value={investmentCap}
+                                            onChange={e => setInvestmentCap(e.target.value)}
+                                            type="number"
+                                            step="0.01"
+                                            className="h-12 rounded-lg border-gray-200 dark:border-gray-700 flex-1"
+                                        />
+                                        <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                                            {quoteAsset}
+                                        </div>
                                     </div>
                                 </div>
-                                {isLoadingBalances ? (
-                                    <p className="text-sm text-gray-500 flex items-center gap-2">
-                                        <span className="inline-block w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
-                                        Loading balance...
-                                    </p>
-                                ) : (
-                                    <p className="text-sm text-orange-500 font-medium">
-                                        Avbl: {availableBalance} {quoteAsset}
-                                    </p>
-                                )}
                             </div>
-
-                            {/* Investment CAP */}
-                            <div className="space-y-2">
-                                <Label className="flex items-center gap-1.5 font-semibold text-sm text-gray-800 dark:text-gray-100">
-                                    Investment CAP
-                                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                                </Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="Value"
-                                        value={investmentCap}
-                                        onChange={e => setInvestmentCap(e.target.value)}
-                                        type="number"
-                                        step="0.01"
-                                        className="h-12 rounded-lg border-gray-200 dark:border-gray-700 flex-1"
-                                    />
-                                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                                        {quoteAsset}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* ─── Advanced Settings Card ─── */}
-                <div className="border border-border rounded-lg overflow-hidden shadow-sm">
-                    {/* Header */}
-                    <div
-                        className="flex w-full items-center justify-between bg-[#4A1515] p-4 font-medium text-white cursor-pointer hover:bg-[#5A2525]"
-                        onClick={() => setIsAdvancedOpen(v => !v)}
-                    >
-                        <span>Advanced Settings</span>
-                        {isAdvancedOpen
-                            ? <ChevronUp className="h-4 w-4" />
-                            : <ChevronDown className="h-4 w-4" />
-                        }
+                        )}
                     </div>
 
-                    {isAdvancedOpen && (
-                        <div className="bg-white dark:bg-[#1A1A1D] p-4 space-y-5">
-                            {/* Price Trigger Start */}
-                            <div className="space-y-2">
-                                <Label className="font-semibold text-sm text-gray-800 dark:text-gray-100">
-                                    Price Trigger Start
-                                </Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="Value"
-                                        value={priceStart}
-                                        onChange={e => setPriceStart(e.target.value)}
-                                        type="number"
-                                        step="0.01"
-                                        className="h-12 rounded-lg border-gray-200 dark:border-gray-700 flex-1"
-                                    />
-                                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                                        {quoteAsset}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Price Trigger Stop */}
-                            <div className="space-y-2">
-                                <Label className="font-semibold text-sm text-gray-800 dark:text-gray-100">
-                                    Price Trigger Stop
-                                </Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="Value"
-                                        value={priceStop}
-                                        onChange={e => setPriceStop(e.target.value)}
-                                        type="number"
-                                        step="0.01"
-                                        className="h-12 rounded-lg border-gray-200 dark:border-gray-700 flex-1"
-                                    />
-                                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                                        {quoteAsset}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Take Profit */}
-                            <div className="space-y-2">
-                                <Label className="font-semibold text-sm text-gray-800 dark:text-gray-100">
-                                    Take Profit
-                                </Label>
-                                <div className="relative">
-                                    <Input
-                                        placeholder="Value"
-                                        value={takeProfitPct}
-                                        onChange={e => setTakeProfitPct(e.target.value)}
-                                        type="number"
-                                        step="0.1"
-                                        className="h-12 rounded-lg border-gray-200 dark:border-gray-700 pr-10"
-                                    />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 dark:text-gray-500 font-medium">
-                                        %
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Stop Loss By */}
-                            <div className="space-y-2">
-                                <Label className="font-semibold text-sm text-gray-800 dark:text-gray-100">
-                                    Stop Loss By
-                                </Label>
-                                <div className="relative">
-                                    <Input
-                                        placeholder="Value"
-                                        value={stopLossByPercent}
-                                        onChange={e => setStopLossByPercent(e.target.value)}
-                                        type="number"
-                                        step="0.1"
-                                        className="h-12 rounded-lg border-gray-200 dark:border-gray-700 pr-10"
-                                    />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 dark:text-gray-500 font-medium">
-                                        %
-                                    </span>
-                                </div>
-                            </div>
+                    {/* ─── Advanced Settings Card ─── */}
+                    <div className="border border-border rounded-lg overflow-hidden shadow-sm">
+                        {/* Header */}
+                        <div
+                            className="flex w-full items-center justify-between bg-[#4A1515] p-4 font-medium text-white cursor-pointer hover:bg-[#5A2525]"
+                            onClick={() => setIsAdvancedOpen(v => !v)}
+                        >
+                            <span>Advanced Settings</span>
+                            {isAdvancedOpen
+                                ? <ChevronUp className="h-4 w-4" />
+                                : <ChevronDown className="h-4 w-4" />
+                            }
                         </div>
-                    )}
-                </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-4 pt-2">
-                    <Button
-                        className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525] h-11"
-                        onClick={handleProceed}
-                        disabled={isLoading}
-                        type="button"
-                    >
-                        {isLoading ? "Processing..." : "Proceed"}
-                    </Button>
-                    <Button
-                        variant="outline"
-                        className="flex-1 h-11 bg-[#D97706] text-white hover:bg-[#B45309] border-0"
-                        type="button"
-                        onClick={handleReset}
-                        disabled={isLoading}
-                    >
-                        Reset
-                    </Button>
-                </div>
-            </form>
+                        {isAdvancedOpen && (
+                            <div className="bg-white dark:bg-[#1A1A1D] p-4 space-y-5">
+                                {/* Price Trigger Start */}
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-1.5 font-semibold text-sm text-gray-800 dark:text-gray-100">
+                                        Price Trigger Start
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <span className="cursor-default"><Info className="h-3.5 w-3.5 text-muted-foreground" /></span>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                                                <p>Set the price at which this strategy should begin execution</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="Value"
+                                            value={priceStart}
+                                            onChange={e => setPriceStart(e.target.value)}
+                                            type="number"
+                                            step="0.01"
+                                            className="h-12 rounded-lg border-gray-200 dark:border-gray-700 flex-1"
+                                        />
+                                        <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                                            {quoteAsset}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Price Trigger Stop */}
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-1.5 font-semibold text-sm text-gray-800 dark:text-gray-100">
+                                        Price Trigger Stop
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <span className="cursor-default"><Info className="h-3.5 w-3.5 text-muted-foreground" /></span>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                                                <p>Set the price at which this strategy should stop executing</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="Value"
+                                            value={priceStop}
+                                            onChange={e => setPriceStop(e.target.value)}
+                                            type="number"
+                                            step="0.01"
+                                            className="h-12 rounded-lg border-gray-200 dark:border-gray-700 flex-1"
+                                        />
+                                        <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                                            {quoteAsset}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Take Profit */}
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-1.5 font-semibold text-sm text-gray-800 dark:text-gray-100">
+                                        Take Profit
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <span className="cursor-default"><Info className="h-3.5 w-3.5 text-muted-foreground" /></span>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                                                <p>Set the take profit percentage target</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </Label>
+                                    <div className="relative">
+                                        <Input
+                                            placeholder="Value"
+                                            value={takeProfitPct}
+                                            onChange={e => setTakeProfitPct(e.target.value)}
+                                            type="number"
+                                            step="0.1"
+                                            className="h-12 rounded-lg border-gray-200 dark:border-gray-700 pr-10"
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 dark:text-gray-500 font-medium">
+                                            %
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Stop Loss By */}
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-1.5 font-semibold text-sm text-gray-800 dark:text-gray-100">
+                                        Stop Loss By
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <span className="cursor-default"><Info className="h-3.5 w-3.5 text-muted-foreground" /></span>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                                                <p>Set the stop loss percentage to limit potential losses</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </Label>
+                                    <div className="relative">
+                                        <Input
+                                            placeholder="Value"
+                                            value={stopLossByPercent}
+                                            onChange={e => setStopLossByPercent(e.target.value)}
+                                            type="number"
+                                            step="0.1"
+                                            className="h-12 rounded-lg border-gray-200 dark:border-gray-700 pr-10"
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 dark:text-gray-500 font-medium">
+                                            %
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-4 pt-2">
+                        <Button
+                            className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525] h-11"
+                            onClick={handleProceed}
+                            disabled={isLoading}
+                            type="button"
+                        >
+                            {isLoading ? "Processing..." : "Proceed"}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="flex-1 h-11 bg-[#D97706] text-white hover:bg-[#B45309] border-0"
+                            type="button"
+                            onClick={handleReset}
+                            disabled={isLoading}
+                        >
+                            Reset
+                        </Button>
+                    </div>
+                </form>
+            </TooltipProvider>
 
             {showProceedPopup && (
                 <ProceedPopup

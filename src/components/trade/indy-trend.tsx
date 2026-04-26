@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { useState } from "react"
 import { useStrategyStore } from "@/stores/strategystore"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 
 export default function IndyTrend() {
@@ -220,6 +221,7 @@ export default function IndyTrend() {
     <div className="w-full max-w-md mx-auto">
       <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
 
+      <TooltipProvider>
       <form className="space-y-4 mt-4 dark:text-white">
         <Collapsible open={isIndyOpen} onOpenChange={setIsIndyOpen}>
           <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
@@ -231,7 +233,14 @@ export default function IndyTrend() {
             <div className="space-y-2">
               <Label className="flex items-center gap-1 text-sm">
                 Strategy Name
-                <Info className="h-3 w-3 text-muted-foreground" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>You can keep desired Strategy name for reference and reports</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <Input
                 placeholder="Enter Name"
@@ -245,7 +254,14 @@ export default function IndyTrend() {
             <div className="space-y-2">
               <Label className="flex items-center gap-1 text-sm">
                 Investment
-                <Info className="h-3 w-3 text-muted-foreground" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Investment per Trade</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -276,7 +292,14 @@ export default function IndyTrend() {
             <div className="space-y-2">
               <Label className="flex items-center gap-1 text-sm">
                 Investment CAP
-                <Info className="h-3 w-3 text-muted-foreground" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Strategy stops when total investment of the strategy is equal to cap value</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -311,7 +334,14 @@ export default function IndyTrend() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-1 text-sm">
                   Lower Limit
-                  <Info className="h-3 w-3 text-muted-foreground" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the Lowest / Starting Price range</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </Label>
                 <div className="flex gap-1">
                   <Input
@@ -331,7 +361,14 @@ export default function IndyTrend() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-1 text-sm">
                   Upper Limit
-                  <Info className="h-3 w-3 text-muted-foreground" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the Maximum / Ending Price range</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </Label>
                 <div className="flex gap-1">
                   <Input
@@ -351,7 +388,17 @@ export default function IndyTrend() {
 
             {/* Price Trigger Start */}
             <div className="space-y-2">
-              <Label className="text-sm">Price Trigger Start</Label>
+              <Label className="flex items-center gap-1 text-sm">
+                Price Trigger Start
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Set the price at which this strategy should begin execution</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Value"
@@ -369,7 +416,17 @@ export default function IndyTrend() {
 
             {/* Price Trigger Stop */}
             <div className="space-y-2">
-              <Label className="text-sm">Price Trigger Stop</Label>
+              <Label className="flex items-center gap-1 text-sm">
+                Price Trigger Stop
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Set the price at which this strategy should stop executing</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Value"
@@ -387,7 +444,17 @@ export default function IndyTrend() {
 
             {/* Stop Loss By */}
             <div className="space-y-2">
-              <Label className="text-sm">Stop Loss By</Label>
+              <Label className="flex items-center gap-1 text-sm">
+                Stop Loss By
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Set the stop loss percentage to limit potential losses</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Value"
@@ -724,6 +791,7 @@ export default function IndyTrend() {
           </Button>
         </div>
       </form>
+      </TooltipProvider>
     </div>
   )
 }

@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { useState } from "react"
 import { useStrategyStore } from "@/stores/strategystore"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { useNavigate } from 'react-router-dom'
 
@@ -268,6 +269,7 @@ export default function IndyUTC() {
     <div className="w-full max-w-md mx-auto">
       <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
 
+      <TooltipProvider>
       <form className="space-y-4 mt-4 dark:text-white">
         <Collapsible open={isIndyOpen} onOpenChange={setIsIndyOpen}>
           <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
@@ -279,7 +281,14 @@ export default function IndyUTC() {
             <div className="space-y-2">
               <Label className="flex items-center gap-1 text-sm">
                 Strategy Name
-                <Info className="h-3 w-3 text-muted-foreground" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>You can keep desired Strategy name for reference and reports</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <Input
                 placeholder="Enter Name"
@@ -293,7 +302,14 @@ export default function IndyUTC() {
             <div className="space-y-2">
               <Label className="flex items-center gap-1 text-sm">
                 Investment
-                <Info className="h-3 w-3 text-muted-foreground" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Investment per Trade</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -324,7 +340,14 @@ export default function IndyUTC() {
             <div className="space-y-2">
               <Label className="flex items-center gap-1 text-sm">
                 Investment CAP
-                <Info className="h-3 w-3 text-muted-foreground" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Strategy stops when total investment of the strategy is equal to cap value</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -345,7 +368,14 @@ export default function IndyUTC() {
             <div className="space-y-2">
               <Label className="flex items-center gap-1 text-sm">
                 Time Frame
-                <Info className="h-3 w-3 text-muted-foreground" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Please select the timeframe you wish to use on this strategy. Default is 5 Minutes</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <Select value={timeFrame} onValueChange={setTimeFrame}>
                 <SelectTrigger className="h-10">
@@ -366,7 +396,17 @@ export default function IndyUTC() {
 
             {/* Leverage */}
             <div className="space-y-2">
-              <Label className="text-sm">Leverage</Label>
+              <Label className="flex items-center gap-1 text-sm">
+                Leverage
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Set the leverage multiplier to be used for this strategy</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <Input
                 placeholder="Value"
                 value={leverage}
@@ -382,7 +422,14 @@ export default function IndyUTC() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-1 text-sm">
                   Lower Limit
-                  <Info className="h-3 w-3 text-muted-foreground" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the Lowest / Starting Price range</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </Label>
                 <div className="flex gap-1">
                   <Input
@@ -407,7 +454,14 @@ export default function IndyUTC() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-1 text-sm">
                   Upper Limit
-                  <Info className="h-3 w-3 text-muted-foreground" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the Maximum / Ending Price range</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </Label>
                 <div className="flex gap-1">
                   <Input
@@ -427,7 +481,17 @@ export default function IndyUTC() {
 
             {/* Price Trigger Start */}
             <div className="space-y-2">
-              <Label className="text-sm">Price Trigger Start</Label>
+              <Label className="flex items-center gap-1 text-sm">
+                Price Trigger Start
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Set the price at which this strategy should begin execution</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Value"
@@ -445,7 +509,17 @@ export default function IndyUTC() {
 
             {/* Price Trigger Stop */}
             <div className="space-y-2">
-              <Label className="text-sm">Price Trigger Stop</Label>
+              <Label className="flex items-center gap-1 text-sm">
+                Price Trigger Stop
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Set the price at which this strategy should stop executing</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Value"
@@ -463,7 +537,17 @@ export default function IndyUTC() {
 
             {/* Stop Loss By */}
             <div className="space-y-2">
-              <Label className="text-sm">Stop Loss By</Label>
+              <Label className="flex items-center gap-1 text-sm">
+                Stop Loss By
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                    <p>Set the maximum loss percentage at which the strategy exits automatically</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
               <div className="flex gap-2">
                 <Input
                   placeholder="Value"
@@ -505,7 +589,14 @@ export default function IndyUTC() {
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
                     Sensitivity
-                    <Info className="h-3 w-3" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-default"><Info className="h-3 w-3" /></span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                        <p>Default values of this factor are already generated based on latest market trend. You can edit if you wish to change.</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </Label>
                   <Input
                     placeholder="2"
@@ -520,7 +611,14 @@ export default function IndyUTC() {
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
                     ATR Period
-                    <Info className="h-3 w-3" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-default"><Info className="h-3 w-3" /></span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                        <p>Defines the ATR period used to calculate trend sensitivity</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </Label>
                   <Input
                     placeholder="300"
@@ -552,7 +650,14 @@ export default function IndyUTC() {
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
                     Sensitivity
-                    <Info className="h-3 w-3" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-default"><Info className="h-3 w-3" /></span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                        <p>Default values of this factor are already generated based on latest market trend. You can edit if you wish to change.</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </Label>
                   <Input
                     placeholder="2"
@@ -567,7 +672,14 @@ export default function IndyUTC() {
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
                     ATR Period
-                    <Info className="h-3 w-3" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-default"><Info className="h-3 w-3" /></span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                        <p>Defines the ATR period used to calculate trend sensitivity</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </Label>
                   <Input
                     placeholder="1"
@@ -599,7 +711,14 @@ export default function IndyUTC() {
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
                     Length
-                    <Info className="h-3 w-3" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-default"><Info className="h-3 w-3" /></span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                        <p>Defines the primary oscillator calculation period</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </Label>
                   <Input
                     placeholder="80"
@@ -614,7 +733,14 @@ export default function IndyUTC() {
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
                     Fast Length
-                    <Info className="h-3 w-3" />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-default"><Info className="h-3 w-3" /></span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                        <p>Defines the faster oscillator signal calculation period</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </Label>
                   <Input
                     placeholder="27"
@@ -658,6 +784,7 @@ export default function IndyUTC() {
           </Button>
         </div>
       </form>
+      </TooltipProvider>
 
       {/* Success Popup */}
       {showProceedPopup && (
