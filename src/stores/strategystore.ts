@@ -7,7 +7,7 @@ import { apiurls } from '@/api/apiurls';
 export interface Strategy {
   id: string;
   name: string;
-  strategyType: 'GROWTH_DCA' | 'HUMAN_GRID' | 'SMART_GRID' | 'GRID' | 'CUSTOM';
+  strategyType: 'GROWTH_DCA' | 'HUMAN_GRID' | 'SMART_GRID' | 'GRID' | 'CUSTOM' | 'UTC' | 'PRICE_ACTION' | 'INDY_TREND' | 'LESI';
   assetType: 'CRYPTO' | 'STOCK';
   exchange: string;
   segment: string;
@@ -34,6 +34,24 @@ export interface Strategy {
   direction?: 'NEUTRAL' | 'LONG' | 'SHORT';
   dataSetDays?: number;
   gridMode?: 'STATIC' | 'DYNAMIC';
+  // UTC / Price Action specific fields
+  timeFrame?: string;
+  riskLevel?: 'SAFE' | 'MODERATE' | 'RISKY';
+  investment?: number;
+  // Nested config from API (raw response structure)
+  config?: {
+    capital?: { maxCapital?: number; perOrderAmount?: number };
+    schedule?: {
+      frequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY';
+      hourly?: { intervalHours?: number };
+      daily?: { time?: string };
+      weekly?: { days?: number[]; time?: string };
+      monthly?: { dates?: number[]; time?: string };
+    };
+    exit?: { bookProfit?: { enabled?: boolean; percentage?: number } };
+    risk?: { stopLoss?: { enabled?: boolean; percentage?: number } };
+    entry?: { priceTrigger?: { enabled?: boolean; start?: number; stop?: number } };
+  };
   status: 'ACTIVE' | 'PAUSED' | 'STOPPED';
   createdAt: string;
   updatedAt: string;
@@ -919,9 +937,68 @@ export const useStrategyStore = create<StrategyState>()(
         try {
           const url = apiurls.strategies.update.replace(':id', id);
           console.log("Updating strategy:", url);
-          console.log("Update payload:", updates);
 
-          const response = await apiClient.put(url, updates);
+          // Build a type-appropriate payload based on strategyType
+          let payload: Record<string, any> = {};
+          const type = (updates as any).strategyType || updates.strategyType;
+
+          if (type === 'GROWTH_DCA') {
+            payload = {
+              ...(updates.name && { name: updates.name }),
+              ...(updates.investmentPerRun !== undefined && { investmentPerRun: updates.investmentPerRun }),
+              ...(updates.investmentCap !== undefined && { investmentCap: updates.investmentCap }),
+              ...(updates.frequency && { frequency: updates.frequency }),
+              ...(updates.hourInterval !== undefined && { hourInterval: updates.hourInterval }),
+              ...(updates.time && { time: updates.time }),
+              ...(updates.takeProfitPct !== undefined && { takeProfitPct: updates.takeProfitPct }),
+              ...(updates.stopLossPct !== undefined && { stopLossPct: updates.stopLossPct }),
+            };
+          } else if (type === 'HUMAN_GRID') {
+            payload = {
+              ...(updates.name && { name: updates.name }),
+              ...(updates.lowerLimit !== undefined && { lowerLimit: updates.lowerLimit }),
+              ...(updates.upperLimit !== undefined && { upperLimit: updates.upperLimit }),
+              ...(updates.entryInterval !== undefined && { entryInterval: updates.entryInterval }),
+              ...(updates.bookProfitBy !== undefined && { bookProfitBy: updates.bookProfitBy }),
+              ...(updates.investmentPerRun !== undefined && { investmentPerRun: updates.investmentPerRun }),
+              ...(updates.stopLossPct !== undefined && { stopLossPct: updates.stopLossPct }),
+            };
+          } else if (type === 'SMART_GRID') {
+            payload = {
+              ...(updates.direction && { type: updates.direction }),
+              ...(updates.levels !== undefined && { levels: updates.levels }),
+              ...(updates.profitPercentage !== undefined && { profitPercentage: updates.profitPercentage }),
+              ...(updates.investmentCap !== undefined && { investment: updates.investmentCap }),
+              ...(updates.dataSetDays !== undefined && { dataSetDays: updates.dataSetDays }),
+            };
+          } else if (type === 'PRICE_ACTION') {
+            payload = {
+              ...(updates.name && { name: updates.name }),
+              ...(updates.investmentPerRun !== undefined && { investment: updates.investmentPerRun }),
+              ...(updates.investmentCap !== undefined && { investmentCap: updates.investmentCap }),
+              ...(updates.stopLossPct !== undefined && { stopLossByPercent: updates.stopLossPct }),
+              ...(updates.takeProfitPct !== undefined && { takeProfitPct: updates.takeProfitPct }),
+              ...((updates as any).timeFrame && { timeFrame: (updates as any).timeFrame }),
+              ...((updates as any).riskLevel && { riskLevel: (updates as any).riskLevel }),
+            };
+          } else if (type === 'UTC') {
+            payload = {
+              ...(updates.name && { name: updates.name }),
+              ...(updates.investmentPerRun !== undefined && { investmentPerRun: updates.investmentPerRun }),
+              ...(updates.investmentCap !== undefined && { investmentCap: updates.investmentCap }),
+              ...(updates.stopLossPct !== undefined && { stopLossPct: updates.stopLossPct }),
+              ...(updates.takeProfitPct !== undefined && { takeProfitPct: updates.takeProfitPct }),
+              ...((updates as any).timeFrame && { timeFrame: (updates as any).timeFrame }),
+              ...((updates as any).riskLevel && { riskLevel: (updates as any).riskLevel }),
+            };
+          } else {
+            // Fallback: send as-is
+            payload = updates;
+          }
+
+          console.log("Update payload:", payload);
+
+          const response = await apiClient.put(url, payload);
 
           if (response.data?.data) {
             const updatedStrategy = response.data.data as Strategy;

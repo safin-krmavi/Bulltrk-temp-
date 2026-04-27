@@ -1,20 +1,24 @@
 'use client'
 
 import * as React from "react"
-import { ChevronDown, ChevronUp, Info } from 'lucide-react'
+import { ChevronDown, ChevronUp, Info, ArrowLeft, Pencil } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState, useMemo, useEffect } from "react"
 import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
-import { useStrategyStore, PriceActionStrategy } from "@/stores/strategystore"
+import { useStrategyStore, PriceActionStrategy, Strategy } from "@/stores/strategystore"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { ProceedPopup } from "@/components/dashboard/proceed-popup"
+import { useNavigate } from "react-router-dom"
 
 type RiskLevel = 'SAFE' | 'MODERATE' | 'RISKY';
 
-export default function PriceAction() {
+export default function PriceAction({ editData }: { editData?: Strategy | null }) {
+    const navigate = useNavigate();
+    const isEditMode = !!editData;
+
     const [isMainOpen, setIsMainOpen] = useState(true)
     const [isAdvancedOpen, setIsAdvancedOpen] = useState(false)
     const [showProceedPopup, setShowProceedPopup] = useState(false)
@@ -28,24 +32,25 @@ export default function PriceAction() {
     // Get strategy store
     const {
         createPriceAction,
+        updateStrategyById,
         isLoading,
         allExchangesBalances,
         fetchAllExchangesBalances,
         isLoadingBalances,
     } = useStrategyStore();
 
-    // Main form state
-    const [riskLevel, setRiskLevel] = useState<RiskLevel>("SAFE");
-    const [strategyName, setStrategyName] = useState("");
-    const [investment, setInvestment] = useState("");
-    const [investmentCap, setInvestmentCap] = useState("");
-    const [timeFrame, setTimeFrame] = useState("1h");
+    // Main form state - pre-fill from editData if in edit mode
+    const [riskLevel, setRiskLevel] = useState<RiskLevel>(editData?.riskLevel ?? "SAFE");
+    const [strategyName, setStrategyName] = useState(editData?.name ?? "");
+    const [investment, setInvestment] = useState(editData?.investment?.toString() ?? editData?.investmentPerRun?.toString() ?? "");
+    const [investmentCap, setInvestmentCap] = useState(editData?.investmentCap?.toString() ?? "");
+    const [timeFrame, setTimeFrame] = useState(editData?.timeFrame ?? "1h");
 
     // Advanced settings state
-    const [priceStart, setPriceStart] = useState("");
-    const [priceStop, setPriceStop] = useState("");
-    const [takeProfitPct, setTakeProfitPct] = useState("");
-    const [stopLossByPercent, setStopLossByPercent] = useState("");
+    const [priceStart, setPriceStart] = useState(editData?.priceStart?.toString() ?? "");
+    const [priceStop, setPriceStop] = useState(editData?.priceStop?.toString() ?? "");
+    const [takeProfitPct, setTakeProfitPct] = useState(editData?.takeProfitPct?.toString() ?? "");
+    const [stopLossByPercent, setStopLossByPercent] = useState(editData?.stopLossPct?.toString() ?? "");
 
     // Available balance
     const [availableBalance, setAvailableBalance] = useState("0");
@@ -116,6 +121,29 @@ export default function PriceAction() {
     };
 
     const handleConfirmStrategy = async (executionMode: 'LIVE' | 'PUBLISHED') => {
+        if (isEditMode && editData) {
+            const toastId = toast.loading("Updating strategy...");
+            try {
+                await updateStrategyById(editData.id, {
+                    name: strategyName,
+                    investmentPerRun: Number(investment),
+                    investmentCap: Number(investmentCap),
+                    timeFrame,
+                    riskLevel,
+                    ...(priceStart && Number(priceStart) > 0 && { priceStart: Number(priceStart) }),
+                    ...(priceStop && Number(priceStop) > 0 && { priceStop: Number(priceStop) }),
+                    ...(takeProfitPct && Number(takeProfitPct) > 0 && { takeProfitPct: Number(takeProfitPct) }),
+                    ...(stopLossByPercent && Number(stopLossByPercent) > 0 && { stopLossPct: Number(stopLossByPercent) }),
+                    strategyType: 'PRICE_ACTION',
+                } as any);
+                toast.success("Strategy updated! ✅", { id: toastId, duration: 5000 });
+                setShowProceedPopup(false);
+                navigate('/dashboard');
+            } catch (err: any) {
+                toast.error("Failed to update", { id: toastId, description: err.message });
+            }
+            return;
+        }
         const toastId = toast.loading("Creating Price Action strategy...");
         try {
             const strategyData: Omit<PriceActionStrategy, 'strategyType' | 'assetType'> = {
@@ -192,7 +220,25 @@ export default function PriceAction() {
 
     return (
         <div className="w-full max-w-md mx-auto">
-            <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
+            {/* Edit mode banner */}
+            {isEditMode && (
+                <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center gap-2">
+                    <Pencil className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Editing Strategy</p>
+                        <p className="text-xs text-blue-600 dark:text-blue-400 truncate">{editData?.name}</p>
+                    </div>
+                    <button type="button" onClick={() => navigate('/dashboard')} className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                        <ArrowLeft className="h-3 w-3" /> Back
+                    </button>
+                </div>
+            )}
+            <AccountDetailsCard
+                onDataChange={handleAccountDetailsChange}
+                initialExchange={editData?.exchange}
+                initialSegment={editData?.segment}
+                initialPair={editData?.symbol}
+            />
 
             <TooltipProvider>
                 <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
@@ -484,7 +530,7 @@ export default function PriceAction() {
                             disabled={isLoading}
                             type="button"
                         >
-                            {isLoading ? "Processing..." : "Proceed"}
+                            {isLoading ? "Processing..." : isEditMode ? "Update Strategy" : "Proceed"}
                         </Button>
                         <Button
                             variant="outline"

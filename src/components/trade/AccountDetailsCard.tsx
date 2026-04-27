@@ -19,6 +19,9 @@ interface AccountDetailsCardProps {
     quote: string;
   }) => void;
   allowedSegments?: string[];
+  initialSegment?: string;
+  initialPair?: string;
+  initialExchange?: string;
 }
 
 const SEGMENTS = [
@@ -43,6 +46,9 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
   title = "Account Details",
   onDataChange,
   allowedSegments,
+  initialSegment,
+  initialPair,
+  initialExchange,
 }) => {
   const [open, setOpen] = React.useState(true);
   const [selectedApi, setSelectedApi] = React.useState("");
@@ -55,12 +61,13 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
   }, [allowedSegments]);
 
   const [segment, setSegment] = React.useState(() => {
+    if (initialSegment) return initialSegment.toUpperCase();
     // Default to SPOT if allowed, otherwise first allowed segment, otherwise SEGMENTS[0]
     if (!allowedSegments || allowedSegments.includes("SPOT")) return "SPOT";
     return filteredSegments[0]?.value || "SPOT";
   });
 
-  const [pair, setPair] = React.useState("");
+  const [pair, setPair] = React.useState(initialPair || "");
   const [pairSearch, setPairSearch] = React.useState("");
   const [connections, setConnections] = useState<BrokerageConnection[]>([]);
   const [isLoadingConnections, setIsLoadingConnections] = useState(false);
@@ -108,16 +115,29 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
     }
   }, [user?.id]);
 
-  // Auto-select first symbol when available symbols change
+  // Sync initial pair and segment if they arrive late or change
+  const lastInitialPair = React.useRef(initialPair);
   useEffect(() => {
-    if (availableSymbols.length > 0) {
-      console.log("Auto-selecting first symbol:", availableSymbols[0].symbol);
-      setPair(availableSymbols[0].symbol);
-    } else {
-      console.log("No symbols available, clearing pair");
-      setPair("");
+    if (initialPair && initialPair !== lastInitialPair.current) {
+      setPair(initialPair);
+      lastInitialPair.current = initialPair;
     }
-  }, [availableSymbols]);
+  }, [initialPair]);
+
+  const lastInitialSegment = React.useRef(initialSegment);
+  useEffect(() => {
+    if (initialSegment && initialSegment !== lastInitialSegment.current) {
+      setSegment(initialSegment.toUpperCase());
+      lastInitialSegment.current = initialSegment;
+    }
+  }, [initialSegment]);
+
+  // Auto-select first symbol when available symbols change - ONLY IF NO PAIR IS SET
+  useEffect(() => {
+    if (availableSymbols.length > 0 && !pair) {
+      setPair(availableSymbols[0].symbol);
+    }
+  }, [availableSymbols, pair]);
 
   // Notify parent when data changes
   useEffect(() => {
@@ -194,10 +214,24 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
         // ✅ Set connections FIRST before auto-selecting
         setConnections(sortedConnections);
 
-        // ✅ Auto-select Binance connection if available, otherwise select first
+        // ✅ Auto-select connection
         if (sortedConnections.length > 0 && !selectedApi) {
-          const binanceConnection = sortedConnections.find((c: { exchange: string; }) => c.exchange.toUpperCase() === 'BINANCE');
-          const connectionToSelect = binanceConnection || sortedConnections[0];
+          let connectionToSelect;
+
+          if (initialExchange) {
+            // Try to find connection matching initial exchange
+            connectionToSelect = sortedConnections.find((c: { exchange: string; }) =>
+              c.exchange.toUpperCase() === initialExchange.toUpperCase()
+            );
+          }
+
+          if (!connectionToSelect) {
+            // Fallback to Binance or first connection
+            const binanceConnection = sortedConnections.find((c: { exchange: string; }) =>
+              c.exchange.toUpperCase() === 'BINANCE'
+            );
+            connectionToSelect = binanceConnection || sortedConnections[0];
+          }
 
           console.log("Auto-selecting connection:", connectionToSelect.exchange, connectionToSelect.id);
           setSelectedApi(connectionToSelect.id);

@@ -17,7 +17,7 @@ import { apiurls } from "@/api/apiurls"
 import { useStrategyStore } from "@/stores/strategystore"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-export default function IndyLESI() {
+export default function IndyLESI({ editData }: { editData?: any }) {
   const [isOpen, setIsOpen] = React.useState(true)
   const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false)
 
@@ -61,10 +61,10 @@ export default function IndyLESI() {
   const [success, setSuccess] = React.useState("");
   const [availableBalance, setAvailableBalance] = useState<string>("0");
 
-  const { 
-    allExchangesBalances, 
-    fetchAllExchangesBalances, 
-    isLoadingBalances, 
+  const {
+    allExchangesBalances,
+    fetchAllExchangesBalances,
+    isLoadingBalances,
     balancesError,
     fetchBalances,
     getBalanceByAsset
@@ -106,10 +106,10 @@ export default function IndyLESI() {
     if (allExchangesBalances && exchange && segment) {
       const exchangeKey = exchange.toUpperCase();
       const segmentKey = segment.toUpperCase();
-      
+
       const exchangeData = allExchangesBalances.exchanges?.[exchangeKey];
       const balanceData = exchangeData?.balances?.find(b => b.type === segmentKey);
-      
+
       if (balanceData) {
         setAvailableBalance(balanceData.free.toFixed(2));
       } else {
@@ -267,7 +267,12 @@ export default function IndyLESI() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
+      <AccountDetailsCard
+        onDataChange={handleAccountDetailsChange}
+        initialExchange={editData?.exchange}
+        initialSegment={editData?.segment}
+        initialPair={editData?.symbol}
+      />
 
       {/* Required Fields Warning */}
       {showRequiredFieldsWarning && (
@@ -281,189 +286,88 @@ export default function IndyLESI() {
       )}
 
       <TooltipProvider>
-      <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
-        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 border border-t-0 font-medium text-white hover:bg-[#5A2525]">
-            <span>Indy LESI</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
-            {/* Strategy Name */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-sm">
-                Strategy Name
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>You can keep desired Strategy name for reference and reports</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <Input
-                placeholder="Enter Name"
-                value={strategyName}
-                onChange={(e) => setStrategyName(e.target.value)}
-              />
-            </div>
-
-            {/* Investment */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-sm">
-                Investment
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Investment per Trade</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={investment}
-                  onChange={(e) => setInvestment(e.target.value)}
-                  type="number"
-                  step="0.01"
-                />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {quoteAsset}
-                </div>
-              </div>
-              {isLoadingBalances ? (
-                <p className="text-sm text-gray-500 flex items-center gap-2">
-                  <span className="inline-block w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></span>
-                  Loading balance...
-                </p>
-              ) : balancesError ? (
-                <p className="text-sm text-red-500">Failed to load balance</p>
-              ) : (
-                <p className="text-sm text-orange-500">Avbl: {availableBalance} {quoteAsset}</p>
-              )}
-            </div>
-
-            {/* Investment CAP */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-sm">
-                Investment CAP
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Strategy stops when total investment of the strategy is equal to cap value</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={investmentCap}
-                  onChange={(e) => setInvestmentCap(e.target.value)}
-                  type="number"
-                  step="0.01"
-                />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {quoteAsset}
-                </div>
-              </div>
-            </div>
-
-            {/* Time Frame */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-sm">
-                Time Frame
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Please select the timeframe you wish to use on this strategy</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <Select value={timeFrame} onValueChange={setTimeFrame}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5m">5 Minutes</SelectItem>
-                  <SelectItem value="15m">15 Minutes</SelectItem>
-                  <SelectItem value="1h">1 Hour</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Leverage */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-sm">
-                Leverage
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Set the leverage multiplier for this strategy</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <Input
-                placeholder="Value"
-                value={leverage}
-                onChange={(e) => setLeverage(e.target.value)}
-                type="number"
-                step="0.1"
-              />
-            </div>
-
-            {/* Lower and Upper Limit */}
-            <div className="grid grid-cols-2 gap-4">
+        <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
+          <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 border border-t-0 font-medium text-white hover:bg-[#5A2525]">
+              <span>Indy LESI</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
+              {/* Strategy Name */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-sm">
-                  Lower Limit
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                      <p>Set the Lowest / Starting Price range</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Value"
-                    value={lowerLimit}
-                    onChange={(e) => setLowerLimit(e.target.value)}
-                    type="number"
-                    step="0.01"
-                  />
-                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                    {quoteAsset}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
-                  Upper Limit
+                  Strategy Name
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                      <p>Set the Maximum / Ending Price range</p>
+                      <p>You can keep desired Strategy name for reference and reports</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <Input
+                  placeholder="Enter Name"
+                  value={strategyName}
+                  onChange={(e) => setStrategyName(e.target.value)}
+                />
+              </div>
+
+              {/* Investment */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  Investment
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Investment per Trade</p>
                     </TooltipContent>
                   </Tooltip>
                 </Label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Value"
-                    value={upperLimit}
-                    onChange={(e) => setUpperLimit(e.target.value)}
+                    value={investment}
+                    onChange={(e) => setInvestment(e.target.value)}
+                    type="number"
+                    step="0.01"
+                  />
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {quoteAsset}
+                  </div>
+                </div>
+                {isLoadingBalances ? (
+                  <p className="text-sm text-gray-500 flex items-center gap-2">
+                    <span className="inline-block w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></span>
+                    Loading balance...
+                  </p>
+                ) : balancesError ? (
+                  <p className="text-sm text-red-500">Failed to load balance</p>
+                ) : (
+                  <p className="text-sm text-orange-500">Avbl: {availableBalance} {quoteAsset}</p>
+                )}
+              </div>
+
+              {/* Investment CAP */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  Investment CAP
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Strategy stops when total investment of the strategy is equal to cap value</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Value"
+                    value={investmentCap}
+                    onChange={(e) => setInvestmentCap(e.target.value)}
                     type="number"
                     step="0.01"
                   />
@@ -472,272 +376,373 @@ export default function IndyLESI() {
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Price Trigger Start */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-sm">
-                Price Trigger Start
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Set the price at which this strategy should begin execution</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={priceTriggerStart}
-                  onChange={(e) => setPriceTriggerStart(e.target.value)}
-                  type="number"
-                  step="0.01"
-                />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {symbol || "—"}
-                </div>
-              </div>
-            </div>
-
-            {/* Price Trigger Stop */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-sm">
-                Price Trigger Stop
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Set the price at which this strategy should stop executing</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={priceTriggerStop}
-                  onChange={(e) => setPriceTriggerStop(e.target.value)}
-                  type="number"
-                  step="0.01"
-                />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {symbol || "—"}
-                </div>
-              </div>
-            </div>
-
-            {/* Stop Loss By */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-sm">
-                Stop Loss By
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Set the stop loss percentage to limit potential losses</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={stopLossBy}
-                  onChange={(e) => setStopLossBy(e.target.value)}
-                  type="number"
-                  step="0.01"
-                />
-                <Select value="%" disabled>
-                  <SelectTrigger className="w-[80px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="%">%</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-          </CollapsibleContent>
-        </Collapsible>
-
-        {/* Advanced Settings */}
-        <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
-            <span>Advanced Settings</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${isAdvancedOpen ? "rotate-180" : ""}`} />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
-            {/* LC */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="lc"
-                  checked={lcEnabled}
-                  onCheckedChange={(checked) => setLcEnabled(!!checked)}
-                />
-                <label htmlFor="lc" className="text-sm font-medium cursor-pointer">LC</label>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-sm">Source</Label>
-                <Select value={lcSource} onValueChange={setLcSource}>
+              {/* Time Frame */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  Time Frame
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Please select the timeframe you wish to use on this strategy</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <Select value={timeFrame} onValueChange={setTimeFrame}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="close">Close</SelectItem>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="hl2">HL2</SelectItem>
-                    <SelectItem value="hlc3">HLC3</SelectItem>
-                    <SelectItem value="ohlc4">OHLC4</SelectItem>
+                    <SelectItem value="5m">5 Minutes</SelectItem>
+                    <SelectItem value="15m">15 Minutes</SelectItem>
+                    <SelectItem value="1h">1 Hour</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            {/* EMA */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="ema"
-                  checked={emaEnabled}
-                  onCheckedChange={(checked) => setEmaEnabled(!!checked)}
+              {/* Leverage */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  Leverage
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the leverage multiplier for this strategy</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <Input
+                  placeholder="Value"
+                  value={leverage}
+                  onChange={(e) => setLeverage(e.target.value)}
+                  type="number"
+                  step="0.1"
                 />
-                <label htmlFor="ema" className="text-sm font-medium cursor-pointer">EMA</label>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-sm">Length</Label>
-                  <Input
-                    placeholder="200"
-                    value={emaLength}
-                    onChange={(e) => setEmaLength(e.target.value)}
-                    type="number"
-                    step="1"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-sm">Source</Label>
-                  <Select value={emaSource} onValueChange={setEmaSource}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="close">Close</SelectItem>
-                      <SelectItem value="open">Open</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="hl2">HL2</SelectItem>
-                      <SelectItem value="hlc3">HLC3</SelectItem>
-                      <SelectItem value="ohlc4">OHLC4</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
 
-            {/* LaRSI */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="laRsi"
-                  checked={laRsiEnabled}
-                  onCheckedChange={(checked) => setLaRsiEnabled(!!checked)}
-                />
-                <label htmlFor="laRsi" className="text-sm font-medium cursor-pointer">LaRSI</label>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="flex items-center gap-1 text-sm">
-                    Source
+              {/* Lower and Upper Limit */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    Lower Limit
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                        <p>Set the Lowest / Starting Price range</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Value"
+                      value={lowerLimit}
+                      onChange={(e) => setLowerLimit(e.target.value)}
+                      type="number"
+                      step="0.01"
+                    />
+                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                      {quoteAsset}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    Upper Limit
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                        <p>Select the price source for LaRSI calculation</p>
+                        <p>Set the Maximum / Ending Price range</p>
                       </TooltipContent>
                     </Tooltip>
                   </Label>
-                  <Select value={laRsiSource} onValueChange={setLaRsiSource}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="close">Close</SelectItem>
-                      <SelectItem value="open">Open</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="hl2">HL2</SelectItem>
-                      <SelectItem value="hlc3">HLC3</SelectItem>
-                      <SelectItem value="ohlc4">OHLC4</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Value"
+                      value={upperLimit}
+                      onChange={(e) => setUpperLimit(e.target.value)}
+                      type="number"
+                      step="0.01"
+                    />
+                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                      {quoteAsset}
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <Label className="flex items-center gap-1 text-sm">
-                    Alpha
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                        <p>Set the alpha value for LaRSI sensitivity</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </Label>
+              </div>
+
+              {/* Price Trigger Start */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  Price Trigger Start
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the price at which this strategy should begin execution</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="flex gap-2">
                   <Input
-                    placeholder="0.2"
-                    value={laRsiAlpha}
-                    onChange={(e) => setLaRsiAlpha(e.target.value)}
+                    placeholder="Value"
+                    value={priceTriggerStart}
+                    onChange={(e) => setPriceTriggerStart(e.target.value)}
                     type="number"
                     step="0.01"
                   />
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {symbol || "—"}
+                  </div>
                 </div>
               </div>
+
+              {/* Price Trigger Stop */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  Price Trigger Stop
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the price at which this strategy should stop executing</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Value"
+                    value={priceTriggerStop}
+                    onChange={(e) => setPriceTriggerStop(e.target.value)}
+                    type="number"
+                    step="0.01"
+                  />
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {symbol || "—"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Stop Loss By */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  Stop Loss By
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the stop loss percentage to limit potential losses</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Value"
+                    value={stopLossBy}
+                    onChange={(e) => setStopLossBy(e.target.value)}
+                    type="number"
+                    step="0.01"
+                  />
+                  <Select value="%" disabled>
+                    <SelectTrigger className="w-[80px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="%">%</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Advanced Settings */}
+          <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
+              <span>Advanced Settings</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${isAdvancedOpen ? "rotate-180" : ""}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
+              {/* LC */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="lc"
+                    checked={lcEnabled}
+                    onCheckedChange={(checked) => setLcEnabled(!!checked)}
+                  />
+                  <label htmlFor="lc" className="text-sm font-medium cursor-pointer">LC</label>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm">Source</Label>
+                  <Select value={lcSource} onValueChange={setLcSource}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="close">Close</SelectItem>
+                      <SelectItem value="open">Open</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="hl2">HL2</SelectItem>
+                      <SelectItem value="hlc3">HLC3</SelectItem>
+                      <SelectItem value="ohlc4">OHLC4</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* EMA */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="ema"
+                    checked={emaEnabled}
+                    onCheckedChange={(checked) => setEmaEnabled(!!checked)}
+                  />
+                  <label htmlFor="ema" className="text-sm font-medium cursor-pointer">EMA</label>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-sm">Length</Label>
+                    <Input
+                      placeholder="200"
+                      value={emaLength}
+                      onChange={(e) => setEmaLength(e.target.value)}
+                      type="number"
+                      step="1"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-sm">Source</Label>
+                    <Select value={emaSource} onValueChange={setEmaSource}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="close">Close</SelectItem>
+                        <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="hl2">HL2</SelectItem>
+                        <SelectItem value="hlc3">HLC3</SelectItem>
+                        <SelectItem value="ohlc4">OHLC4</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* LaRSI */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="laRsi"
+                    checked={laRsiEnabled}
+                    onCheckedChange={(checked) => setLaRsiEnabled(!!checked)}
+                  />
+                  <label htmlFor="laRsi" className="text-sm font-medium cursor-pointer">LaRSI</label>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="flex items-center gap-1 text-sm">
+                      Source
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                          <p>Select the price source for LaRSI calculation</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </Label>
+                    <Select value={laRsiSource} onValueChange={setLaRsiSource}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="close">Close</SelectItem>
+                        <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="hl2">HL2</SelectItem>
+                        <SelectItem value="hlc3">HLC3</SelectItem>
+                        <SelectItem value="ohlc4">OHLC4</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="flex items-center gap-1 text-sm">
+                      Alpha
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                          <p>Set the alpha value for LaRSI sensitivity</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </Label>
+                    <Input
+                      placeholder="0.2"
+                      value={laRsiAlpha}
+                      onChange={(e) => setLaRsiAlpha(e.target.value)}
+                      type="number"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Error Message */}
+          {error && (
+            <div className="text-red-500 text-sm p-2 border border-red-300 rounded bg-red-50 dark:bg-red-900/20">
+              {error}
             </div>
-          </CollapsibleContent>
-        </Collapsible>
+          )}
 
-        {/* Error Message */}
-        {error && (
-          <div className="text-red-500 text-sm p-2 border border-red-300 rounded bg-red-50 dark:bg-red-900/20">
-            {error}
+          {/* Success Message */}
+          {success && (
+            <div className="text-green-500 text-sm p-2 border border-green-300 rounded bg-green-50 dark:bg-green-900/20">
+              {success}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-4">
+            <Button
+              className="flex-1 bg-[#4A1515] hover:bg-[#5A2525]"
+              onClick={handleProceed}
+              disabled={loading}
+              type="button"
+            >
+              {loading ? "Processing..." : "Proceed"}
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 bg-[#D97706] text-white hover:bg-[#B45309]"
+              type="button"
+              onClick={handleReset}
+              disabled={loading}
+            >
+              Reset
+            </Button>
           </div>
-        )}
-
-        {/* Success Message */}
-        {success && (
-          <div className="text-green-500 text-sm p-2 border border-green-300 rounded bg-green-50 dark:bg-green-900/20">
-            {success}
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex gap-4">
-          <Button
-            className="flex-1 bg-[#4A1515] hover:bg-[#5A2525]"
-            onClick={handleProceed}
-            disabled={loading}
-            type="button"
-          >
-            {loading ? "Processing..." : "Proceed"}
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1 bg-[#D97706] text-white hover:bg-[#B45309]"
-            type="button"
-            onClick={handleReset}
-            disabled={loading}
-          >
-            Reset
-          </Button>
-        </div>
-      </form>
+        </form>
       </TooltipProvider>
     </div>
   );

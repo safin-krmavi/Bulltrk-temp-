@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from "react"
-import { ChevronDown, Info } from 'lucide-react'
+import { ChevronDown, Info, ArrowLeft, Pencil } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,13 +10,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Checkbox } from "@/components/ui/checkbox"
 import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { useState } from "react"
-import { useStrategyStore } from "@/stores/strategystore"
+import { useStrategyStore, Strategy } from "@/stores/strategystore"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { useNavigate } from 'react-router-dom'
 
-export default function IndyUTC() {
+export default function IndyUTC({ editData }: { editData?: Strategy | null }) {
   const router = useNavigate()
+  const isEditMode = !!editData;
+
   const [isIndyOpen, setIsIndyOpen] = React.useState(true)
   const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(true)
   const [showProceedPopup, setShowProceedPopup] = React.useState(false);
@@ -34,21 +36,22 @@ export default function IndyUTC() {
     isLoadingBalances,
     balancesError,
     createUTC,
+    updateStrategyById,
     isLoading: isCreating
   } = useStrategyStore();
 
-  // Form state
-  const [strategyName, setStrategyName] = React.useState("");
-  const [investment, setInvestment] = React.useState("");
-  const [investmentCap, setInvestmentCap] = React.useState("");
-  const [timeFrame, setTimeFrame] = React.useState("5m");
+  // Form state - pre-fill from editData if in edit mode
+  const [strategyName, setStrategyName] = React.useState(editData?.name ?? "");
+  const [investment, setInvestment] = React.useState(editData?.investmentPerRun?.toString() ?? "");
+  const [investmentCap, setInvestmentCap] = React.useState(editData?.investmentCap?.toString() ?? "");
+  const [timeFrame, setTimeFrame] = React.useState(editData?.timeFrame ?? "5m");
   const [leverage, setLeverage] = React.useState("");
-  const [lowerLimit, setLowerLimit] = React.useState("");
-  const [upperLimit, setUpperLimit] = React.useState("");
-  const [priceTriggerStart, setPriceTriggerStart] = React.useState("");
-  const [priceTriggerStop, setPriceTriggerStop] = React.useState("");
-  const [stopLossBy, setStopLossBy] = React.useState("");
-  const [takeProfitPct, setTakeProfitPct] = React.useState("");
+  const [lowerLimit, setLowerLimit] = React.useState(editData?.lowerLimit?.toString() ?? "");
+  const [upperLimit, setUpperLimit] = React.useState(editData?.upperLimit?.toString() ?? "");
+  const [priceTriggerStart, setPriceTriggerStart] = React.useState(editData?.priceStart?.toString() ?? "");
+  const [priceTriggerStop, setPriceTriggerStop] = React.useState(editData?.priceStop?.toString() ?? "");
+  const [stopLossBy, setStopLossBy] = React.useState(editData?.stopLossPct?.toString() ?? "");
+  const [takeProfitPct, setTakeProfitPct] = React.useState(editData?.takeProfitPct?.toString() ?? "");
 
   // UT Buy settings
   const [utBuyEnabled, setUtBuyEnabled] = React.useState(false);
@@ -84,10 +87,10 @@ export default function IndyUTC() {
     if (allExchangesBalances && exchange && segment) {
       const exchangeKey = exchange.toUpperCase();
       const segmentKey = segment.toUpperCase();
-      
+
       const exchangeData = allExchangesBalances.exchanges?.[exchangeKey];
       const balanceData = exchangeData?.balances?.find(b => b.type === segmentKey);
-      
+
       if (balanceData) {
         setAvailableBalance(balanceData.free.toFixed(2));
       } else {
@@ -184,6 +187,30 @@ export default function IndyUTC() {
   const handleProceed = async (e: React.MouseEvent) => {
     e.preventDefault();
 
+    if (isEditMode && editData) {
+      // In edit mode: just update
+      if (!strategyName.trim()) { toast.error("Please enter a strategy name"); return; }
+      const toastId = toast.loading("Updating strategy...");
+      try {
+        await updateStrategyById(editData.id, {
+          name: strategyName,
+          investmentPerRun: investment ? parseFloat(investment) : undefined,
+          investmentCap: investmentCap ? parseFloat(investmentCap) : undefined,
+          timeFrame,
+          ...(lowerLimit && parseFloat(lowerLimit) > 0 && { lowerLimit: parseFloat(lowerLimit) }),
+          ...(upperLimit && parseFloat(upperLimit) > 0 && { upperLimit: parseFloat(upperLimit) }),
+          ...(stopLossBy && parseFloat(stopLossBy) > 0 && { stopLossPct: parseFloat(stopLossBy) }),
+          ...(takeProfitPct && parseFloat(takeProfitPct) > 0 && { takeProfitPct: parseFloat(takeProfitPct) }),
+          strategyType: 'UTC',
+        } as any);
+        toast.success("Strategy updated! ✅", { id: toastId, duration: 5000 });
+        router('/dashboard');
+      } catch (err: any) {
+        toast.error("Failed to update", { id: toastId, description: err.message });
+      }
+      return;
+    }
+
     if (!validateForm()) {
       return;
     }
@@ -267,523 +294,541 @@ export default function IndyUTC() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
+      {/* Edit mode banner */}
+      {isEditMode && (
+        <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center gap-2">
+          <Pencil className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Editing Strategy</p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 truncate">{editData?.name}</p>
+          </div>
+          <button type="button" onClick={() => router('/dashboard')} className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+            <ArrowLeft className="h-3 w-3" /> Back
+          </button>
+        </div>
+      )}
+      <AccountDetailsCard
+        onDataChange={handleAccountDetailsChange}
+        initialExchange={editData?.exchange}
+        initialSegment={editData?.segment}
+        initialPair={editData?.symbol}
+      />
 
       <TooltipProvider>
-      <form className="space-y-4 mt-4 dark:text-white">
-        <Collapsible open={isIndyOpen} onOpenChange={setIsIndyOpen}>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
-            <span>Indy UTC</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${isIndyOpen ? "rotate-180" : ""}`} />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
-            {/* Strategy Name */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-sm">
-                Strategy Name
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>You can keep desired Strategy name for reference and reports</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <Input
-                placeholder="Enter Name"
-                value={strategyName}
-                onChange={e => setStrategyName(e.target.value)}
-                className="h-10"
-              />
-            </div>
-
-            {/* Investment */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-sm">
-                Investment
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Investment per Trade</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={investment}
-                  onChange={e => setInvestment(e.target.value)}
-                  type="number"
-                  step="0.01"
-                  className="h-10"
-                />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {symbol || "—"}
-                </div>
-              </div>
-              {isLoadingBalances ? (
-                <p className="text-sm text-gray-500 flex items-center gap-2">
-                  <span className="inline-block w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></span>
-                  Loading balance...
-                </p>
-              ) : balancesError ? (
-                <p className="text-sm text-red-500">Failed to load balance</p>
-              ) : (
-                <p className="text-sm text-orange-500">Avbl: {availableBalance} {quoteAsset}</p>
-              )}
-            </div>
-
-            {/* Investment CAP */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-sm">
-                Investment CAP
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Strategy stops when total investment of the strategy is equal to cap value</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={investmentCap}
-                  onChange={e => setInvestmentCap(e.target.value)}
-                  type="number"
-                  step="0.01"
-                  className="h-10"
-                />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {quoteAsset}
-                </div>
-              </div>
-            </div>
-
-            {/* Time Frame */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-sm">
-                Time Frame
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Please select the timeframe you wish to use on this strategy. Default is 5 Minutes</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <Select value={timeFrame} onValueChange={setTimeFrame}>
-                <SelectTrigger className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1m">1 Minute</SelectItem>
-                  <SelectItem value="3m">3 Minutes</SelectItem>
-                  <SelectItem value="5m">5 Minutes</SelectItem>
-                  <SelectItem value="15m">15 Minutes</SelectItem>
-                  <SelectItem value="30m">30 Minutes</SelectItem>
-                  <SelectItem value="1h">1 Hour</SelectItem>
-                  <SelectItem value="4h">4 Hours</SelectItem>
-                  <SelectItem value="1d">1 Day</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Leverage */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-sm">
-                Leverage
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Set the leverage multiplier to be used for this strategy</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <Input
-                placeholder="Value"
-                value={leverage}
-                onChange={e => setLeverage(e.target.value)}
-                type="number"
-                step="1"
-                className="h-10"
-              />
-            </div>
-
-            {/* Lower and Upper Limit - Side by Side */}
-            <div className="grid grid-cols-2 gap-3">
+        <form className="space-y-4 mt-4 dark:text-white">
+          <Collapsible open={isIndyOpen} onOpenChange={setIsIndyOpen}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
+              <span>{isEditMode ? 'Edit: Indy UTC' : 'Indy UTC'}</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${isIndyOpen ? "rotate-180" : ""}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
+              {/* Strategy Name */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-1 text-sm">
-                  Lower Limit
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                      <p>Set the Lowest / Starting Price range</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </Label>
-                <div className="flex gap-1">
-                  <Input
-                    placeholder="Value"
-                    value={lowerLimit}
-                    onChange={e => setLowerLimit(e.target.value)}
-                    type="number"
-                    step="0.000001"
-                    className="h-10 min-w-0"
-                  />
-                  <Select value={quoteAsset} disabled>
-                    <SelectTrigger className="w-[70px] h-10">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={quoteAsset}>{quoteAsset}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1 text-sm">
-                  Upper Limit
+                  Strategy Name
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                      <p>Set the Maximum / Ending Price range</p>
+                      <p>You can keep desired Strategy name for reference and reports</p>
                     </TooltipContent>
                   </Tooltip>
                 </Label>
-                <div className="flex gap-1">
+                <Input
+                  placeholder="Enter Name"
+                  value={strategyName}
+                  onChange={e => setStrategyName(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              {/* Investment */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1 text-sm">
+                  Investment
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Investment per Trade</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="flex gap-2">
                   <Input
                     placeholder="Value"
-                    value={upperLimit}
-                    onChange={e => setUpperLimit(e.target.value)}
+                    value={investment}
+                    onChange={e => setInvestment(e.target.value)}
                     type="number"
-                    step="0.000001"
-                    className="h-10 min-w-0"
+                    step="0.01"
+                    className="h-10"
                   />
                   <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
                     {symbol || "—"}
                   </div>
                 </div>
+                {isLoadingBalances ? (
+                  <p className="text-sm text-gray-500 flex items-center gap-2">
+                    <span className="inline-block w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></span>
+                    Loading balance...
+                  </p>
+                ) : balancesError ? (
+                  <p className="text-sm text-red-500">Failed to load balance</p>
+                ) : (
+                  <p className="text-sm text-orange-500">Avbl: {availableBalance} {quoteAsset}</p>
+                )}
               </div>
-            </div>
 
-            {/* Price Trigger Start */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-sm">
-                Price Trigger Start
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Set the price at which this strategy should begin execution</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
+              {/* Investment CAP */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1 text-sm">
+                  Investment CAP
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Strategy stops when total investment of the strategy is equal to cap value</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Value"
+                    value={investmentCap}
+                    onChange={e => setInvestmentCap(e.target.value)}
+                    type="number"
+                    step="0.01"
+                    className="h-10"
+                  />
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {quoteAsset}
+                  </div>
+                </div>
+              </div>
+
+              {/* Time Frame */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1 text-sm">
+                  Time Frame
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Please select the timeframe you wish to use on this strategy. Default is 5 Minutes</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <Select value={timeFrame} onValueChange={setTimeFrame}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1m">1 Minute</SelectItem>
+                    <SelectItem value="3m">3 Minutes</SelectItem>
+                    <SelectItem value="5m">5 Minutes</SelectItem>
+                    <SelectItem value="15m">15 Minutes</SelectItem>
+                    <SelectItem value="30m">30 Minutes</SelectItem>
+                    <SelectItem value="1h">1 Hour</SelectItem>
+                    <SelectItem value="4h">4 Hours</SelectItem>
+                    <SelectItem value="1d">1 Day</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Leverage */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1 text-sm">
+                  Leverage
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the leverage multiplier to be used for this strategy</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
                 <Input
                   placeholder="Value"
-                  value={priceTriggerStart}
-                  onChange={e => setPriceTriggerStart(e.target.value)}
+                  value={leverage}
+                  onChange={e => setLeverage(e.target.value)}
                   type="number"
-                  step="0.000001"
+                  step="1"
                   className="h-10"
                 />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {quoteAsset}
-                </div>
               </div>
-            </div>
 
-            {/* Price Trigger Stop */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-sm">
-                Price Trigger Stop
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Set the price at which this strategy should stop executing</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={priceTriggerStop}
-                  onChange={e => setPriceTriggerStop(e.target.value)}
-                  type="number"
-                  step="0.000001"
-                  className="h-10"
-                />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {quoteAsset}
-                </div>
-              </div>
-            </div>
-
-            {/* Stop Loss By */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-sm">
-                Stop Loss By
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Set the maximum loss percentage at which the strategy exits automatically</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={stopLossBy}
-                  onChange={e => setStopLossBy(e.target.value)}
-                  type="number"
-                  step="0.01"
-                  className="h-10"
-                />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {quoteAsset}
-                </div>
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        {/* Advanced Settings */}
-        <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
-            <span>Advanced Settings</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${isAdvancedOpen ? "rotate-180" : ""}`} />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-5 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
-            {/* UT Buy Section */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="utBuy"
-                  checked={utBuyEnabled}
-                  onCheckedChange={(checked) => setUtBuyEnabled(checked as boolean)}
-                  className="h-5 w-5"
-                />
-                <Label htmlFor="utBuy" className="text-base font-normal cursor-pointer">
-                  UT Buy
-                </Label>
-              </div>
+              {/* Lower and Upper Limit - Side by Side */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
-                    Sensitivity
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1 text-sm">
+                    Lower Limit
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="cursor-default"><Info className="h-3 w-3" /></span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                        <p>Default values of this factor are already generated based on latest market trend. You can edit if you wish to change.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </Label>
-                  <Input
-                    placeholder="2"
-                    value={utBuySensitivity}
-                    onChange={e => setUtBuySensitivity(e.target.value)}
-                    type="number"
-                    step="1"
-                    className="h-10 text-sm"
-                    disabled={!utBuyEnabled}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
-                    ATR Period
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-default"><Info className="h-3 w-3" /></span>
+                        <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                        <p>Defines the ATR period used to calculate trend sensitivity</p>
+                        <p>Set the Lowest / Starting Price range</p>
                       </TooltipContent>
                     </Tooltip>
                   </Label>
-                  <Input
-                    placeholder="300"
-                    value={utBuyAtrPeriod}
-                    onChange={e => setUtBuyAtrPeriod(e.target.value)}
-                    type="number"
-                    step="1"
-                    className="h-10 text-sm"
-                    disabled={!utBuyEnabled}
-                  />
+                  <div className="flex gap-1">
+                    <Input
+                      placeholder="Value"
+                      value={lowerLimit}
+                      onChange={e => setLowerLimit(e.target.value)}
+                      type="number"
+                      step="0.000001"
+                      className="h-10 min-w-0"
+                    />
+                    <Select value={quoteAsset} disabled>
+                      <SelectTrigger className="w-[70px] h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={quoteAsset}>{quoteAsset}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* UT Sell Section */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="utSell"
-                  checked={utSellEnabled}
-                  onCheckedChange={(checked) => setUtSellEnabled(checked as boolean)}
-                  className="h-5 w-5"
-                />
-                <Label htmlFor="utSell" className="text-base font-normal cursor-pointer">
-                  UT Sell
-                </Label>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
-                    Sensitivity
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1 text-sm">
+                    Upper Limit
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="cursor-default"><Info className="h-3 w-3" /></span>
+                        <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
                       </TooltipTrigger>
                       <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                        <p>Default values of this factor are already generated based on latest market trend. You can edit if you wish to change.</p>
+                        <p>Set the Maximum / Ending Price range</p>
                       </TooltipContent>
                     </Tooltip>
                   </Label>
-                  <Input
-                    placeholder="2"
-                    value={utSellSensitivity}
-                    onChange={e => setUtSellSensitivity(e.target.value)}
-                    type="number"
-                    step="1"
-                    className="h-10 text-sm"
-                    disabled={!utSellEnabled}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
-                    ATR Period
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-default"><Info className="h-3 w-3" /></span>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                        <p>Defines the ATR period used to calculate trend sensitivity</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </Label>
-                  <Input
-                    placeholder="1"
-                    value={utSellAtrPeriod}
-                    onChange={e => setUtSellAtrPeriod(e.target.value)}
-                    type="number"
-                    step="1"
-                    className="h-10 text-sm"
-                    disabled={!utSellEnabled}
-                  />
+                  <div className="flex gap-1">
+                    <Input
+                      placeholder="Value"
+                      value={upperLimit}
+                      onChange={e => setUpperLimit(e.target.value)}
+                      type="number"
+                      step="0.000001"
+                      className="h-10 min-w-0"
+                    />
+                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                      {symbol || "—"}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* UT Oscillator Section */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="utOscillator"
-                  checked={utOscillatorEnabled}
-                  onCheckedChange={(checked) => setUtOscillatorEnabled(checked as boolean)}
-                  className="h-5 w-5"
-                />
-                <Label htmlFor="utOscillator" className="text-base font-normal cursor-pointer">
-                  UT Oscillator
+              {/* Price Trigger Start */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1 text-sm">
+                  Price Trigger Start
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the price at which this strategy should begin execution</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </Label>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
-                    Length
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-default"><Info className="h-3 w-3" /></span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                        <p>Defines the primary oscillator calculation period</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </Label>
+                <div className="flex gap-2">
                   <Input
-                    placeholder="80"
-                    value={utOscillatorLength}
-                    onChange={e => setUtOscillatorLength(e.target.value)}
+                    placeholder="Value"
+                    value={priceTriggerStart}
+                    onChange={e => setPriceTriggerStart(e.target.value)}
                     type="number"
-                    step="1"
-                    className="h-10 text-sm"
-                    disabled={!utOscillatorEnabled}
+                    step="0.000001"
+                    className="h-10"
                   />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
-                    Fast Length
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-default"><Info className="h-3 w-3" /></span>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                        <p>Defines the faster oscillator signal calculation period</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </Label>
-                  <Input
-                    placeholder="27"
-                    value={utOscillatorFastLength}
-                    onChange={e => setUtOscillatorFastLength(e.target.value)}
-                    type="number"
-                    step="1"
-                    className="h-10 text-sm"
-                    disabled={!utOscillatorEnabled}
-                  />
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {quoteAsset}
+                  </div>
                 </div>
               </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4 pt-2">
-          <Button
-            className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525] h-11"
-            onClick={handleProceed}
-            disabled={isCreating}
-          >
-            {isCreating ? (
-              <>
-                <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
-                Creating...
-              </>
-            ) : (
-              'Proceed'
-            )}
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1 h-11"
-            type="button"
-            onClick={handleReset}
-            disabled={isCreating}
-          >
-            Reset
-          </Button>
-        </div>
-      </form>
+              {/* Price Trigger Stop */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1 text-sm">
+                  Price Trigger Stop
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the price at which this strategy should stop executing</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Value"
+                    value={priceTriggerStop}
+                    onChange={e => setPriceTriggerStop(e.target.value)}
+                    type="number"
+                    step="0.000001"
+                    className="h-10"
+                  />
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {quoteAsset}
+                  </div>
+                </div>
+              </div>
+
+              {/* Stop Loss By */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1 text-sm">
+                  Stop Loss By
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the maximum loss percentage at which the strategy exits automatically</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Value"
+                    value={stopLossBy}
+                    onChange={e => setStopLossBy(e.target.value)}
+                    type="number"
+                    step="0.01"
+                    className="h-10"
+                  />
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {quoteAsset}
+                  </div>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Advanced Settings */}
+          <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
+              <span>Advanced Settings</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${isAdvancedOpen ? "rotate-180" : ""}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-5 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
+              {/* UT Buy Section */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="utBuy"
+                    checked={utBuyEnabled}
+                    onCheckedChange={(checked) => setUtBuyEnabled(checked as boolean)}
+                    className="h-5 w-5"
+                  />
+                  <Label htmlFor="utBuy" className="text-base font-normal cursor-pointer">
+                    UT Buy
+                  </Label>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
+                      Sensitivity
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-default"><Info className="h-3 w-3" /></span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                          <p>Default values of this factor are already generated based on latest market trend. You can edit if you wish to change.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </Label>
+                    <Input
+                      placeholder="2"
+                      value={utBuySensitivity}
+                      onChange={e => setUtBuySensitivity(e.target.value)}
+                      type="number"
+                      step="1"
+                      className="h-10 text-sm"
+                      disabled={!utBuyEnabled}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
+                      ATR Period
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-default"><Info className="h-3 w-3" /></span>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                          <p>Defines the ATR period used to calculate trend sensitivity</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </Label>
+                    <Input
+                      placeholder="300"
+                      value={utBuyAtrPeriod}
+                      onChange={e => setUtBuyAtrPeriod(e.target.value)}
+                      type="number"
+                      step="1"
+                      className="h-10 text-sm"
+                      disabled={!utBuyEnabled}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* UT Sell Section */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="utSell"
+                    checked={utSellEnabled}
+                    onCheckedChange={(checked) => setUtSellEnabled(checked as boolean)}
+                    className="h-5 w-5"
+                  />
+                  <Label htmlFor="utSell" className="text-base font-normal cursor-pointer">
+                    UT Sell
+                  </Label>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
+                      Sensitivity
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-default"><Info className="h-3 w-3" /></span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                          <p>Default values of this factor are already generated based on latest market trend. You can edit if you wish to change.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </Label>
+                    <Input
+                      placeholder="2"
+                      value={utSellSensitivity}
+                      onChange={e => setUtSellSensitivity(e.target.value)}
+                      type="number"
+                      step="1"
+                      className="h-10 text-sm"
+                      disabled={!utSellEnabled}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
+                      ATR Period
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-default"><Info className="h-3 w-3" /></span>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                          <p>Defines the ATR period used to calculate trend sensitivity</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </Label>
+                    <Input
+                      placeholder="1"
+                      value={utSellAtrPeriod}
+                      onChange={e => setUtSellAtrPeriod(e.target.value)}
+                      type="number"
+                      step="1"
+                      className="h-10 text-sm"
+                      disabled={!utSellEnabled}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* UT Oscillator Section */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="utOscillator"
+                    checked={utOscillatorEnabled}
+                    onCheckedChange={(checked) => setUtOscillatorEnabled(checked as boolean)}
+                    className="h-5 w-5"
+                  />
+                  <Label htmlFor="utOscillator" className="text-base font-normal cursor-pointer">
+                    UT Oscillator
+                  </Label>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
+                      Length
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-default"><Info className="h-3 w-3" /></span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                          <p>Defines the primary oscillator calculation period</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </Label>
+                    <Input
+                      placeholder="80"
+                      value={utOscillatorLength}
+                      onChange={e => setUtOscillatorLength(e.target.value)}
+                      type="number"
+                      step="1"
+                      className="h-10 text-sm"
+                      disabled={!utOscillatorEnabled}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1 text-xs font-normal text-gray-900 dark:text-gray-100">
+                      Fast Length
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-default"><Info className="h-3 w-3" /></span>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                          <p>Defines the faster oscillator signal calculation period</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </Label>
+                    <Input
+                      placeholder="27"
+                      value={utOscillatorFastLength}
+                      onChange={e => setUtOscillatorFastLength(e.target.value)}
+                      type="number"
+                      step="1"
+                      className="h-10 text-sm"
+                      disabled={!utOscillatorEnabled}
+                    />
+                  </div>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Action Buttons */}
+          <div className="flex gap-4 pt-2">
+            <Button
+              className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525] h-11"
+              onClick={handleProceed}
+              disabled={isCreating}
+            >
+              {isCreating ? (
+                <>
+                  <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                  {isEditMode ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (
+                isEditMode ? 'Update Strategy' : 'Proceed'
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 h-11"
+              type="button"
+              onClick={handleReset}
+              disabled={isCreating}
+            >
+              Reset
+            </Button>
+          </div>
+        </form>
       </TooltipProvider>
 
       {/* Success Popup */}

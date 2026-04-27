@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from "react"
-import { ChevronDown, ChevronUp, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, X, ArrowLeft, Pencil } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,9 +12,10 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useState } from "react"
 import { AccountDetailsCard } from "./AccountDetailsCard"
-import { useStrategyStore, GrowthDCAStrategy } from "@/stores/strategystore"
+import { useStrategyStore, GrowthDCAStrategy, Strategy } from "@/stores/strategystore"
 import { toast } from "sonner"
 import { ProceedPopup } from "@/components/dashboard/proceed-popup"
+import { useNavigate } from "react-router-dom"
 
 const WEEKDAYS = [
   { short: 'Sun', full: 'Sunday' },
@@ -28,7 +29,10 @@ const WEEKDAYS = [
 
 const MONTH_DATES = Array.from({ length: 31 }, (_, i) => i + 1);
 
-export default function GrowthDCA() {
+export default function GrowthDCA({ editData }: { editData?: Strategy | null }) {
+  const navigate = useNavigate();
+  const isEditMode = !!editData;
+
   const [isOpen, setIsOpen] = React.useState(true)
   const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(false)
   const [showProceedPopup, setShowProceedPopup] = React.useState(false)
@@ -42,15 +46,49 @@ export default function GrowthDCA() {
   const [symbol, setSymbol] = useState("");
   const [quoteAsset, setQuoteAsset] = useState("USDT");
 
-  // Form state
-  const [strategyName, setStrategyName] = useState("");
-  const [investmentPerRun, setInvestmentPerRun] = useState("");
-  const [investmentCap, setInvestmentCap] = useState("");
-  const [frequency, setFrequency] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY'>("DAILY");
-  const [takeProfitPct, setTakeProfitPct] = useState("");
-  const [priceStart, setPriceStart] = useState("");
-  const [priceStop, setPriceStop] = useState("");
-  const [stopLossPct, setStopLossPct] = useState("");
+  // Form state - pre-fill from editData if in edit mode
+  const [strategyName, setStrategyName] = useState(editData?.name ?? "");
+  const [investmentPerRun, setInvestmentPerRun] = useState(
+    editData?.config?.capital?.perOrderAmount?.toString() ??
+    editData?.investmentPerRun?.toString() ?? ""
+  );
+  const [investmentCap, setInvestmentCap] = useState(
+    editData?.config?.capital?.maxCapital?.toString() ??
+    editData?.investmentCap?.toString() ?? ""
+  );
+  const [frequency, setFrequency] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY' | 'HOURLY'>(
+    editData?.config?.schedule?.frequency ??
+    editData?.frequency ??
+    "DAILY"
+  );
+  const [takeProfitPct, setTakeProfitPct] = useState(
+    editData?.config?.exit?.bookProfit?.percentage?.toString() ??
+    editData?.takeProfitPct?.toString() ?? ""
+  );
+  const [priceStart, setPriceStart] = useState(editData?.priceStart?.toString() ?? "");
+  const [priceStop, setPriceStop] = useState(editData?.priceStop?.toString() ?? "");
+  const [stopLossPct, setStopLossPct] = useState(
+    editData?.config?.risk?.stopLoss?.percentage?.toString() ??
+    editData?.stopLossPct?.toString() ?? ""
+  );
+  const [hourInterval, setHourInterval] = useState<string>(
+    editData?.config?.schedule?.hourly?.intervalHours?.toString() ??
+    editData?.hourInterval?.toString() ??
+    "1"
+  );
+
+  // Get strategy store
+  const {
+    createGrowthDCA,
+    updateStrategyById,
+    isLoading,
+    error,
+    clearError,
+    allExchangesBalances,
+    fetchAllExchangesBalances,
+    isLoadingBalances,
+    balancesError
+  } = useStrategyStore();
 
   // Helper to get current time in 12-hour format
   const getCurrentTime = () => {
@@ -76,19 +114,6 @@ export default function GrowthDCA() {
   // Separate state for frequency-specific selections
   const [weeklyDays, setWeeklyDays] = useState<string[]>([]);
   const [monthlyDates, setMonthlyDates] = useState<number[]>([]);
-  const [hourInterval, setHourInterval] = useState<string>("1");
-
-  // Get strategy store
-  const {
-    createGrowthDCA,
-    isLoading,
-    error,
-    clearError,
-    allExchangesBalances,
-    fetchAllExchangesBalances,
-    isLoadingBalances,
-    balancesError
-  } = useStrategyStore();
 
   // Available balance for selected quote asset
   const [availableBalance, setAvailableBalance] = useState<string>("0");
@@ -435,8 +460,48 @@ export default function GrowthDCA() {
     setShowProceedPopup(true);
   };
 
-  // API call when user confirms in popup
+  // API call when user confirms in popup (create) or direct update
   const handleConfirmStrategy = async (executionMode: 'LIVE' | 'PUBLISHED') => {
+    if (isEditMode && editData) {
+      // Update mode
+      const toastId = toast.loading("Updating strategy...", {
+        description: "Please wait while we process your request"
+      });
+      try {
+        const frequencyData = buildFrequencyData();
+        if (!frequencyData) { toast.dismiss(toastId); return; }
+
+        await updateStrategyById(editData.id, {
+          name: strategyName,
+          investmentPerRun: Number(investmentPerRun),
+          investmentCap: Number(investmentCap),
+          frequency: frequencyData.type,
+          hourInterval: frequencyData.type === 'HOURLY' ? (frequencyData as any).intervalHours : undefined,
+          time: frequencyData.type !== 'HOURLY' ? (frequencyData as any).time : undefined,
+          ...(takeProfitPct && Number(takeProfitPct) > 0 && { takeProfitPct: Number(takeProfitPct) }),
+          ...(stopLossPct && { stopLossPct: Number(stopLossPct) }),
+          strategyType: 'GROWTH_DCA',
+        } as any);
+
+        toast.success("Strategy updated successfully! ✅", {
+          id: toastId,
+          description: `${strategyName} has been updated`,
+          duration: 5000
+        });
+
+        setShowProceedPopup(false);
+        navigate('/dashboard');
+      } catch (err: any) {
+        toast.error("Failed to update strategy", {
+          id: toastId,
+          description: err.message || "Please check your inputs and try again",
+          duration: 5000
+        });
+      }
+      return;
+    }
+
+    // Create mode
     const toastId = toast.loading("Creating strategy...", {
       description: "Please wait while we process your request"
     });
@@ -540,10 +605,10 @@ export default function GrowthDCA() {
     if (allExchangesBalances && exchange && segment) {
       const exchangeKey = exchange.toUpperCase();
       const segmentKey = segment.toUpperCase();
-      
+
       const exchangeData = allExchangesBalances.exchanges?.[exchangeKey];
       const balanceData = exchangeData?.balances?.find(b => b.type === segmentKey);
-      
+
       if (balanceData) {
         setAvailableBalance(balanceData.free.toFixed(2));
       } else {
@@ -554,249 +619,331 @@ export default function GrowthDCA() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <AccountDetailsCard onDataChange={handleAccountDetailsChange} allowedSegments={['SPOT']} />
+      {/* Edit mode banner */}
+      {isEditMode && (
+        <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center gap-2">
+          <Pencil className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Editing Strategy</p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 truncate">{editData?.name}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard')}
+            className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+          >
+            <ArrowLeft className="h-3 w-3" /> Back
+          </button>
+        </div>
+      )}
+      <AccountDetailsCard
+        onDataChange={handleAccountDetailsChange}
+        allowedSegments={['SPOT']}
+        initialExchange={editData?.exchange}
+        initialSegment={editData?.segment}
+        initialPair={editData?.symbol}
+      />
       <TooltipProvider>
-      <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
-        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525] border border-t-0">
-            <span>Growth DCA</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Strategy Name
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-muted-foreground">ⓘ</span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>You can keep desired Strategy name for refrence and reports</p>
-                  </TooltipContent>
-                </Tooltip>
-                <span className="text-red-500">*</span>
-              </Label>
-              <Input placeholder="Enter Name" value={strategyName} onChange={e => setStrategyName(e.target.value)} />
-            </div>
+        <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
+          <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525] border border-t-0">
+              <span>{isEditMode ? `Edit: Growth DCA` : 'Growth DCA'}</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  Strategy Name
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground">ⓘ</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>You can keep desired Strategy name for refrence and reports</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-red-500">*</span>
+                </Label>
+                <Input placeholder="Enter Name" value={strategyName} onChange={e => setStrategyName(e.target.value)} />
+              </div>
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Investment Per Run
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-muted-foreground">ⓘ</span>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>investment per Trade</p>
-                  </TooltipContent>
-                </Tooltip>
-                <span className="text-red-500">*</span>
-              </Label>
-              <div className="flex gap-2">
-                <Input placeholder="Value" value={investmentPerRun} onChange={e => setInvestmentPerRun(e.target.value)} type="text" />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {symbol || "—"}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  Investment Per Run
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground">ⓘ</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>investment per Trade</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-red-500">*</span>
+                </Label>
+                <div className="flex gap-2">
+                  <Input placeholder="Value" value={investmentPerRun} onChange={e => setInvestmentPerRun(e.target.value)} type="text" />
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {symbol || "—"}
+                  </div>
+                </div>
+                {isLoadingBalances ? (
+                  <p className="text-sm text-gray-500 flex items-center gap-2">
+                    <span className="inline-block w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></span>
+                    Loading balance...
+                  </p>
+                ) : balancesError ? (
+                  <p className="text-sm text-red-500">Failed to load balance</p>
+                ) : (
+                  <p className="text-sm text-orange-500">Avbl: {availableBalance} {quoteAsset}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  Investment CAP
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground">ⓘ</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Strategy Stop when Total Investment of the Strategy is equal to cap value</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-red-500">*</span>
+                </Label>
+                <div className="flex gap-2">
+                  <Input placeholder="Value" value={investmentCap} onChange={e => setInvestmentCap(e.target.value)} type="text" />
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {symbol || "—"}
+                  </div>
                 </div>
               </div>
-              {isLoadingBalances ? (
-                <p className="text-sm text-gray-500 flex items-center gap-2">
-                  <span className="inline-block w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></span>
-                  Loading balance...
-                </p>
-              ) : balancesError ? (
-                <p className="text-sm text-red-500">Failed to load balance</p>
-              ) : (
-                <p className="text-sm text-orange-500">Avbl: {availableBalance} {quoteAsset}</p>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Investment CAP
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-muted-foreground">ⓘ</span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Strategy Stop when Total Investment of the Strategy is equal to cap value</p>
-                  </TooltipContent>
-                </Tooltip>
-                <span className="text-red-500">*</span>
-              </Label>
-              <div className="flex gap-2">
-                <Input placeholder="Value" value={investmentCap} onChange={e => setInvestmentCap(e.target.value)} type="text" />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {symbol || "—"}
-                </div>
-              </div>
-            </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  Duration
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground">ⓘ</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Please Select the Recurring Duration of strategy</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <span className="text-red-500">*</span>
+                </Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {(['DAILY', 'WEEKLY', 'MONTHLY', 'HOURLY'] as const).map(val => {
+                    const displayValue = getInputDisplayValue(val);
+                    const placeholderText = val.charAt(0) + val.slice(1).toLowerCase();
+                    const hasValue = displayValue !== undefined && displayValue !== '';
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Duration
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-muted-foreground">ⓘ</span>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Please Select the Recurring Duration of strategy</p>
-                  </TooltipContent>
-                </Tooltip>
-                <span className="text-red-500">*</span>
-              </Label>
-              <div className="grid grid-cols-4 gap-2">
-                {(['DAILY', 'WEEKLY', 'MONTHLY', 'HOURLY'] as const).map(val => {
-                  const displayValue = getInputDisplayValue(val);
-                  const placeholderText = val.charAt(0) + val.slice(1).toLowerCase();
-                  const hasValue = displayValue !== undefined && displayValue !== '';
-
-                  return (
-                    <Popover
-                      key={val}
-                      open={activeFrequencyPopover === val}
-                      onOpenChange={(open) => {
-                        if (!open) {
-                          closePopover();
-                        }
-                      }}
-                    >
-                      <PopoverTrigger asChild>
-                        <div
-                          onClick={() => handleFrequencyClick(val)}
-                          className={`relative h-10 px-3 flex items-center justify-center cursor-pointer text-xs text-center font-medium rounded-md border transition-colors
-                            ${hasValue
-                              ? 'text-gray-800 dark:text-gray-100'
-                              : 'text-gray-500 dark:text-gray-400'
-                            }
-                            ${frequency === val
-                              ? 'bg-orange-100 dark:bg-orange-500/30 border-orange-500'
-                              : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
-                            }
-                            hover:bg-gray-200 dark:hover:bg-gray-600
-                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500
-                          `}
-                        >
-                          {hasValue ? displayValue : placeholderText}
-                        </div>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-56 p-3 bg-white dark:bg-[#232326]"
-                        align="start"
-                        onInteractOutside={(e) => {
-                          if ((e.target as HTMLElement).closest('.popover-content')) {
-                            e.preventDefault();
+                    return (
+                      <Popover
+                        key={val}
+                        open={activeFrequencyPopover === val}
+                        onOpenChange={(open) => {
+                          if (!open) {
+                            closePopover();
                           }
                         }}
                       >
-                        <div className="space-y-2.5 popover-content">
-                          <div className="flex justify-between items-center mb-2">
-                            <h3 className="font-semibold text-sm">{placeholderText} Settings</h3>
-                            <button
-                              type="button"
-                              onClick={closePopover}
-                              className="h-6 w-6 rounded-md hover:bg-gray-100 dark:hover:bg-[#2a2a2d] flex items-center justify-center"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
+                        <PopoverTrigger asChild>
+                          <div
+                            onClick={() => handleFrequencyClick(val)}
+                            className={`relative h-10 px-3 flex items-center justify-center cursor-pointer text-xs text-center font-medium rounded-md border transition-colors
+                            ${hasValue
+                                ? 'text-gray-800 dark:text-gray-100'
+                                : 'text-gray-500 dark:text-gray-400'
+                              }
+                            ${frequency === val
+                                ? 'bg-orange-100 dark:bg-orange-500/30 border-orange-500'
+                                : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600'
+                              }
+                            hover:bg-gray-200 dark:hover:bg-gray-600
+                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500
+                          `}
+                          >
+                            {hasValue ? displayValue : placeholderText}
                           </div>
-
-                          {val === 'WEEKLY' && (
-                            <div className="space-y-1.5">
-                              <h4 className="font-medium text-xs">Select Days</h4>
-                              <div className="relative">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsDaysDropdownOpen(!isDaysDropdownOpen);
-                                  }}
-                                  className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs border rounded-md bg-white dark:bg-[#1a1a1d] hover:bg-gray-50 dark:hover:bg-[#2a2a2d]"
-                                >
-                                  <span>
-                                    {weeklyDays.length > 0 ? `${weeklyDays.length} day(s)` : 'Days'}
-                                  </span>
-                                  {isDaysDropdownOpen ? (
-                                    <ChevronUp className="h-3 w-3" />
-                                  ) : (
-                                    <ChevronDown className="h-3 w-3" />
-                                  )}
-                                </button>
-
-                                {isDaysDropdownOpen && (
-                                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-[#232326] border rounded-md shadow-lg max-h-48 overflow-auto">
-                                    {WEEKDAYS.map((day) => (
-                                      <label
-                                        key={day.short}
-                                        className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-100 dark:hover:bg-[#2a2a2d] cursor-pointer"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <Checkbox
-                                          checked={weeklyDays.includes(day.short)}
-                                          onCheckedChange={() => toggleDay(day.short)}
-                                          className="h-3.5 w-3.5"
-                                        />
-                                        <span className="text-xs">{day.full}</span>
-                                      </label>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-56 p-3 bg-white dark:bg-[#232326]"
+                          align="start"
+                          onInteractOutside={(e) => {
+                            if ((e.target as HTMLElement).closest('.popover-content')) {
+                              e.preventDefault();
+                            }
+                          }}
+                        >
+                          <div className="space-y-2.5 popover-content">
+                            <div className="flex justify-between items-center mb-2">
+                              <h3 className="font-semibold text-sm">{placeholderText} Settings</h3>
+                              <button
+                                type="button"
+                                onClick={closePopover}
+                                className="h-6 w-6 rounded-md hover:bg-gray-100 dark:hover:bg-[#2a2a2d] flex items-center justify-center"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
                             </div>
-                          )}
 
-                          {val === 'MONTHLY' && (
-                            <div className="space-y-1.5">
-                              <h4 className="font-medium text-xs">Select Dates</h4>
-                              <div className="grid grid-cols-7 gap-1">
-                                {MONTH_DATES.map((date) => (
+                            {val === 'WEEKLY' && (
+                              <div className="space-y-1.5">
+                                <h4 className="font-medium text-xs">Select Days</h4>
+                                <div className="relative">
                                   <button
-                                    key={date}
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      toggleDate(date);
+                                      setIsDaysDropdownOpen(!isDaysDropdownOpen);
                                     }}
-                                    className={`h-7 w-7 text-xs rounded-md flex items-center justify-center transition-colors ${monthlyDates.includes(date)
-                                      ? 'bg-orange-500 text-white hover:bg-orange-600'
-                                      : 'bg-gray-100 dark:bg-[#1a1a1d] hover:bg-gray-200 dark:hover:bg-[#2a2a2d]'
-                                      }`}
+                                    className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs border rounded-md bg-white dark:bg-[#1a1a1d] hover:bg-gray-50 dark:hover:bg-[#2a2a2d]"
                                   >
-                                    {date}
+                                    <span>
+                                      {weeklyDays.length > 0 ? `${weeklyDays.length} day(s)` : 'Days'}
+                                    </span>
+                                    {isDaysDropdownOpen ? (
+                                      <ChevronUp className="h-3 w-3" />
+                                    ) : (
+                                      <ChevronDown className="h-3 w-3" />
+                                    )}
                                   </button>
-                                ))}
-                              </div>
-                            </div>
-                          )}
 
-                          {val === 'HOURLY' && (
-                            <div className="space-y-3">
-                              <div className="space-y-1.5">
-                                <h4 className="font-medium text-xs">Run Every</h4>
-                                <div className="flex items-center gap-2">
-                                  <Input
-                                    type="number"
-                                    placeholder="1"
-                                    value={hourInterval}
-                                    onChange={(e) => {
-                                      const value = e.target.value;
-                                      if (
-                                        value === '' ||
-                                        (/^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 24)
-                                      ) {
-                                        updateHourInterval(value);
-                                      }
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="w-20 h-8 text-center text-xs"
-                                    min="1"
-                                    max="24"
-                                  />
-                                  <span className="text-xs">hour(s)</span>
+                                  {isDaysDropdownOpen && (
+                                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-[#232326] border rounded-md shadow-lg max-h-48 overflow-auto">
+                                      {WEEKDAYS.map((day) => (
+                                        <label
+                                          key={day.short}
+                                          className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-100 dark:hover:bg-[#2a2a2d] cursor-pointer"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <Checkbox
+                                            checked={weeklyDays.includes(day.short)}
+                                            onCheckedChange={() => toggleDay(day.short)}
+                                            className="h-3.5 w-3.5"
+                                          />
+                                          <span className="text-xs">{day.full}</span>
+                                        </label>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
+                            )}
 
+                            {val === 'MONTHLY' && (
                               <div className="space-y-1.5">
-                                <h4 className="font-medium text-xs">Start Time</h4>
+                                <h4 className="font-medium text-xs">Select Dates</h4>
+                                <div className="grid grid-cols-7 gap-1">
+                                  {MONTH_DATES.map((date) => (
+                                    <button
+                                      key={date}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleDate(date);
+                                      }}
+                                      className={`h-7 w-7 text-xs rounded-md flex items-center justify-center transition-colors ${monthlyDates.includes(date)
+                                        ? 'bg-orange-500 text-white hover:bg-orange-600'
+                                        : 'bg-gray-100 dark:bg-[#1a1a1d] hover:bg-gray-200 dark:hover:bg-[#2a2a2d]'
+                                        }`}
+                                    >
+                                      {date}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {val === 'HOURLY' && (
+                              <div className="space-y-3">
+                                <div className="space-y-1.5">
+                                  <h4 className="font-medium text-xs">Run Every</h4>
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="number"
+                                      placeholder="1"
+                                      value={hourInterval}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        if (
+                                          value === '' ||
+                                          (/^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 24)
+                                        ) {
+                                          updateHourInterval(value);
+                                        }
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="w-20 h-8 text-center text-xs"
+                                      min="1"
+                                      max="24"
+                                    />
+                                    <span className="text-xs">hour(s)</span>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                  <h4 className="font-medium text-xs">Start Time</h4>
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-0.5">
+                                      <Input
+                                        type="text"
+                                        placeholder="HH"
+                                        value={sharedTime.hour}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          if (
+                                            value === '' ||
+                                            (/^\d{0,2}$/.test(value) && Number(value) >= 1 && Number(value) <= 12)
+                                          ) {
+                                            updateHour(value);
+                                          }
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="w-10 h-8 text-center text-xs"
+                                        maxLength={2}
+                                      />
+                                      <span className="text-sm">:</span>
+                                      <Input
+                                        type="text"
+                                        placeholder="MM"
+                                        value={sharedTime.minute}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          if (
+                                            value === '' ||
+                                            (/^\d{0,2}$/.test(value) && Number(value) <= 59)
+                                          ) {
+                                            updateMinute(value);
+                                          }
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="w-10 h-8 text-center text-xs"
+                                        maxLength={2}
+                                      />
+                                    </div>
+
+                                    <Select
+                                      value={sharedTime.period}
+                                      onValueChange={(value) => updatePeriod(value as "AM" | "PM")}
+                                    >
+                                      <SelectTrigger className="w-16 h-8 text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="AM" className="text-xs">AM</SelectItem>
+                                        <SelectItem value="PM" className="text-xs">PM</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {val !== 'HOURLY' && (
+                              <div className="space-y-1.5">
+                                <h4 className="font-medium text-xs">Repeats On</h4>
                                 <div className="flex items-center gap-1.5">
                                   <div className="flex items-center gap-0.5">
                                     <Input
@@ -805,10 +952,7 @@ export default function GrowthDCA() {
                                       value={sharedTime.hour}
                                       onChange={(e) => {
                                         const value = e.target.value;
-                                        if (
-                                          value === '' ||
-                                          (/^\d{0,2}$/.test(value) && Number(value) >= 1 && Number(value) <= 12)
-                                        ) {
+                                        if (value === '' || (/^\d{0,2}$/.test(value) && Number(value) >= 1 && Number(value) <= 12)) {
                                           updateHour(value);
                                         }
                                       }}
@@ -823,10 +967,7 @@ export default function GrowthDCA() {
                                       value={sharedTime.minute}
                                       onChange={(e) => {
                                         const value = e.target.value;
-                                        if (
-                                          value === '' ||
-                                          (/^\d{0,2}$/.test(value) && Number(value) <= 59)
-                                        ) {
+                                        if (value === '' || (/^\d{0,2}$/.test(value) && Number(value) <= 59)) {
                                           updateMinute(value);
                                         }
                                       }}
@@ -835,11 +976,7 @@ export default function GrowthDCA() {
                                       maxLength={2}
                                     />
                                   </div>
-
-                                  <Select
-                                    value={sharedTime.period}
-                                    onValueChange={(value) => updatePeriod(value as "AM" | "PM")}
-                                  >
+                                  <Select value={sharedTime.period} onValueChange={(value) => updatePeriod(value as "AM" | "PM")}>
                                     <SelectTrigger className="w-16 h-8 text-xs">
                                       <SelectValue />
                                     </SelectTrigger>
@@ -850,132 +987,83 @@ export default function GrowthDCA() {
                                   </Select>
                                 </div>
                               </div>
-                            </div>
-                          )}
-
-                          {val !== 'HOURLY' && (
-                            <div className="space-y-1.5">
-                              <h4 className="font-medium text-xs">Repeats On</h4>
-                              <div className="flex items-center gap-1.5">
-                                <div className="flex items-center gap-0.5">
-                                  <Input
-                                    type="text"
-                                    placeholder="HH"
-                                    value={sharedTime.hour}
-                                    onChange={(e) => {
-                                      const value = e.target.value;
-                                      if (value === '' || (/^\d{0,2}$/.test(value) && Number(value) >= 1 && Number(value) <= 12)) {
-                                        updateHour(value);
-                                      }
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="w-10 h-8 text-center text-xs"
-                                    maxLength={2}
-                                  />
-                                  <span className="text-sm">:</span>
-                                  <Input
-                                    type="text"
-                                    placeholder="MM"
-                                    value={sharedTime.minute}
-                                    onChange={(e) => {
-                                      const value = e.target.value;
-                                      if (value === '' || (/^\d{0,2}$/.test(value) && Number(value) <= 59)) {
-                                        updateMinute(value);
-                                      }
-                                    }}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="w-10 h-8 text-center text-xs"
-                                    maxLength={2}
-                                  />
-                                </div>
-                                <Select value={sharedTime.period} onValueChange={(value) => updatePeriod(value as "AM" | "PM")}>
-                                  <SelectTrigger className="w-16 h-8 text-xs">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="AM" className="text-xs">AM</SelectItem>
-                                    <SelectItem value="PM" className="text-xs">PM</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  );
-                })}
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                Take Profit %
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-muted-foreground">ⓘ</span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>If You wish to book profit by percentage based on buy price. Please Make sure to check your Transaction fees on respective exchange</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="relative">
-                <Input placeholder="Value" value={takeProfitPct} onChange={e => setTakeProfitPct(e.target.value)} type="text" />
-                <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">%</span>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  Take Profit %
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground">ⓘ</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[200px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>If You wish to book profit by percentage based on buy price. Please Make sure to check your Transaction fees on respective exchange</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="relative">
+                  <Input placeholder="Value" value={takeProfitPct} onChange={e => setTakeProfitPct(e.target.value)} type="text" />
+                  <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">%</span>
+                </div>
               </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+            </CollapsibleContent>
+          </Collapsible>
 
-        <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525] border border-t-0">
-            <span>Advanced Settings</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${isAdvancedOpen ? "rotate-180" : ""}`} />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4">
-            <div className="space-y-2">
-              <Label>Price Start</Label>
-              <Input placeholder="Value" value={priceStart} onChange={e => setPriceStart(e.target.value)} type="text" step="0.00001" />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Price Stop</Label>
-              <Input placeholder="Value" value={priceStop} onChange={e => setPriceStop(e.target.value)} type="text" step="0.00001" />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Stop Loss %</Label>
-              <div className="relative">
-                <Input placeholder="Value" value={stopLossPct} onChange={e => setStopLossPct(e.target.value)} type="text" />
-                <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">%</span>
+          <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525] border border-t-0">
+              <span>Advanced Settings</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${isAdvancedOpen ? "rotate-180" : ""}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4">
+              <div className="space-y-2">
+                <Label>Price Start</Label>
+                <Input placeholder="Value" value={priceStart} onChange={e => setPriceStart(e.target.value)} type="text" step="0.00001" />
               </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
 
-        {error && <div className="text-red-500 text-sm p-2 border border-red-300 rounded bg-red-50 dark:bg-red-900/20">{error}</div>}
+              <div className="space-y-2">
+                <Label>Price Stop</Label>
+                <Input placeholder="Value" value={priceStop} onChange={e => setPriceStop(e.target.value)} type="text" step="0.00001" />
+              </div>
 
-        <div className="flex gap-4">
-          <Button
-            className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525]"
-            onClick={handleProceed}
-            disabled={isLoading}
-            type="button"
-          >
-            {isLoading ? "Processing..." : "Proceed"}
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1 bg-[#D97706] text-white hover:bg-[#B45309]"
-            type="button"
-            onClick={handleReset}
-            disabled={isLoading}
-          >
-            Reset
-          </Button>
-        </div>
-      </form>
+              <div className="space-y-2">
+                <Label>Stop Loss %</Label>
+                <div className="relative">
+                  <Input placeholder="Value" value={stopLossPct} onChange={e => setStopLossPct(e.target.value)} type="text" />
+                  <span className="absolute right-3 top-2.5 text-sm text-muted-foreground">%</span>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {error && <div className="text-red-500 text-sm p-2 border border-red-300 rounded bg-red-50 dark:bg-red-900/20">{error}</div>}
+
+          <div className="flex gap-4">
+            <Button
+              className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525]"
+              onClick={handleProceed}
+              disabled={isLoading}
+              type="button"
+            >
+              {isLoading ? "Processing..." : isEditMode ? "Update Strategy" : "Proceed"}
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 bg-[#D97706] text-white hover:bg-[#B45309]"
+              type="button"
+              onClick={handleReset}
+              disabled={isLoading}
+            >
+              Reset
+            </Button>
+          </div>
+        </form>
       </TooltipProvider>
 
       {showProceedPopup && (

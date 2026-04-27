@@ -113,7 +113,11 @@ export default function TradePage() {
     : 'BINANCE:BTCUSDT';
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const pathName = useLocation().pathname;
+  const location = useLocation();
+  const pathName = location.pathname;
+
+  // Edit mode: data passed from dashboard via navigate(route, { state: { editStrategy } })
+  const editStrategy = (location.state as any)?.editStrategy ?? null;
 
   useEffect(() => {
     const container = chartContainerRef.current;
@@ -299,13 +303,13 @@ export default function TradePage() {
 
       {pathName !== "/trade" && (
         <div className="w-full lg:w-[420px] flex-shrink-0 space-y-6">
-          {pathName === "/indie-trend" && <IndyTrend />}
-          {pathName === "/indy-utc" && <IndyUTC />}
-          {pathName === "/growth-dca" && <GrowthDCA />}
-          {pathName === "/indie-lesi" && <IndyLESI />}
-          {pathName === "/price-action" && <PriceAction />}
-          {pathName === "/human-grid" && <HumanGrid />}
-          {pathName === "/smart-grid" && <SmartGrid />}
+          {pathName === "/indie-trend" && <IndyTrend editData={editStrategy} />}
+          {pathName === "/indy-utc" && <IndyUTC editData={editStrategy} />}
+          {pathName === "/growth-dca" && <GrowthDCA editData={editStrategy} />}
+          {pathName === "/indie-lesi" && <IndyLESI editData={editStrategy} />}
+          {pathName === "/price-action" && <PriceAction editData={editStrategy} />}
+          {pathName === "/human-grid" && <HumanGrid editData={editStrategy} />}
+          {pathName === "/smart-grid" && <SmartGrid editData={editStrategy} />}
         </div>
       )}
 

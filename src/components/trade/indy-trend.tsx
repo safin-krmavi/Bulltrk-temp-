@@ -14,7 +14,7 @@ import { useStrategyStore } from "@/stores/strategystore"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 
-export default function IndyTrend() {
+export default function IndyTrend({ editData }: { editData?: any }) {
   const [isIndyOpen, setIsIndyOpen] = React.useState(true)
   const [isAdvancedOpen, setIsAdvancedOpen] = React.useState(true)
 
@@ -88,10 +88,10 @@ export default function IndyTrend() {
     if (allExchangesBalances && exchange && segment) {
       const exchangeKey = exchange.toUpperCase();
       const segmentKey = segment.toUpperCase();
-      
+
       const exchangeData = allExchangesBalances.exchanges?.[exchangeKey];
       const balanceData = exchangeData?.balances?.find(b => b.type === segmentKey);
-      
+
       if (balanceData) {
         setAvailableBalance(balanceData.free.toFixed(2));
       } else {
@@ -219,162 +219,196 @@ export default function IndyTrend() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
+      <AccountDetailsCard
+        onDataChange={handleAccountDetailsChange}
+        initialExchange={editData?.exchange}
+        initialSegment={editData?.segment}
+        initialPair={editData?.symbol}
+      />
 
       <TooltipProvider>
-      <form className="space-y-4 mt-4 dark:text-white">
-        <Collapsible open={isIndyOpen} onOpenChange={setIsIndyOpen}>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
-            <span>Indy Trend</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${isIndyOpen ? "rotate-180" : ""}`} />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
-            {/* Strategy Name */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-sm">
-                Strategy Name
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>You can keep desired Strategy name for reference and reports</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <Input
-                placeholder="Enter Name"
-                value={strategyName}
-                onChange={e => setStrategyName(e.target.value)}
-                className="h-10"
-              />
-            </div>
-
-            {/* Investment */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-sm">
-                Investment
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Investment per Trade</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={investment}
-                  onChange={e => setInvestment(e.target.value)}
-                  type="number"
-                  step="0.01"
-                  className="h-10"
-                />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {quoteAsset}
-                </div>
-              </div>
-              {isLoadingBalances ? (
-                <p className="text-sm text-gray-500 flex items-center gap-2">
-                  <span className="inline-block w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></span>
-                  Loading balance...
-                </p>
-              ) : balancesError ? (
-                <p className="text-sm text-red-500">Failed to load balance</p>
-              ) : (
-                <p className="text-sm text-orange-500">Avbl: {availableBalance} {quoteAsset}</p>
-              )}
-            </div>
-
-            {/* Investment CAP */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-sm">
-                Investment CAP
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Strategy stops when total investment of the strategy is equal to cap value</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={investmentCap}
-                  onChange={e => setInvestmentCap(e.target.value)}
-                  type="number"
-                  step="0.01"
-                  className="h-10"
-                />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {quoteAsset}
-                </div>
-              </div>
-            </div>
-
-            {/* Leverage */}
-            <div className="space-y-2">
-              <Label className="text-sm">Leverage</Label>
-              <Input
-                placeholder="Value"
-                value={leverage}
-                onChange={e => setLeverage(e.target.value)}
-                type="number"
-                step="1"
-                className="h-10"
-              />
-            </div>
-
-            {/* Lower and Upper Limit - Side by Side */}
-            <div className="grid grid-cols-2 gap-3">
+        <form className="space-y-4 mt-4 dark:text-white">
+          <Collapsible open={isIndyOpen} onOpenChange={setIsIndyOpen}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
+              <span>Indy Trend</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${isIndyOpen ? "rotate-180" : ""}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
+              {/* Strategy Name */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-1 text-sm">
-                  Lower Limit
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                      <p>Set the Lowest / Starting Price range</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </Label>
-                <div className="flex gap-1">
-                  <Input
-                    placeholder="Value"
-                    value={lowerLimit}
-                    onChange={e => setLowerLimit(e.target.value)}
-                    type="number"
-                    step="0.000001"
-                    className="h-10"
-                  />
-                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                    {quoteAsset}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1 text-sm">
-                  Upper Limit
+                  Strategy Name
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                      <p>Set the Maximum / Ending Price range</p>
+                      <p>You can keep desired Strategy name for reference and reports</p>
                     </TooltipContent>
                   </Tooltip>
                 </Label>
-                <div className="flex gap-1">
+                <Input
+                  placeholder="Enter Name"
+                  value={strategyName}
+                  onChange={e => setStrategyName(e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              {/* Investment */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1 text-sm">
+                  Investment
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Investment per Trade</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="flex gap-2">
                   <Input
                     placeholder="Value"
-                    value={upperLimit}
-                    onChange={e => setUpperLimit(e.target.value)}
+                    value={investment}
+                    onChange={e => setInvestment(e.target.value)}
+                    type="number"
+                    step="0.01"
+                    className="h-10"
+                  />
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {quoteAsset}
+                  </div>
+                </div>
+                {isLoadingBalances ? (
+                  <p className="text-sm text-gray-500 flex items-center gap-2">
+                    <span className="inline-block w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></span>
+                    Loading balance...
+                  </p>
+                ) : balancesError ? (
+                  <p className="text-sm text-red-500">Failed to load balance</p>
+                ) : (
+                  <p className="text-sm text-orange-500">Avbl: {availableBalance} {quoteAsset}</p>
+                )}
+              </div>
+
+              {/* Investment CAP */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1 text-sm">
+                  Investment CAP
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Strategy stops when total investment of the strategy is equal to cap value</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Value"
+                    value={investmentCap}
+                    onChange={e => setInvestmentCap(e.target.value)}
+                    type="number"
+                    step="0.01"
+                    className="h-10"
+                  />
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {quoteAsset}
+                  </div>
+                </div>
+              </div>
+
+              {/* Leverage */}
+              <div className="space-y-2">
+                <Label className="text-sm">Leverage</Label>
+                <Input
+                  placeholder="Value"
+                  value={leverage}
+                  onChange={e => setLeverage(e.target.value)}
+                  type="number"
+                  step="1"
+                  className="h-10"
+                />
+              </div>
+
+              {/* Lower and Upper Limit - Side by Side */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1 text-sm">
+                    Lower Limit
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                        <p>Set the Lowest / Starting Price range</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <div className="flex gap-1">
+                    <Input
+                      placeholder="Value"
+                      value={lowerLimit}
+                      onChange={e => setLowerLimit(e.target.value)}
+                      type="number"
+                      step="0.000001"
+                      className="h-10"
+                    />
+                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                      {quoteAsset}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1 text-sm">
+                    Upper Limit
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                        <p>Set the Maximum / Ending Price range</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <div className="flex gap-1">
+                    <Input
+                      placeholder="Value"
+                      value={upperLimit}
+                      onChange={e => setUpperLimit(e.target.value)}
+                      type="number"
+                      step="0.000001"
+                      className="h-10"
+                    />
+                    <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                      {quoteAsset}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price Trigger Start */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1 text-sm">
+                  Price Trigger Start
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the price at which this strategy should begin execution</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Value"
+                    value={priceTriggerStart}
+                    onChange={e => setPriceTriggerStart(e.target.value)}
                     type="number"
                     step="0.000001"
                     className="h-10"
@@ -384,413 +418,384 @@ export default function IndyTrend() {
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Price Trigger Start */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-sm">
-                Price Trigger Start
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Set the price at which this strategy should begin execution</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={priceTriggerStart}
-                  onChange={e => setPriceTriggerStart(e.target.value)}
-                  type="number"
-                  step="0.000001"
-                  className="h-10"
-                />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {quoteAsset}
-                </div>
-              </div>
-            </div>
-
-            {/* Price Trigger Stop */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-sm">
-                Price Trigger Stop
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Set the price at which this strategy should stop executing</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={priceTriggerStop}
-                  onChange={e => setPriceTriggerStop(e.target.value)}
-                  type="number"
-                  step="0.000001"
-                  className="h-10"
-                />
-                <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
-                  {symbol || "—"}
-                </div>
-              </div>
-            </div>
-
-            {/* Stop Loss By */}
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1 text-sm">
-                Stop Loss By
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
-                    <p>Set the stop loss percentage to limit potential losses</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Value"
-                  value={stopLossBy}
-                  onChange={e => setStopLossBy(e.target.value)}
-                  type="number"
-                  step="0.01"
-                  className="h-10"
-                />
-                <Select value="%" disabled>
-                  <SelectTrigger className="w-[70px] h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="%">%</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        {/* Advanced Settings */}
-        <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
-          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
-            <span>Advanced Settings</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${isAdvancedOpen ? "rotate-180" : ""}`} />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-5 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
-            {/* Supertrend Section */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="supertrend"
-                  checked={supertrendEnabled}
-                  onCheckedChange={(checked) => setSupertrendEnabled(checked as boolean)}
-                  className="h-5 w-5"
-                />
-                <Label htmlFor="supertrend" className="text-base font-normal cursor-pointer">
-                  Supertrend
+              {/* Price Trigger Stop */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1 text-sm">
+                  Price Trigger Stop
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the price at which this strategy should stop executing</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Value"
+                    value={priceTriggerStop}
+                    onChange={e => setPriceTriggerStop(e.target.value)}
+                    type="number"
+                    step="0.000001"
+                    className="h-10"
+                  />
+                  <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
+                    {symbol || "—"}
+                  </div>
+                </div>
               </div>
 
-              {/* Direction Buttons - Always visible */}
-              <div className="grid grid-cols-3 gap-2">
-                {['Neutral', 'Long', 'Short'].map((dir) => (
-                  <Button
-                    key={dir}
-                    type="button"
-                    variant={supertrendDirection === dir ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSupertrendDirection(dir)}
-                    className="h-10 text-sm"
-                    disabled={!supertrendEnabled}
-                  >
-                    {dir}
-                  </Button>
-                ))}
-              </div>
-
-              {/* Timeframe, ATR Period, Factor - Always visible */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Timeframe</Label>
-                  <Select value={supertrendTimeframe} onValueChange={setSupertrendTimeframe} disabled={!supertrendEnabled}>
-                    <SelectTrigger className="h-10 text-sm">
+              {/* Stop Loss By */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1 text-sm">
+                  Stop Loss By
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-default"><Info className="h-3 w-3 text-muted-foreground" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[240px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>Set the stop loss percentage to limit potential losses</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Value"
+                    value={stopLossBy}
+                    onChange={e => setStopLossBy(e.target.value)}
+                    type="number"
+                    step="0.01"
+                    className="h-10"
+                  />
+                  <Select value="%" disabled>
+                    <SelectTrigger className="w-[70px] h-10">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1H">1H</SelectItem>
-                      <SelectItem value="4H">4H</SelectItem>
-                      <SelectItem value="1D">1D</SelectItem>
+                      <SelectItem value="%">%</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">ATR Period</Label>
-                  <Input
-                    placeholder="10"
-                    value={supertrendAtrPeriod}
-                    onChange={e => setSupertrendAtrPeriod(e.target.value)}
-                    type="number"
-                    className="h-10 text-sm"
-                    disabled={!supertrendEnabled}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Advanced Settings */}
+          <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+            <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 font-medium text-white hover:bg-[#5A2525]">
+              <span>Advanced Settings</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${isAdvancedOpen ? "rotate-180" : ""}`} />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-5 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
+              {/* Supertrend Section */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="supertrend"
+                    checked={supertrendEnabled}
+                    onCheckedChange={(checked) => setSupertrendEnabled(checked as boolean)}
+                    className="h-5 w-5"
                   />
+                  <Label htmlFor="supertrend" className="text-base font-normal cursor-pointer">
+                    Supertrend
+                  </Label>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Factor</Label>
-                  <Input
-                    placeholder="3"
-                    value={supertrendFactor}
-                    onChange={e => setSupertrendFactor(e.target.value)}
-                    type="number"
-                    className="h-10 text-sm"
-                    disabled={!supertrendEnabled}
-                  />
+
+                {/* Direction Buttons - Always visible */}
+                <div className="grid grid-cols-3 gap-2">
+                  {['Neutral', 'Long', 'Short'].map((dir) => (
+                    <Button
+                      key={dir}
+                      type="button"
+                      variant={supertrendDirection === dir ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSupertrendDirection(dir)}
+                      className="h-10 text-sm"
+                      disabled={!supertrendEnabled}
+                    >
+                      {dir}
+                    </Button>
+                  ))}
+                </div>
+
+                {/* Timeframe, ATR Period, Factor - Always visible */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Timeframe</Label>
+                    <Select value={supertrendTimeframe} onValueChange={setSupertrendTimeframe} disabled={!supertrendEnabled}>
+                      <SelectTrigger className="h-10 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1H">1H</SelectItem>
+                        <SelectItem value="4H">4H</SelectItem>
+                        <SelectItem value="1D">1D</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">ATR Period</Label>
+                    <Input
+                      placeholder="10"
+                      value={supertrendAtrPeriod}
+                      onChange={e => setSupertrendAtrPeriod(e.target.value)}
+                      type="number"
+                      className="h-10 text-sm"
+                      disabled={!supertrendEnabled}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Factor</Label>
+                    <Input
+                      placeholder="3"
+                      value={supertrendFactor}
+                      onChange={e => setSupertrendFactor(e.target.value)}
+                      type="number"
+                      className="h-10 text-sm"
+                      disabled={!supertrendEnabled}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* RSI 1 Section */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="rsi1"
-                  checked={rsi1Enabled}
-                  onCheckedChange={(checked) => setRsi1Enabled(checked as boolean)}
-                  className="h-5 w-5"
-                />
-                <Label htmlFor="rsi1" className="text-base font-normal cursor-pointer">
-                  RSI 1
-                </Label>
+              {/* RSI 1 Section */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="rsi1"
+                    checked={rsi1Enabled}
+                    onCheckedChange={(checked) => setRsi1Enabled(checked as boolean)}
+                    className="h-5 w-5"
+                  />
+                  <Label htmlFor="rsi1" className="text-base font-normal cursor-pointer">
+                    RSI 1
+                  </Label>
+                </div>
+
+                {/* Length, Source, Timeframe - Always visible */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Length</Label>
+                    <Input
+                      placeholder="21"
+                      value={rsi1Length}
+                      onChange={e => setRsi1Length(e.target.value)}
+                      type="number"
+                      className="h-10 text-sm"
+                      disabled={!rsi1Enabled}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Source</Label>
+                    <Select value={rsi1Source} onValueChange={setRsi1Source} disabled={!rsi1Enabled}>
+                      <SelectTrigger className="h-10 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Close">Close</SelectItem>
+                        <SelectItem value="Open">Open</SelectItem>
+                        <SelectItem value="High">High</SelectItem>
+                        <SelectItem value="Low">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Timeframe</Label>
+                    <Input
+                      placeholder="65"
+                      value={rsi1Timeframe}
+                      onChange={e => setRsi1Timeframe(e.target.value)}
+                      type="number"
+                      className="h-10 text-sm"
+                      disabled={!rsi1Enabled}
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Length, Source, Timeframe - Always visible */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Length</Label>
-                  <Input
-                    placeholder="21"
-                    value={rsi1Length}
-                    onChange={e => setRsi1Length(e.target.value)}
-                    type="number"
-                    className="h-10 text-sm"
-                    disabled={!rsi1Enabled}
+              {/* RSI 2 Section */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="rsi2"
+                    checked={rsi2Enabled}
+                    onCheckedChange={(checked) => setRsi2Enabled(checked as boolean)}
+                    className="h-5 w-5"
                   />
+                  <Label htmlFor="rsi2" className="text-base font-normal cursor-pointer">
+                    RSI 2
+                  </Label>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Source</Label>
-                  <Select value={rsi1Source} onValueChange={setRsi1Source} disabled={!rsi1Enabled}>
-                    <SelectTrigger className="h-10 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Close">Close</SelectItem>
-                      <SelectItem value="Open">Open</SelectItem>
-                      <SelectItem value="High">High</SelectItem>
-                      <SelectItem value="Low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Timeframe</Label>
-                  <Input
-                    placeholder="65"
-                    value={rsi1Timeframe}
-                    onChange={e => setRsi1Timeframe(e.target.value)}
-                    type="number"
-                    className="h-10 text-sm"
-                    disabled={!rsi1Enabled}
-                  />
+
+                {/* Length, Source, Timeframe - Always visible */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Length</Label>
+                    <Input
+                      placeholder="21"
+                      value={rsi2Length}
+                      onChange={e => setRsi2Length(e.target.value)}
+                      type="number"
+                      className="h-10 text-sm"
+                      disabled={!rsi2Enabled}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Source</Label>
+                    <Select value={rsi2Source} onValueChange={setRsi2Source} disabled={!rsi2Enabled}>
+                      <SelectTrigger className="h-10 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Close">Close</SelectItem>
+                        <SelectItem value="Open">Open</SelectItem>
+                        <SelectItem value="High">High</SelectItem>
+                        <SelectItem value="Low">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Timeframe</Label>
+                    <Input
+                      placeholder="65"
+                      value={rsi2Timeframe}
+                      onChange={e => setRsi2Timeframe(e.target.value)}
+                      type="number"
+                      className="h-10 text-sm"
+                      disabled={!rsi2Enabled}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* RSI 2 Section */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="rsi2"
-                  checked={rsi2Enabled}
-                  onCheckedChange={(checked) => setRsi2Enabled(checked as boolean)}
-                  className="h-5 w-5"
-                />
-                <Label htmlFor="rsi2" className="text-base font-normal cursor-pointer">
-                  RSI 2
-                </Label>
+              {/* RSI 3 Section */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="rsi3"
+                    checked={rsi3Enabled}
+                    onCheckedChange={(checked) => setRsi3Enabled(checked as boolean)}
+                    className="h-5 w-5"
+                  />
+                  <Label htmlFor="rsi3" className="text-base font-normal cursor-pointer">
+                    RSI 3
+                  </Label>
+                </div>
+
+                {/* Length, Source, Timeframe - Always visible */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Length</Label>
+                    <Input
+                      placeholder="21"
+                      value={rsi3Length}
+                      onChange={e => setRsi3Length(e.target.value)}
+                      type="number"
+                      className="h-10 text-sm"
+                      disabled={!rsi3Enabled}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Source</Label>
+                    <Select value={rsi3Source} onValueChange={setRsi3Source} disabled={!rsi3Enabled}>
+                      <SelectTrigger className="h-10 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Close">Close</SelectItem>
+                        <SelectItem value="Open">Open</SelectItem>
+                        <SelectItem value="High">High</SelectItem>
+                        <SelectItem value="Low">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Timeframe</Label>
+                    <Input
+                      placeholder="65"
+                      value={rsi3Timeframe}
+                      onChange={e => setRsi3Timeframe(e.target.value)}
+                      type="number"
+                      className="h-10 text-sm"
+                      disabled={!rsi3Enabled}
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Length, Source, Timeframe - Always visible */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Length</Label>
-                  <Input
-                    placeholder="21"
-                    value={rsi2Length}
-                    onChange={e => setRsi2Length(e.target.value)}
-                    type="number"
-                    className="h-10 text-sm"
-                    disabled={!rsi2Enabled}
+              {/* ADX Section */}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="adx"
+                    checked={adxEnabled}
+                    onCheckedChange={(checked) => setAdxEnabled(checked as boolean)}
+                    className="h-5 w-5"
                   />
+                  <Label htmlFor="adx" className="text-base font-normal cursor-pointer">
+                    ADX
+                  </Label>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Source</Label>
-                  <Select value={rsi2Source} onValueChange={setRsi2Source} disabled={!rsi2Enabled}>
-                    <SelectTrigger className="h-10 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Close">Close</SelectItem>
-                      <SelectItem value="Open">Open</SelectItem>
-                      <SelectItem value="High">High</SelectItem>
-                      <SelectItem value="Low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Timeframe</Label>
-                  <Input
-                    placeholder="65"
-                    value={rsi2Timeframe}
-                    onChange={e => setRsi2Timeframe(e.target.value)}
-                    type="number"
-                    className="h-10 text-sm"
-                    disabled={!rsi2Enabled}
-                  />
+
+                {/* Smoothing, DI Length, Sig - Always visible */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Smoothing</Label>
+                    <Input
+                      placeholder="21"
+                      value={adxSmoothing}
+                      onChange={e => setAdxSmoothing(e.target.value)}
+                      type="number"
+                      className="h-10 text-sm"
+                      disabled={!adxEnabled}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">DI Length</Label>
+                    <Input
+                      placeholder="Close"
+                      value={adxDiLength}
+                      onChange={e => setAdxDiLength(e.target.value)}
+                      className="h-10 text-sm"
+                      disabled={!adxEnabled}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Sig</Label>
+                    <Input
+                      placeholder="65"
+                      value={adxSig}
+                      onChange={e => setAdxSig(e.target.value)}
+                      type="number"
+                      className="h-10 text-sm"
+                      disabled={!adxEnabled}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            </CollapsibleContent>
+          </Collapsible>
 
-            {/* RSI 3 Section */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="rsi3"
-                  checked={rsi3Enabled}
-                  onCheckedChange={(checked) => setRsi3Enabled(checked as boolean)}
-                  className="h-5 w-5"
-                />
-                <Label htmlFor="rsi3" className="text-base font-normal cursor-pointer">
-                  RSI 3
-                </Label>
-              </div>
-
-              {/* Length, Source, Timeframe - Always visible */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Length</Label>
-                  <Input
-                    placeholder="21"
-                    value={rsi3Length}
-                    onChange={e => setRsi3Length(e.target.value)}
-                    type="number"
-                    className="h-10 text-sm"
-                    disabled={!rsi3Enabled}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Source</Label>
-                  <Select value={rsi3Source} onValueChange={setRsi3Source} disabled={!rsi3Enabled}>
-                    <SelectTrigger className="h-10 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Close">Close</SelectItem>
-                      <SelectItem value="Open">Open</SelectItem>
-                      <SelectItem value="High">High</SelectItem>
-                      <SelectItem value="Low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Timeframe</Label>
-                  <Input
-                    placeholder="65"
-                    value={rsi3Timeframe}
-                    onChange={e => setRsi3Timeframe(e.target.value)}
-                    type="number"
-                    className="h-10 text-sm"
-                    disabled={!rsi3Enabled}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* ADX Section */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="adx"
-                  checked={adxEnabled}
-                  onCheckedChange={(checked) => setAdxEnabled(checked as boolean)}
-                  className="h-5 w-5"
-                />
-                <Label htmlFor="adx" className="text-base font-normal cursor-pointer">
-                  ADX
-                </Label>
-              </div>
-
-              {/* Smoothing, DI Length, Sig - Always visible */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Smoothing</Label>
-                  <Input
-                    placeholder="21"
-                    value={adxSmoothing}
-                    onChange={e => setAdxSmoothing(e.target.value)}
-                    type="number"
-                    className="h-10 text-sm"
-                    disabled={!adxEnabled}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">DI Length</Label>
-                  <Input
-                    placeholder="Close"
-                    value={adxDiLength}
-                    onChange={e => setAdxDiLength(e.target.value)}
-                    className="h-10 text-sm"
-                    disabled={!adxEnabled}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-normal text-gray-900 dark:text-gray-100">Sig</Label>
-                  <Input
-                    placeholder="65"
-                    value={adxSig}
-                    onChange={e => setAdxSig(e.target.value)}
-                    type="number"
-                    className="h-10 text-sm"
-                    disabled={!adxEnabled}
-                  />
-                </div>
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        {/* Action Buttons */}
-        <div className="flex gap-4 pt-2">
-          <Button
-            className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525] h-11"
-            onClick={handleProceed}
-          >
-            Proceed
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1 h-11"
-            type="button"
-            onClick={handleReset}
-          >
-            Reset
-          </Button>
-        </div>
-      </form>
+          {/* Action Buttons */}
+          <div className="flex gap-4 pt-2">
+            <Button
+              className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525] h-11"
+              onClick={handleProceed}
+            >
+              Proceed
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 h-11"
+              type="button"
+              onClick={handleReset}
+            >
+              Reset
+            </Button>
+          </div>
+        </form>
       </TooltipProvider>
     </div>
   )

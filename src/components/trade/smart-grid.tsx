@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from "react"
-import { ChevronDown, AlertCircle } from 'lucide-react'
+import { ChevronDown, AlertCircle, ArrowLeft, Pencil } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,12 +9,16 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useState } from "react"
 import { AccountDetailsCard } from "@/components/trade/AccountDetailsCard"
 import { toast } from "sonner"
-import { useStrategyStore, SmartGridStrategy } from "@/stores/strategystore"
+import { useStrategyStore, SmartGridStrategy, Strategy } from "@/stores/strategystore"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ProceedPopup } from "@/components/dashboard/proceed-popup"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useNavigate } from "react-router-dom"
 
-export default function SmartGrid() {
+export default function SmartGrid({ editData }: { editData?: Strategy | null }) {
+  const navigate = useNavigate();
+  const isEditMode = !!editData;
+
   const [isOpen, setIsOpen] = React.useState(true)
   const [showProceedPopup, setShowProceedPopup] = React.useState(false)
   const [, setIsCalculatingLimits] = React.useState(false)
@@ -27,21 +31,22 @@ export default function SmartGrid() {
   const [symbol, setSymbol] = useState("");
   const [quoteAsset, setQuoteAsset] = useState("USDT");
 
-  // Form state - Updated according to new structure
-  const [strategyName, setStrategyName] = React.useState("");
-  const [type, setType] = React.useState<'NEUTRAL' | 'LONG' | 'SHORT'>("NEUTRAL");
-  const [dataSet, setDataSet] = React.useState("30");
-  const [lowerLimit, setLowerLimit] = React.useState("");
-  const [upperLimit, setUpperLimit] = React.useState("");
-  const [levels, setLevels] = React.useState("");
-  const [profitPerLevel, setProfitPerLevel] = React.useState(""); // Renamed from profitPercentage
-  const [profitUnit, setProfitUnit] = React.useState("%"); // For the % or fixed toggle
-  const [investment, setInvestment] = React.useState("");
-  const [minimumInvestment, setMinimumInvestment] = React.useState(""); // New field
+  // Form state - pre-fill from editData if in edit mode
+  const [strategyName, setStrategyName] = React.useState(editData?.name ?? "");
+  const [type, setType] = React.useState<'NEUTRAL' | 'LONG' | 'SHORT'>(editData?.direction ?? "NEUTRAL");
+  const [dataSet, setDataSet] = React.useState(editData?.dataSetDays?.toString() ?? "30");
+  const [lowerLimit, setLowerLimit] = React.useState(editData?.lowerLimit?.toString() ?? "");
+  const [upperLimit, setUpperLimit] = React.useState(editData?.upperLimit?.toString() ?? "");
+  const [levels, setLevels] = React.useState(editData?.levels?.toString() ?? "");
+  const [profitPerLevel, setProfitPerLevel] = React.useState(editData?.profitPercentage?.toString() ?? "");
+  const [profitUnit, setProfitUnit] = React.useState("%");
+  const [investment, setInvestment] = React.useState(editData?.investmentCap?.toString() ?? "");
+  const [minimumInvestment, setMinimumInvestment] = React.useState(editData?.investmentPerRun?.toString() ?? "");
 
   // Get strategy store
   const {
     createSmartGrid,
+    updateStrategyById,
     calculateSmartGridLimits,
     isLoading,
     error,
@@ -308,6 +313,13 @@ export default function SmartGrid() {
 
     clearError();
 
+    if (isEditMode && editData) {
+      if (!strategyName.trim()) { toast.error("Please enter a strategy name"); return; }
+      toast.info("Review your changes", { description: "Please confirm the updates" });
+      setShowProceedPopup(true);
+      return;
+    }
+
     if (!validateForm()) {
       return;
     }
@@ -320,6 +332,25 @@ export default function SmartGrid() {
 
   // API call when user confirms in popup
   const handleConfirmStrategy = async (executionMode: 'LIVE' | 'PUBLISHED') => {
+    if (isEditMode && editData) {
+      const toastId = toast.loading("Updating strategy...");
+      try {
+        await updateStrategyById(editData.id, {
+          direction: type,
+          levels: levels ? Number(levels) : undefined,
+          profitPercentage: profitPerLevel ? Number(profitPerLevel) : undefined,
+          investmentCap: investment ? Number(investment) : undefined,
+          dataSetDays: dataSet ? Number(dataSet) : undefined,
+          strategyType: 'SMART_GRID',
+        } as any);
+        toast.success("Strategy updated! ✅", { id: toastId, duration: 5000 });
+        setShowProceedPopup(false);
+        navigate('/dashboard');
+      } catch (err: any) {
+        toast.error("Failed to update", { id: toastId, description: err.message });
+      }
+      return;
+    }
     const toastId = toast.loading("Creating Smart Grid strategy...", {
       description: "Please wait while we process your request"
     });
@@ -396,7 +427,25 @@ export default function SmartGrid() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <AccountDetailsCard onDataChange={handleAccountDetailsChange} />
+      {/* Edit mode banner */}
+      {isEditMode && (
+        <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center gap-2">
+          <Pencil className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Editing Strategy</p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 truncate">{editData?.name}</p>
+          </div>
+          <button type="button" onClick={() => navigate('/dashboard')} className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+            <ArrowLeft className="h-3 w-3" /> Back
+          </button>
+        </div>
+      )}
+      <AccountDetailsCard
+        onDataChange={handleAccountDetailsChange}
+        initialExchange={editData?.exchange}
+        initialSegment={editData?.segment}
+        initialPair={editData?.symbol}
+      />
 
       {/* ✅ Required Fields Warning */}
       {showRequiredFieldsWarning && (
@@ -413,7 +462,7 @@ export default function SmartGrid() {
         <form className="space-y-4 mt-4 dark:text-white" onSubmit={(e) => e.preventDefault()}>
           <Collapsible open={isOpen} onOpenChange={setIsOpen}>
             <CollapsibleTrigger className="flex w-full items-center justify-between rounded-t-md bg-[#4A1515] p-4 border border-t-0 font-medium text-white hover:bg-[#5A2525]">
-              <span>Smart Grid</span>
+              <span>{isEditMode ? 'Edit: Smart Grid' : 'Smart Grid'}</span>
               <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 rounded-b-md border border-t-0 p-4 bg-white dark:bg-[#1A1A1D]">
@@ -678,7 +727,7 @@ export default function SmartGrid() {
               disabled={isLoading}
               type="button"
             >
-              {isLoading ? "Processing..." : "Proceed"}
+              {isLoading ? "Processing..." : isEditMode ? "Update Strategy" : "Proceed"}
             </Button>
             <Button
               variant="outline"

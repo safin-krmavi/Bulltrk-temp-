@@ -4,10 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ApiConnect } from "@/components/account/ApiConnect";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 import {
   ChevronDown,
   MessageSquare,
@@ -24,6 +27,7 @@ import {
   Play
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useStrategyStore, Strategy } from "@/stores/strategystore";
 import { useCopyTradeStore, SubscribedStrategy } from "@/stores/copytradestote";
 import { toast } from "sonner";
@@ -53,6 +57,7 @@ type CombinedStrategy = (Strategy | SubscribedStrategy) & {
 };
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [openSections, setOpenSections] = useState({
     strategy: true,
     scanner: true,
@@ -62,20 +67,14 @@ export default function Dashboard() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const strategiesPerPage = 4;
-  const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const [showApiModal, setShowApiModal] = useState(false);
-  
-  // Edit Strategy Modal State
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingStrategy, setEditingStrategy] = useState<Strategy | null>(null);
-  const [editFormData, setEditFormData] = useState<Partial<Strategy>>({});
 
   // Get strategy stores
-  const { 
-    strategies, 
-    isLoading: isLoadingStrategies, 
+  const {
+    strategies,
+    isLoading: isLoadingStrategies,
     fetchStrategies,
-    updateStrategyById,
+    fetchStrategyById,
     deleteStrategyById,
   } = useStrategyStore();
 
@@ -96,13 +95,13 @@ export default function Dashboard() {
   // Static data
   const userName = "User";
   const platformsAdded = 2;
-  
+
   // Combine strategies for counting
   const allStrategies: CombinedStrategy[] = [
     ...strategies.map(s => ({ ...s, isCopyTrade: false })),
     ...subscribedStrategies.map(s => ({ ...s, isCopyTrade: true }))
   ];
-  
+
   const strategiesActive = allStrategies.filter(s => s.status === 'ACTIVE').length;
   const totalTradesExecuted = 45;
   const netPL = 1250.50;
@@ -126,7 +125,7 @@ export default function Dashboard() {
   // Fetch both user strategies and subscribed strategies on component mount
   useEffect(() => {
     console.log("Dashboard mounted, fetching strategies...");
-    
+
     Promise.all([
       fetchStrategies(),
       fetchSubscribedStrategies()
@@ -162,49 +161,35 @@ export default function Dashboard() {
     }));
   };
 
-  // Open edit modal (only for user-created strategies)
-  const handleEditStrategy = (strategy: Strategy) => {
-    setEditingStrategy(strategy);
-    setEditFormData({
-      name: strategy.name,
-      investmentPerRun: strategy.investmentPerRun,
-      investmentCap: strategy.investmentCap,
-      takeProfitPct: strategy.takeProfitPct,
-      stopLossPct: strategy.stopLossPct,
-      frequency: strategy.frequency,
-      time: strategy.time,
-      daysOfWeek: strategy.daysOfWeek,
-      datesOfMonth: strategy.datesOfMonth,
-      hourInterval: strategy.hourInterval,
-    });
-    setIsEditModalOpen(true);
-    setOpenMenuIndex(null);
-  };
-
-  // Handle form field change
-  const handleEditFormChange = (field: keyof Strategy, value: any) => {
-    setEditFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  // Save edited strategy
-  const handleSaveStrategy = async () => {
-    if (!editingStrategy) return;
-
-    const toastId = toast.loading("Updating strategy...");
-
+  // Navigate to the correct strategy page for editing
+  const handleEditStrategy = async (strategy: Strategy) => {
+    const toastId = toast.loading("Loading strategy details...");
     try {
-      await updateStrategyById(editingStrategy.id, editFormData);
-      
-      toast.success("Strategy updated successfully!", {
-        id: toastId,
-        description: `${editFormData.name || editingStrategy.name} has been updated`
-      });
-      
-      setIsEditModalOpen(false);
-      setEditingStrategy(null);
-      setEditFormData({});
+      const fullStrategy = await fetchStrategyById(strategy.id);
+      toast.dismiss(toastId);
+
+      // Map strategy type to route
+      const strategyTypeToRoute: Record<string, string> = {
+        'GROWTH_DCA': '/growth-dca',
+        'HUMAN_GRID': '/human-grid',
+        'SMART_GRID': '/smart-grid',
+        'UTC': '/indy-utc',
+        'PRICE_ACTION': '/price-action',
+        'INDY_TREND': '/indie-trend',
+        'LESI': '/indie-lesi',
+      };
+
+      const strategyType = fullStrategy.strategyType || (fullStrategy as any).type;
+      const route = strategyTypeToRoute[strategyType];
+
+      if (!route) {
+        toast.error(`Unsupported strategy type: ${strategyType}`);
+        return;
+      }
+
+      navigate(route, { state: { editStrategy: fullStrategy } });
     } catch (error: any) {
-      toast.error("Failed to update strategy", {
+      toast.error("Failed to load strategy", {
         id: toastId,
         description: error.message || "Please try again"
       });
@@ -218,11 +203,10 @@ export default function Dashboard() {
     }
 
     const toastId = toast.loading("Deleting strategy...");
-    setOpenMenuIndex(null);
 
     try {
       await deleteStrategyById(strategy.id);
-      
+
       toast.success("Strategy deleted successfully!", {
         id: toastId,
         description: `${strategy.name} has been removed`
@@ -237,7 +221,6 @@ export default function Dashboard() {
 
   // Handle copy-trade subscription actions
   const handlePauseSubscription = async (subscription: SubscribedStrategy) => {
-    setOpenMenuIndex(null);
     try {
       await pauseSubscription(subscription.subscriptionId);
     } catch (error) {
@@ -246,7 +229,6 @@ export default function Dashboard() {
   };
 
   const handleResumeSubscription = async (subscription: SubscribedStrategy) => {
-    setOpenMenuIndex(null);
     try {
       await resumeSubscription(subscription.subscriptionId);
     } catch (error) {
@@ -260,11 +242,10 @@ export default function Dashboard() {
     }
 
     const toastId = toast.loading("Unsubscribing...");
-    setOpenMenuIndex(null);
 
     try {
       await unsubscribeFromStrategy(subscription.subscriptionId);
-      
+
       toast.success("Unsubscribed successfully!", {
         id: toastId,
         description: `You've been unsubscribed from ${subscription.name}`
@@ -280,7 +261,7 @@ export default function Dashboard() {
   // Refresh all strategies
   const handleRefreshStrategies = async () => {
     const toastId = toast.loading("Refreshing strategies...");
-    
+
     try {
       await Promise.all([
         fetchStrategies(),
@@ -471,7 +452,7 @@ export default function Dashboard() {
                   <Badge variant="outline" className="text-xs border-white/30 text-white">
                     {strategies.length} Created • {subscribedStrategies.length} Subscribed
                   </Badge>
-                  <button 
+                  <button
                     onClick={handleRefreshStrategies}
                     disabled={isLoading}
                     className="p-1 hover:bg-white/10 rounded disabled:opacity-50"
@@ -511,10 +492,10 @@ export default function Dashboard() {
                         </TableRow>
                       </TableHeader>
                       <TableBody className="relative">
-                        {currentStrategies.map((strategy, i) => {
+                        {currentStrategies.map((strategy) => {
                           const isCopyTrade = 'isCopyTrade' in strategy && strategy.isCopyTrade;
-                          const investmentAmount = isCopyTrade 
-                            ? (strategy as SubscribedStrategy).allocation 
+                          const investmentAmount = isCopyTrade
+                            ? (strategy as SubscribedStrategy).allocation
                             : (strategy as Strategy).investmentPerRun;
 
                           return (
@@ -560,79 +541,82 @@ export default function Dashboard() {
                               <TableCell className="text-foreground dark:text-white">
                                 <div className="flex items-center gap-2">
                                   <div
-                                    className={`h-2 w-2 rounded-full ${
-                                      strategy.status === "ACTIVE"
-                                        ? "bg-green-500"
-                                        : strategy.status === "PAUSED"
+                                    className={`h-2 w-2 rounded-full ${strategy.status === "ACTIVE"
+                                      ? "bg-green-500"
+                                      : strategy.status === "PAUSED"
                                         ? "bg-yellow-500"
                                         : "bg-red-500"
-                                    }`}
+                                      }`}
                                   />
                                   {strategy.status}
                                 </div>
                               </TableCell>
-                              <TableCell className="text-foreground dark:text-white relative">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setOpenMenuIndex(openMenuIndex === i ? null : i)}
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                                {openMenuIndex === i && (
-                                  <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-10">
+                              <TableCell className="text-foreground dark:text-white">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-40 bg-white dark:bg-[#232326] border-gray-200 dark:border-gray-700">
                                     {isCopyTrade ? (
                                       // Copy-trade subscription actions
                                       <>
                                         {strategy.status === 'ACTIVE' ? (
-                                          <button
+                                          <DropdownMenuItem
                                             onClick={() => handlePauseSubscription(strategy as SubscribedStrategy)}
                                             disabled={isUnsubscribing}
-                                            className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
+                                            className="flex items-center gap-2 cursor-pointer dark:text-white dark:focus:bg-gray-700"
                                           >
-                                            <Pause className="h-4 w-4" />
+                                            <Pause className="h-4 w-4 text-yellow-500" />
                                             Pause
-                                          </button>
+                                          </DropdownMenuItem>
                                         ) : (
-                                          <button
+                                          <DropdownMenuItem
                                             onClick={() => handleResumeSubscription(strategy as SubscribedStrategy)}
                                             disabled={isUnsubscribing}
-                                            className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
+                                            className="flex items-center gap-2 cursor-pointer dark:text-white dark:focus:bg-gray-700"
                                           >
-                                            <Play className="h-4 w-4" />
+                                            <Play className="h-4 w-4 text-green-500" />
                                             Resume
-                                          </button>
+                                          </DropdownMenuItem>
                                         )}
-                                        <button
+                                        <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
+                                        <DropdownMenuItem
                                           onClick={() => handleUnsubscribe(strategy as SubscribedStrategy)}
                                           disabled={isUnsubscribing}
-                                          className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-red-400"
+                                          className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 dark:text-red-400 dark:focus:bg-red-900/20"
                                         >
                                           <Trash2 className="h-4 w-4" />
                                           Unsubscribe
-                                        </button>
+                                        </DropdownMenuItem>
                                       </>
                                     ) : (
                                       // User-created strategy actions
                                       <>
-                                        <button
+                                        <DropdownMenuItem
                                           onClick={() => handleEditStrategy(strategy as Strategy)}
-                                          className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white"
+                                          className="flex items-center gap-2 cursor-pointer dark:text-white dark:focus:bg-gray-700"
                                         >
-                                          <Edit className="h-4 w-4" />
+                                          <Edit className="h-4 w-4 text-blue-500" />
                                           Edit
-                                        </button>
-                                        <button
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
+                                        <DropdownMenuItem
                                           onClick={() => handleDeleteStrategy(strategy as Strategy)}
-                                          className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-red-400"
+                                          className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 dark:text-red-400 dark:focus:bg-red-900/20"
                                         >
                                           <Trash2 className="h-4 w-4" />
                                           Delete
-                                        </button>
+                                        </DropdownMenuItem>
                                       </>
                                     )}
-                                  </div>
-                                )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </TableCell>
                             </TableRow>
                           );
@@ -681,115 +665,7 @@ export default function Dashboard() {
           </Card>
         </Collapsible>
 
-        {/* Edit Strategy Modal - Only for user-created strategies */}
-        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-          <DialogContent className="sm:max-w-[600px] bg-white dark:bg-[#232326]">
-            <DialogHeader>
-              <DialogTitle>Edit Strategy</DialogTitle>
-            </DialogHeader>
-            {editingStrategy && (
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>Strategy Name</Label>
-                  <Input
-                    value={editFormData.name || ''}
-                    onChange={(e) => handleEditFormChange('name', e.target.value)}
-                    placeholder="Enter strategy name"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Investment Per Run</Label>
-                    <Input
-                      type="number"
-                      value={editFormData.investmentPerRun || ''}
-                      onChange={(e) => handleEditFormChange('investmentPerRun', Number(e.target.value))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Investment Cap</Label>
-                    <Input
-                      type="number"
-                      value={editFormData.investmentCap || ''}
-                      onChange={(e) => handleEditFormChange('investmentCap', Number(e.target.value))}
-                    />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Take Profit %</Label>
-                    <Input
-                      type="number"
-                      value={editFormData.takeProfitPct || ''}
-                      onChange={(e) => handleEditFormChange('takeProfitPct', Number(e.target.value))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Stop Loss %</Label>
-                    <Input
-                      type="number"
-                      value={editFormData.stopLossPct || ''}
-                      onChange={(e) => handleEditFormChange('stopLossPct', Number(e.target.value))}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Frequency</Label>
-                  <Select
-                    value={editFormData.frequency}
-                    onValueChange={(value) => handleEditFormChange('frequency', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DAILY">Daily</SelectItem>
-                      <SelectItem value="WEEKLY">Weekly</SelectItem>
-                      <SelectItem value="MONTHLY">Monthly</SelectItem>
-                      <SelectItem value="HOURLY">Hourly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {editFormData.frequency !== 'HOURLY' && (
-                  <div className="space-y-2">
-                    <Label>Time</Label>
-                    <Input
-                      type="time"
-                      value={editFormData.time || ''}
-                      onChange={(e) => handleEditFormChange('time', e.target.value)}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsEditModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="bg-[#4A0D0D] hover:bg-[#3A0808]"
-                onClick={handleSaveStrategy}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save Changes'
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* Rest of the dashboard components remain the same */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
@@ -843,11 +719,10 @@ export default function Dashboard() {
                               <TableCell>
                                 <div className="flex items-center gap-2">
                                   <div
-                                    className={`h-2 w-2 rounded-full ${
-                                      scanner.status === "Active"
-                                        ? "bg-green-500"
-                                        : "bg-red-500"
-                                    }`}
+                                    className={`h-2 w-2 rounded-full ${scanner.status === "Active"
+                                      ? "bg-green-500"
+                                      : "bg-red-500"
+                                      }`}
                                   />
                                   {scanner.status}
                                 </div>
@@ -933,7 +808,7 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent className="p-4">
-                <ApiConnect 
+                <ApiConnect
                   showModal={showApiModal}
                   setShowModal={setShowApiModal}
                 />
