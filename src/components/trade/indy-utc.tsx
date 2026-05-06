@@ -842,7 +842,7 @@ export default function IndyUTC({ editData }: { editData?: Strategy | null }) {
             <Button
               onClick={handleClosePopup}
               className="w-full bg-[#4A1515] text-white hover:bg-[#5A2525]"
-            >
+            >\
               View Strategies
             </Button>
           </div>

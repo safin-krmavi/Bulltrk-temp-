@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -16,6 +16,7 @@ import { useStrategyStore, GrowthDCAStrategy, Strategy } from "@/stores/strategy
 import { toast } from "sonner"
 import { ProceedPopup } from "@/components/dashboard/proceed-popup"
 import { useNavigate } from "react-router-dom"
+import { ClockTimePicker } from "@/components/ui/clock-time-picker"
 
 const WEEKDAYS = [
   { short: 'Sun', full: 'Sunday' },
@@ -108,8 +109,27 @@ export default function GrowthDCA({ editData }: { editData?: Strategy | null }) 
     };
   };
 
+  // Helper to get current time + 5 minutes in 12-hour format
+  const getMinTime = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 5);
+    let hour = now.getHours();
+    const minute = now.getMinutes();
+    const period = hour >= 12 ? "PM" : "AM";
+
+    // Convert to 12-hour format
+    if (hour === 0) hour = 12;
+    else if (hour > 12) hour -= 12;
+
+    return {
+      hour: hour.toString(),
+      minute: minute.toString().padStart(2, "0"),
+      period: period as "AM" | "PM"
+    };
+  };
+
   // Shared time state for DAILY, WEEKLY, and MONTHLY
-  const [sharedTime, setSharedTime] = useState(getCurrentTime);
+  const [sharedTime, setSharedTime] = useState(getMinTime);
 
   // Separate state for frequency-specific selections
   const [weeklyDays, setWeeklyDays] = useState<string[]>([]);
@@ -885,58 +905,15 @@ export default function GrowthDCA({ editData }: { editData?: Strategy | null }) 
 
                                 <div className="space-y-1.5">
                                   <h4 className="font-medium text-xs">Start Time</h4>
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="flex items-center gap-0.5">
-                                      <Input
-                                        type="text"
-                                        placeholder="HH"
-                                        value={sharedTime.hour}
-                                        onChange={(e) => {
-                                          const value = e.target.value;
-                                          if (
-                                            value === '' ||
-                                            (/^\d{0,2}$/.test(value) && Number(value) >= 1 && Number(value) <= 12)
-                                          ) {
-                                            updateHour(value);
-                                          }
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="w-10 h-8 text-center text-xs"
-                                        maxLength={2}
-                                      />
-                                      <span className="text-sm">:</span>
-                                      <Input
-                                        type="text"
-                                        placeholder="MM"
-                                        value={sharedTime.minute}
-                                        onChange={(e) => {
-                                          const value = e.target.value;
-                                          if (
-                                            value === '' ||
-                                            (/^\d{0,2}$/.test(value) && Number(value) <= 59)
-                                          ) {
-                                            updateMinute(value);
-                                          }
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="w-10 h-8 text-center text-xs"
-                                        maxLength={2}
-                                      />
-                                    </div>
-
-                                    <Select
-                                      value={sharedTime.period}
-                                      onValueChange={(value) => updatePeriod(value as "AM" | "PM")}
-                                    >
-                                      <SelectTrigger className="w-16 h-8 text-xs">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="AM" className="text-xs">AM</SelectItem>
-                                        <SelectItem value="PM" className="text-xs">PM</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
+                                  <ClockTimePicker
+                                    hour={sharedTime.hour}
+                                    minute={sharedTime.minute}
+                                    period={sharedTime.period}
+                                    onHourChange={updateHour}
+                                    onMinuteChange={updateMinute}
+                                    onPeriodChange={updatePeriod}
+                                    minTime={getMinTime()}
+                                  />
                                 </div>
                               </div>
                             )}
@@ -944,48 +921,15 @@ export default function GrowthDCA({ editData }: { editData?: Strategy | null }) 
                             {val !== 'HOURLY' && (
                               <div className="space-y-1.5">
                                 <h4 className="font-medium text-xs">Repeats On</h4>
-                                <div className="flex items-center gap-1.5">
-                                  <div className="flex items-center gap-0.5">
-                                    <Input
-                                      type="text"
-                                      placeholder="HH"
-                                      value={sharedTime.hour}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        if (value === '' || (/^\d{0,2}$/.test(value) && Number(value) >= 1 && Number(value) <= 12)) {
-                                          updateHour(value);
-                                        }
-                                      }}
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="w-10 h-8 text-center text-xs"
-                                      maxLength={2}
-                                    />
-                                    <span className="text-sm">:</span>
-                                    <Input
-                                      type="text"
-                                      placeholder="MM"
-                                      value={sharedTime.minute}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        if (value === '' || (/^\d{0,2}$/.test(value) && Number(value) <= 59)) {
-                                          updateMinute(value);
-                                        }
-                                      }}
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="w-10 h-8 text-center text-xs"
-                                      maxLength={2}
-                                    />
-                                  </div>
-                                  <Select value={sharedTime.period} onValueChange={(value) => updatePeriod(value as "AM" | "PM")}>
-                                    <SelectTrigger className="w-16 h-8 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="AM" className="text-xs">AM</SelectItem>
-                                      <SelectItem value="PM" className="text-xs">PM</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
+                                <ClockTimePicker
+                                  hour={sharedTime.hour}
+                                  minute={sharedTime.minute}
+                                  period={sharedTime.period}
+                                  onHourChange={updateHour}
+                                  onMinuteChange={updateMinute}
+                                  onPeriodChange={updatePeriod}
+                                  minTime={getMinTime()}
+                                />
                               </div>
                             )}
                           </div>
