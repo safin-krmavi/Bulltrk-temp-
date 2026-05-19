@@ -194,6 +194,7 @@ export default function GrowthDCA({ editData }: { editData?: Strategy | null }) 
         return {
           type: 'HOURLY' as const,
           intervalHours: interval,
+          time: time24,
         };
 
       default:

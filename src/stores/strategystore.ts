@@ -461,6 +461,9 @@ const convertToApiPayload = (strategy: GrowthDCAStrategy): GrowthDCAApiPayload =
       if (strategy.frequency.intervalHours) {
         payload.hourInterval = strategy.frequency.intervalHours;
       }
+      if ((strategy.frequency as any).time) {
+        payload.time = (strategy.frequency as any).time;
+      }
       break;
   }
 
