@@ -486,23 +486,25 @@ export default function SmartGrid({ editData }: { editData?: Strategy | null }) 
                 />
               </div>
 
-              {/* Select Type */}
-              <div className="space-y-2">
-                <Label>Select Type</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {availableTypes.map(val => (
-                    <Button
-                      key={val}
-                      variant={type === val ? "default" : "outline"}
-                      type="button"
-                      onClick={() => handleTypeSelect(val as 'NEUTRAL' | 'LONG' | 'SHORT')}
-                      className={type === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
-                    >
-                      {val}
-                    </Button>
-                  ))}
+              {/* Select Type - only shown for non-SPOT segments */}
+              {segment !== "SPOT" && (
+                <div className="space-y-2">
+                  <Label>Select Type</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {availableTypes.map(val => (
+                      <Button
+                        key={val}
+                        variant={type === val ? "default" : "outline"}
+                        type="button"
+                        onClick={() => handleTypeSelect(val as 'NEUTRAL' | 'LONG' | 'SHORT')}
+                        className={type === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
+                      >
+                        {val}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Data Set (Days) */}
               <div className="space-y-2">
