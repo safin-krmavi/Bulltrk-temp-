@@ -352,7 +352,9 @@ export interface StrategyState {
     exchange: string,
     segment: string,
     symbol: string,
-    dataSetDays: number
+    dataSetDays: number,
+    gridType?: 'NEUTRAL' | 'LONG' | 'SHORT',
+    options?: { investment?: number; minimumInvestment?: number }
   ) => Promise<{
     lowerLimit: number;
     upperLimit: number;
@@ -1151,18 +1153,29 @@ export const useStrategyStore = create<StrategyState>()(
         exchange: string,
         segment: string,
         symbol: string,
-        dataSetDays: number
+        dataSetDays: number,
+        gridType: 'NEUTRAL' | 'LONG' | 'SHORT' = 'NEUTRAL',
+        options?: { investment?: number; minimumInvestment?: number }
       ) => {
         console.log("=== Calculating Smart Grid Limits ===");
-        console.log({ exchange, segment, symbol, dataSetDays });
+        console.log({ exchange, segment, symbol, dataSetDays, gridType, options });
 
         try {
-          const response = await apiClient.post(apiurls.strategies.limits, {
+          const body: Record<string, unknown> = {
             exchange: exchange.toUpperCase(),
             segment: segment.toUpperCase(),
             symbol: symbol.toUpperCase(),
             dataSetDays: dataSetDays,
-          });
+            type: gridType,
+          };
+          if (options?.investment != null && options.investment > 0) {
+            body.investment = options.investment;
+          }
+          if (options?.minimumInvestment != null && options.minimumInvestment > 0) {
+            body.minimumInvestment = options.minimumInvestment;
+          }
+
+          const response = await apiClient.post(apiurls.strategies.limits, body);
 
           console.log("Limits API Response:", response.data);
 

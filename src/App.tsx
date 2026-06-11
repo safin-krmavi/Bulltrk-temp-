@@ -57,6 +57,7 @@ const AppRouter = () => {
         <Route path="/price-action" element={<GenericLayout  children={<TradePage />} />} />
         <Route path="/indie-trend" element={<GenericLayout  children={<TradePage />} />} />
         <Route path="/indy-utc" element={<GenericLayout  children={<TradePage />} />} />
+        <Route path="/nlp-strategy" element={<GenericLayout  children={<TradePage />} />} />
         <Route path="/trading-report" element={<GenericLayout  children={<TradingReportsPage />} />} />
         <Route path="/market-place" element={<GenericLayout  children={<MarketPlacePage />} />} />
         <Route path="/copy-trade" element={<GenericLayout  children={<CopyTradePage />} />} />

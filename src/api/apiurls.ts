@@ -45,6 +45,13 @@ export const apiurls = {
     },
     backtest: {
         run: "/backtest/run",
+        results: "/backtest/results/:runId",
+        history: "/backtest/history",
+        delete: "/backtest/:runId",
+    },
+    nlpStrategy: {
+        preview: "/strategy/nlp/preview",
+        create: "/strategy/nlp/create",
     },
 
 }

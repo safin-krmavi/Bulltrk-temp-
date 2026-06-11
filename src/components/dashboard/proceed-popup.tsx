@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useState } from 'react'
 import { BacktestInputDialog, BacktestResultsDialog } from './backtest-dialog'
-import type { BacktestStrategyContext } from './backtest-dialog'
+import type { BacktestStrategyContext } from '@/utils/backtestTimeframe'
 
 interface StrategyData {
   // Account Details
@@ -17,7 +17,7 @@ interface StrategyData {
   name: string;
   investmentPerRun: number;
   investmentCap: number;
-  strategyType?: 'GROWTH_DCA' | 'HUMAN_GRID' | 'SMART_GRID' | 'PRICE_ACTION';
+  strategyType?: 'GROWTH_DCA' | 'HUMAN_GRID' | 'SMART_GRID' | 'PRICE_ACTION' | 'UTC';
 
   // Growth DCA specific fields
   frequency?: string;
@@ -41,9 +41,10 @@ interface StrategyData {
   dataSetDays?: number;
   gridMode?: string;
 
-  // Price Action specific fields
+  // Price Action / UTC / LESI candle timeframe
   quantity?: number;
   timeframe?: string;
+  timeFrame?: string;
   pattern_confidence?: number;
   support_resistance_strength?: number;
   breakout_threshold?: number;
@@ -77,6 +78,7 @@ export function ProceedPopup({
   const isHumanGrid = strategyData.strategyType === 'HUMAN_GRID';
   const isSmartGrid = strategyData.strategyType === 'SMART_GRID';
   const isPriceAction = strategyData.strategyType === 'PRICE_ACTION';
+  const isUTC = strategyData.strategyType === 'UTC';
   const isFutures = strategyData.segment?.toUpperCase() === 'FUTURES';
 
   const accountDetails = [
@@ -125,6 +127,20 @@ export function ProceedPopup({
         { label: 'Time Frame', value: strategyData.timeframe || 'N/A' },
         { label: 'Investment', value: `${strategyData.investmentPerRun || 0} USDT` },
         { label: 'Investment CAP', value: `${strategyData.investmentCap || 0} USDT` },
+      ];
+    }
+
+    if (isUTC) {
+      return [
+        { label: 'Strategy Name', value: strategyData.name },
+        { label: 'Strategy Type', value: 'Indy UTC' },
+        { label: 'Asset Type', value: 'CRYPTO' },
+        { label: 'Investment Per Run', value: `${strategyData.investmentPerRun} USDT` },
+        { label: 'Investment CAP', value: `${strategyData.investmentCap} USDT` },
+        { label: 'Time Frame', value: strategyData.timeFrame || strategyData.timeframe || 'N/A' },
+        ...(isFutures && strategyData.leverage
+          ? [{ label: 'Leverage', value: `${strategyData.leverage}x` }]
+          : []),
       ];
     }
 
@@ -192,6 +208,17 @@ export function ProceedPopup({
       ];
     }
 
+    if (isUTC) {
+      return [
+        { label: 'Lower Limit', value: strategyData.lowerLimit ? `${strategyData.lowerLimit} USDT` : 'N/A' },
+        { label: 'Upper Limit', value: strategyData.upperLimit ? `${strategyData.upperLimit} USDT` : 'N/A' },
+        { label: 'Price Trigger Start', value: strategyData.priceStart ? `${strategyData.priceStart} USDT` : 'N/A' },
+        { label: 'Price Trigger Stop', value: strategyData.priceStop ? `${strategyData.priceStop} USDT` : 'N/A' },
+        { label: 'Take Profit %', value: strategyData.takeProfitPct ? `${strategyData.takeProfitPct}%` : 'N/A' },
+        { label: 'Stop Loss %', value: strategyData.stopLossPct ? `${strategyData.stopLossPct}%` : 'N/A' },
+      ];
+    }
+
     // Growth DCA
     return [
       { label: 'Price Start', value: (strategyData.priceStart && strategyData.priceStart !== 0) ? `${strategyData.priceStart} USDT` : 'N/A' },
@@ -210,9 +237,15 @@ export function ProceedPopup({
   const backtestContext: BacktestStrategyContext = {
     strategyType: strategyData.strategyType ?? 'GROWTH_DCA',
     exchange: strategyData.exchange,
+    segment: strategyData.segment,
     symbol: strategyData.pair,
     investmentPerRun: strategyData.investmentPerRun,
     investmentCap: strategyData.investmentCap,
+    frequency: strategyData.frequency,
+    frequencyData: strategyData.frequencyData,
+    hourInterval: strategyData.frequencyData?.intervalHours,
+    timeFrame: strategyData.timeframe ?? (strategyData as { timeFrame?: string }).timeFrame,
+    timeframe: strategyData.timeframe,
   };
 
   const handleBacktestResults = (results: any, name: string) => {

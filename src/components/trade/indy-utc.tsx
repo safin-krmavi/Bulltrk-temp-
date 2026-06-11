@@ -14,6 +14,8 @@ import { useStrategyStore, Strategy } from "@/stores/strategystore"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { useNavigate } from 'react-router-dom'
+import { ProceedPopup } from "@/components/dashboard/proceed-popup"
+import type { UTCStrategy } from "@/stores/strategystore"
 
 export default function IndyUTC({ editData }: { editData?: Strategy | null }) {
   const router = useNavigate()
@@ -183,13 +185,74 @@ export default function IndyUTC({ editData }: { editData?: Strategy | null }) {
     return true;
   };
 
-  // ✅ Handle form submission
-  const handleProceed = async (e: React.MouseEvent) => {
+  const getStrategyData = () => ({
+    strategyType: 'UTC' as const,
+    selectedApi: selectedApiId,
+    exchange,
+    segment,
+    pair: symbol,
+    name: strategyName.trim(),
+    investmentPerRun: parseFloat(investment),
+    investmentCap: parseFloat(investmentCap),
+    timeFrame,
+    timeframe: timeFrame,
+    ...(leverage && parseFloat(leverage) > 0 && { leverage: parseFloat(leverage) }),
+    ...(lowerLimit && parseFloat(lowerLimit) > 0 && { lowerLimit: parseFloat(lowerLimit) }),
+    ...(upperLimit && parseFloat(upperLimit) > 0 && { upperLimit: parseFloat(upperLimit) }),
+    ...(priceTriggerStart && parseFloat(priceTriggerStart) > 0 && { priceStart: parseFloat(priceTriggerStart) }),
+    ...(priceTriggerStop && parseFloat(priceTriggerStop) > 0 && { priceStop: parseFloat(priceTriggerStop) }),
+    ...(stopLossBy && parseFloat(stopLossBy) > 0 && { stopLossPct: parseFloat(stopLossBy) }),
+    ...(takeProfitPct && parseFloat(takeProfitPct) > 0 && { takeProfitPct: parseFloat(takeProfitPct) }),
+  });
+
+  const buildCreatePayload = (
+    executionMode: 'LIVE' | 'PUBLISHED',
+  ): Omit<UTCStrategy, 'strategyType' | 'assetType'> => ({
+    name: strategyName.trim(),
+    exchange: exchange.toUpperCase(),
+    segment: segment.toUpperCase(),
+    symbol: symbol.toUpperCase(),
+    executionMode,
+    timeFrame,
+    investmentPerRun: parseFloat(investment),
+    investmentCap: parseFloat(investmentCap),
+    ...(leverage && parseFloat(leverage) > 0 && { leverage: parseFloat(leverage) }),
+    ...(lowerLimit && parseFloat(lowerLimit) > 0 && { lowerLimit: parseFloat(lowerLimit) }),
+    ...(upperLimit && parseFloat(upperLimit) > 0 && { upperLimit: parseFloat(upperLimit) }),
+    ...(priceTriggerStart && parseFloat(priceTriggerStart) > 0 && { priceStart: parseFloat(priceTriggerStart) }),
+    ...(priceTriggerStop && parseFloat(priceTriggerStop) > 0 && { priceStop: parseFloat(priceTriggerStop) }),
+    ...(stopLossBy && parseFloat(stopLossBy) > 0 && { stopLossPct: parseFloat(stopLossBy) }),
+    ...(takeProfitPct && parseFloat(takeProfitPct) > 0 && { takeProfitPct: parseFloat(takeProfitPct) }),
+  });
+
+  const handleProceed = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
 
     if (isEditMode && editData) {
-      // In edit mode: just update
-      if (!strategyName.trim()) { toast.error("Please enter a strategy name"); return; }
+      if (!strategyName.trim()) {
+        toast.error("Please enter a strategy name");
+        return;
+      }
+      toast.info("Review your changes", {
+        description: "Please confirm the details before updating",
+      });
+      setShowProceedPopup(true);
+      return;
+    }
+
+    if (!validateForm()) {
+      return;
+    }
+
+    toast.info("Review your strategy", {
+      description: "Please confirm the details before creating",
+    });
+    setShowProceedPopup(true);
+  };
+
+  const handleConfirmStrategy = async (executionMode: 'LIVE' | 'PUBLISHED') => {
+    if (isEditMode && editData) {
       const toastId = toast.loading("Updating strategy...");
       try {
         await updateStrategyById(editData.id, {
@@ -204,6 +267,7 @@ export default function IndyUTC({ editData }: { editData?: Strategy | null }) {
           strategyType: 'UTC',
         } as any);
         toast.success("Strategy updated! ✅", { id: toastId, duration: 5000 });
+        setShowProceedPopup(false);
         router('/dashboard');
       } catch (err: any) {
         toast.error("Failed to update", { id: toastId, description: err.message });
@@ -211,51 +275,27 @@ export default function IndyUTC({ editData }: { editData?: Strategy | null }) {
       return;
     }
 
-    if (!validateForm()) {
-      return;
-    }
+    const toastId = toast.loading("Creating strategy...", {
+      description: "Please wait while we process your request",
+    });
 
     try {
-      console.log("Creating UTC Strategy...");
+      const strategyData = buildCreatePayload(executionMode);
+      await createUTC(strategyData);
 
-      const strategyData = {
-        name: strategyName.trim(),
-        exchange: exchange.toUpperCase(),
-        segment: segment.toUpperCase(),
-        symbol: symbol.toUpperCase(),
-        executionMode: 'LIVE' as const,
-        timeFrame: timeFrame,
-        investmentPerRun: parseFloat(investment),
-        investmentCap: parseFloat(investmentCap),
-        ...(leverage && parseFloat(leverage) > 0 && { leverage: parseFloat(leverage) }),
-        ...(lowerLimit && parseFloat(lowerLimit) > 0 && { lowerLimit: parseFloat(lowerLimit) }),
-        ...(upperLimit && parseFloat(upperLimit) > 0 && { upperLimit: parseFloat(upperLimit) }),
-        ...(priceTriggerStart && parseFloat(priceTriggerStart) > 0 && { priceStart: parseFloat(priceTriggerStart) }),
-        ...(priceTriggerStop && parseFloat(priceTriggerStop) > 0 && { priceStop: parseFloat(priceTriggerStop) }),
-        ...(stopLossBy && parseFloat(stopLossBy) > 0 && { stopLossPct: parseFloat(stopLossBy) }),
-        ...(takeProfitPct && parseFloat(takeProfitPct) > 0 && { takeProfitPct: parseFloat(takeProfitPct) }),
-      };
-
-      console.log("Strategy Data:", strategyData);
-
-      const createdStrategy = await createUTC(strategyData);
-
-      console.log("UTC Strategy created successfully:", createdStrategy);
-
-      toast.success("UTC Strategy created successfully!", {
-        description: `Strategy "${strategyName}" has been created and is now active.`
+      toast.success("UTC Strategy created successfully! 🎉", {
+        id: toastId,
+        description: `${strategyName} is now active in ${executionMode} mode`,
+        duration: 5000,
       });
 
-      // Show proceed popup
-      setShowProceedPopup(true);
-
-      // Reset form after successful creation
+      setShowProceedPopup(false);
       handleReset();
-
     } catch (error: any) {
       console.error("Failed to create UTC strategy:", error);
       toast.error("Failed to create UTC strategy", {
-        description: error.message || "Please try again"
+        id: toastId,
+        description: error.message || "Please try again",
       });
     }
   };
@@ -284,12 +324,6 @@ export default function IndyUTC({ editData }: { editData?: Strategy | null }) {
     setUtOscillatorEnabled(false);
 
     // toast.success("Form reset successfully");
-  };
-
-  // ✅ Close popup and navigate
-  const handleClosePopup = () => {
-    setShowProceedPopup(false);
-    router('/strategies');
   };
 
   return (
@@ -805,6 +839,7 @@ export default function IndyUTC({ editData }: { editData?: Strategy | null }) {
           {/* Action Buttons */}
           <div className="flex gap-4 pt-2">
             <Button
+              type="button"
               className="flex-1 bg-[#4A1515] text-white hover:bg-[#5A2525] h-11"
               onClick={handleProceed}
               disabled={isCreating}
@@ -831,22 +866,13 @@ export default function IndyUTC({ editData }: { editData?: Strategy | null }) {
         </form>
       </TooltipProvider>
 
-      {/* Success Popup */}
       {showProceedPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-[#1A1A1D] rounded-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold mb-2">Strategy Created Successfully!</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Your UTC strategy has been created and is now active.
-            </p>
-            <Button
-              onClick={handleClosePopup}
-              className="w-full bg-[#4A1515] text-white hover:bg-[#5A2525]"
-            >\
-              View Strategies
-            </Button>
-          </div>
-        </div>
+        <ProceedPopup
+          strategyData={getStrategyData()}
+          onClose={() => setShowProceedPopup(false)}
+          onConfirm={handleConfirmStrategy}
+          isLoading={isCreating}
+        />
       )}
     </div>
   )

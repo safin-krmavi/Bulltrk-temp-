@@ -1,26 +1,17 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X, Download, TrendingUp, TrendingDown, Activity, CheckCircle2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
-import axios from "axios";
+import apiClient from "@/api/apiClient";
+import { apiurls } from "@/api/apiurls";
+import {
+  formatBacktestIntervalLabel,
+  resolveBacktestTimeframe,
+  type BacktestStrategyContext,
+} from "@/utils/backtestTimeframe";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-export interface BacktestStrategyContext {
-  strategyType: string;
-  exchange: string;
-  symbol: string;
-  investmentPerRun: number;
-  investmentCap: number;
-}
+export type { BacktestStrategyContext };
 
 interface BacktestFormData {
   name: string;
@@ -272,28 +263,33 @@ interface BacktestInputDialogProps {
   strategyContext: BacktestStrategyContext;
 }
 
-const TIMEFRAME_OPTIONS = [
-  { label: "1 Minute",   value: "1m"  },
-  { label: "5 Minutes",  value: "5m"  },
-  { label: "15 Minutes", value: "15m" },
-  { label: "30 Minutes", value: "30m" },
-  { label: "1 Hour",     value: "1h"  },
-  { label: "4 Hours",    value: "4h"  },
-  { label: "1 Day",      value: "1d"  },
-  { label: "1 Week",     value: "1w"  },
-  { label: "1 Month",    value: "1M"  },
-];
-
 export function BacktestInputDialog({
   isOpen,
   onClose,
   onResults,
   strategyContext,
 }: BacktestInputDialogProps) {
+  const resolvedTimeframe = useMemo(
+    () => resolveBacktestTimeframe(strategyContext),
+    [strategyContext],
+  );
+
   const [form, setForm] = useState<BacktestFormData>({
-    name: "", from: "", to: "", timeframe: "1h", passphrase: "",
+    name: "",
+    from: "",
+    to: "",
+    timeframe: resolvedTimeframe.interval,
+    passphrase: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setForm((prev) => ({
+      ...prev,
+      timeframe: resolvedTimeframe.interval,
+    }));
+  }, [isOpen, resolvedTimeframe.interval]);
 
   if (!isOpen) return null;
 
@@ -317,17 +313,23 @@ export function BacktestInputDialog({
       const token = localStorage.getItem("AUTH_TOKEN");
       if (!token) { toast.error("Authentication required", { id: toastId }); return; }
 
+      const startDate = new Date(form.from);
+      startDate.setUTCHours(0, 0, 0, 0);
+      const endDate = new Date(form.to);
+      endDate.setUTCHours(23, 59, 59, 999);
+
       const payload = {
         strategyType:   strategyContext.strategyType || "GROWTH_DCA",
         exchange:       strategyContext.exchange || "BINANCE",
-        symbol:         strategyContext.symbol || "BTCUSDT",
-        interval:       form.timeframe,
-        startDate:      new Date(form.from).toISOString(),
-        endDate:        new Date(form.to).toISOString(),
+        symbol:         (strategyContext.symbol || "BTCUSDT").toUpperCase(),
+        interval:       resolvedTimeframe.interval,
+        startDate:      startDate.toISOString(),
+        endDate:        endDate.toISOString(),
         initialCapital: strategyContext.investmentCap || 10000,
         name:           form.name,
         passphrase:     form.passphrase || "default-passphrase",
         params: {
+          segment: (strategyContext.segment || "SPOT").toUpperCase(),
           capital: {
             perOrderAmount: strategyContext.investmentPerRun || 100,
             maxCapital:     strategyContext.investmentCap || 5000,
@@ -336,16 +338,7 @@ export function BacktestInputDialog({
         },
       };
 
-      const response = await axios.post(
-        "http://localhost:3000/api/backtest/run",
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await apiClient.post(apiurls.backtest.run, payload);
 
       toast.success("Backtest completed!", {
         id: toastId,
@@ -359,7 +352,10 @@ export function BacktestInputDialog({
       onClose();
     } catch (error: any) {
       const msg =
-        error?.response?.data?.message || error?.message || "Failed to run backtest";
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to run backtest";
       toast.error("Backtest failed", { id: toastId, description: msg });
     } finally {
       setIsSubmitting(false);
@@ -423,21 +419,27 @@ export function BacktestInputDialog({
             </div>
           </div>
 
-          {/* Row 2 */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Time Frame</label>
-              <Select value={form.timeframe} onValueChange={(v) => handleChange("timeframe", v)} disabled={isSubmitting}>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIMEFRAME_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Row 2 — duration/timeframe from strategy (read-only) or hidden */}
+          <div
+            className={
+              resolvedTimeframe.mode === "display"
+                ? "grid grid-cols-2 gap-4"
+                : "grid grid-cols-1 gap-4"
+            }
+          >
+            {resolvedTimeframe.mode === "display" && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {resolvedTimeframe.fieldLabel}
+                </label>
+                <Input
+                  readOnly
+                  disabled
+                  value={`${resolvedTimeframe.label} (${formatBacktestIntervalLabel(resolvedTimeframe.interval)})`}
+                  className="h-9 text-sm bg-gray-50 dark:bg-[#1a1a1d] cursor-default"
+                />
+              </div>
+            )}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Notification Type</label>
               <Input

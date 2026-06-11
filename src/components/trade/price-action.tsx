@@ -204,6 +204,7 @@ export default function PriceAction({ editData }: { editData?: Strategy | null }
         risk_level: riskLevel.toLowerCase(),
         pattern_confidence: undefined,
         timeframe: timeFrame,
+        timeFrame: timeFrame,
         quantity: Number(investment),
         direction: undefined,
         priceStart: priceStart ? Number(priceStart) : undefined,

@@ -177,6 +177,7 @@ export default function Dashboard() {
         'PRICE_ACTION': '/price-action',
         'INDY_TREND': '/indie-trend',
         'LESI': '/indie-lesi',
+        'NLP_STRATEGY': '/nlp-strategy',
       };
 
       const strategyType = fullStrategy.strategyType || (fullStrategy as any).type;

@@ -17,6 +17,7 @@ const navDropdowns = [
   { label: "Price Action", value: "/price-action" },
   { label: "Human Grid", value: "/human-grid" },
   { label: "Smart Grid", value: "/smart-grid" },
+  { label: "NLP Strategy", value: "/nlp-strategy" },
     ],
   },
   {

@@ -6,6 +6,7 @@ import IndyTrend from '@/components/trade/indy-trend';
 import PriceAction from '@/components/trade/price-action';
 import IndyUTC from '@/components/trade/indy-utc';
 import SmartGrid from '@/components/trade/smart-grid';
+import NlpStrategyBuilder from '@/components/nlp-strategy/nlp-strategy-builder';
 import { TradeConfirmationDialog } from '@/components/trade/trade-confirmation-dialog';
 import { Button } from "@/components/ui/button";
 import {
@@ -310,6 +311,7 @@ export default function TradePage() {
           {pathName === "/price-action" && <PriceAction editData={editStrategy} />}
           {pathName === "/human-grid" && <HumanGrid editData={editStrategy} />}
           {pathName === "/smart-grid" && <SmartGrid editData={editStrategy} />}
+          {pathName === "/nlp-strategy" && <NlpStrategyBuilder />}
         </div>
       )}
 

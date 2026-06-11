@@ -448,6 +448,7 @@ export default function GrowthDCA({ editData }: { editData?: Strategy | null }) 
     const frequencyData = buildFrequencyData();
 
     return {
+      strategyType: 'GROWTH_DCA' as const,
       selectedApi: selectedApiId,
       exchange: exchange,
       segment: segment,

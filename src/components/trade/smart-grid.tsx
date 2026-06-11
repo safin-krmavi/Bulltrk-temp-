@@ -14,6 +14,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ProceedPopup } from "@/components/dashboard/proceed-popup"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useNavigate } from "react-router-dom"
+import { cn } from "@/lib/utils"
+
+function formatLimitPrice(value: number): string {
+  if (!Number.isFinite(value)) return "";
+  if (value >= 1000) return value.toFixed(2);
+  if (value >= 1) return value.toFixed(4);
+  return value.toFixed(6);
+}
 
 export default function SmartGrid({ editData }: { editData?: Strategy | null }) {
   const navigate = useNavigate();
@@ -33,7 +41,14 @@ export default function SmartGrid({ editData }: { editData?: Strategy | null }) 
 
   // Form state - pre-fill from editData if in edit mode
   const [strategyName, setStrategyName] = React.useState(editData?.name ?? "");
-  const [type, setType] = React.useState<'NEUTRAL' | 'LONG' | 'SHORT'>(editData?.direction ?? "NEUTRAL");
+  const initialGridType = (
+    (editData?.config as { type?: string } | undefined)?.type ??
+    editData?.direction ??
+    "NEUTRAL"
+  ).toString().toUpperCase() as 'NEUTRAL' | 'LONG' | 'SHORT';
+  const [type, setType] = React.useState<'NEUTRAL' | 'LONG' | 'SHORT'>(
+    initialGridType === "LONG" || initialGridType === "SHORT" ? initialGridType : "NEUTRAL"
+  );
   const [dataSet, setDataSet] = React.useState(editData?.dataSetDays?.toString() ?? "30");
   const [lowerLimit, setLowerLimit] = React.useState(editData?.lowerLimit?.toString() ?? "");
   const [upperLimit, setUpperLimit] = React.useState(editData?.upperLimit?.toString() ?? "");
@@ -91,11 +106,10 @@ export default function SmartGrid({ editData }: { editData?: Strategy | null }) 
 
   // ✅ Update effect to calculate when exchange, segment, symbol, and dataSet are filled
   React.useEffect(() => {
-    // Calculate limits as soon as we have the required fields
     if (exchange && segment && symbol && dataSet) {
       handleCalculateLimits();
     }
-  }, [exchange, segment, symbol, dataSet]);  // ✅ Removed investment dependency
+  }, [exchange, segment, symbol, dataSet, type]);
 
   // ✅ Update Calculate Smart Grid Limits function to receive and map investment
   const handleCalculateLimits = async () => {
@@ -111,6 +125,7 @@ export default function SmartGrid({ editData }: { editData?: Strategy | null }) 
         segment,
         symbol,
         dataSetDays: dataSet,
+        type,
       });
 
       // ✅ Call API and receive investment value
@@ -125,19 +140,30 @@ export default function SmartGrid({ editData }: { editData?: Strategy | null }) 
         exchange,
         segment,
         symbol,
-        Number(dataSet)
+        Number(dataSet),
+        type,
+        {
+          investment: investment ? Number(investment) : undefined,
+          minimumInvestment: minimumInvestment
+            ? Number(minimumInvestment)
+            : undefined,
+        }
       );
 
-      // ✅ Update all fields with calculated values including investment
-      setLowerLimit(calcLower.toFixed(2));
-      setUpperLimit(calcUpper.toFixed(2));
+      // ✅ Update calculated fields; keep user minimum if they set one
+      setLowerLimit(formatLimitPrice(calcLower));
+      setUpperLimit(formatLimitPrice(calcUpper));
       setLevels(calcLevels.toString());
       setProfitPerLevel(calcProfitPercentage.toString());
-      setMinimumInvestment(calcMinimumInvestment.toString());
-      setInvestment(calcInvestment.toString());  // ✅ Set investment field
+      // Keep a manually entered minimum if this response was from an older request
+      const userMin = minimumInvestment ? Number(minimumInvestment) : 0;
+      if (userMin <= 0) {
+        setMinimumInvestment(String(calcMinimumInvestment));
+      }
+      setInvestment(String(calcInvestment));
 
       toast.success("Smart Grid parameters calculated!", {
-        description: `Limits: ${calcLower.toFixed(2)} - ${calcUpper.toFixed(2)} | Levels: ${calcLevels} | Profit: ${calcProfitPercentage}% | Investment: ${calcInvestment} | Min Investment: ${calcMinimumInvestment}`
+        description: `${type} · ${dataSet}D · Limits: ${formatLimitPrice(calcLower)} – ${formatLimitPrice(calcUpper)} | Levels: ${calcLevels} | Profit: ${calcProfitPercentage}%`
       });
     } catch (err: any) {
       console.error("Limits calculation error:", err);
@@ -486,25 +512,41 @@ export default function SmartGrid({ editData }: { editData?: Strategy | null }) 
                 />
               </div>
 
-              {/* Select Type - only shown for non-SPOT segments */}
-              {segment !== "SPOT" && (
-                <div className="space-y-2">
-                  <Label>Select Type</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {availableTypes.map(val => (
-                      <Button
-                        key={val}
-                        variant={type === val ? "default" : "outline"}
-                        type="button"
-                        onClick={() => handleTypeSelect(val as 'NEUTRAL' | 'LONG' | 'SHORT')}
-                        className={type === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
-                      >
-                        {val}
-                      </Button>
-                    ))}
-                  </div>
+              {/* Grid type: NEUTRAL / LONG / SHORT (SHORT only on FUTURES) */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  Select Type
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground text-xs">ⓘ</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#FCE8E8] text-black border-[#FCE8E8] max-w-[260px] rounded-xl shadow-lg [&>svg]:fill-[#FCE8E8]">
+                      <p>
+                        Limits are recalculated from your Data set and type: LONG uses the band below price, SHORT above price, NEUTRAL centered on price.
+                        {segment === "FUTURES" ? " SHORT is available on Futures." : " SHORT is only on Futures."}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </Label>
+                <div
+                  className={cn(
+                    "grid gap-2",
+                    availableTypes.length === 2 ? "grid-cols-2" : "grid-cols-3"
+                  )}
+                >
+                  {availableTypes.map(val => (
+                    <Button
+                      key={val}
+                      variant={type === val ? "default" : "outline"}
+                      type="button"
+                      onClick={() => handleTypeSelect(val as 'NEUTRAL' | 'LONG' | 'SHORT')}
+                      className={type === val ? "bg-[#4A1515] hover:bg-[#5A2525] text-white" : ""}
+                    >
+                      {val}
+                    </Button>
+                  ))}
                 </div>
-              )}
+              </div>
 
               {/* Data Set (Days) */}
               <div className="space-y-2">
@@ -578,7 +620,7 @@ export default function SmartGrid({ editData }: { editData?: Strategy | null }) 
                   </Label>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Long"
+                      placeholder="Value"
                       value={upperLimit}
                       readOnly
                       type="number"
@@ -706,7 +748,7 @@ export default function SmartGrid({ editData }: { editData?: Strategy | null }) 
                     onChange={e => setMinimumInvestment(e.target.value)}
                     type="number"
                     step="0.01"
-                    className="bg-gray-50 dark:bg-[#2A2A2D]"
+                    className="bg-white dark:bg-[#1A1A1D]"
                   />
                   <div className="w-[100px] h-10 flex items-center justify-center rounded-md border bg-muted px-3 text-sm font-medium text-muted-foreground truncate">
                     {symbol || "—"}
