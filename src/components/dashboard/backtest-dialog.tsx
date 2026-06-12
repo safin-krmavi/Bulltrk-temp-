@@ -32,6 +32,7 @@ interface BacktestMetrics {
   profitFactor?: number;
   pendingTrades?: number;
   returnPercentage?: number;
+  executions?: BacktestTrade[];
 }
 
 interface BacktestTrade {
@@ -147,7 +148,7 @@ function MetricCard({
 // ── Trades table ───────────────────────────────────────────────────────────────
 
 function TradesTable({ trades }: { trades: BacktestTrade[] }) {
-  const HEADERS = ["#", "Side / Type", "Executed At", "Price", "Qty", "P&L"];
+  const HEADERS = ["Id", "Side / Type", "Executed At", "Price", "Qty"];
 
   if (trades.length === 0) {
     return (
@@ -200,14 +201,6 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
         </thead>
         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
           {trades.map((t, i) => {
-            const rawPnl = t.profit ?? t.pnl ?? t.realizedPnl ?? t.realized_pnl ?? null;
-            const pnlNum = rawPnl !== null ? Number(rawPnl) : null;
-            const isPnlPositive = pnlNum !== null ? pnlNum >= 0 : true;
-            const pnlText =
-              pnlNum !== null
-                ? `${isPnlPositive ? "+" : ""}${pnlNum.toFixed(2)} USDT`
-                : "—";
-
             const rawPrice = t.price ?? t.executionPrice ?? t.avgPrice ?? null;
             const priceText =
               rawPrice !== null ? `${Number(rawPrice).toFixed(2)} USDT` : "—";
@@ -228,7 +221,7 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
                 className="hover:bg-gray-50 dark:hover:bg-[#2a2a2d] transition-colors"
               >
                 <td className="px-3 py-2 font-semibold text-gray-700 dark:text-gray-300">
-                  {t.id ?? i + 1}
+                  {i + 1}
                 </td>
                 <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{side}</td>
                 <td className="px-3 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
@@ -236,15 +229,6 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
                 </td>
                 <td className="px-3 py-2 text-gray-800 dark:text-gray-200">{priceText}</td>
                 <td className="px-3 py-2 text-gray-600 dark:text-gray-400">{qtyText}</td>
-                <td
-                  className={`px-3 py-2 font-semibold ${
-                    isPnlPositive
-                      ? "text-green-600 dark:text-green-400"
-                      : "text-red-500 dark:text-red-400"
-                  }`}
-                >
-                  {pnlText}
-                </td>
               </tr>
             );
           })}
@@ -318,6 +302,34 @@ export function BacktestInputDialog({
       const endDate = new Date(form.to);
       endDate.setUTCHours(23, 59, 59, 999);
 
+      const baseParams: any = {
+        segment: (strategyContext.segment || "SPOT").toUpperCase(),
+      };
+
+      if (strategyContext.strategyType === "HUMAN_GRID") {
+        baseParams.lowerLimit = strategyContext.lowerLimit;
+        baseParams.upperLimit = strategyContext.upperLimit;
+        baseParams.entryInterval = strategyContext.entryInterval;
+        baseParams.bookProfitBy = strategyContext.bookProfitBy;
+        baseParams.capital = {
+          perGridAmount: strategyContext.investmentPerRun || 10,
+          maxCapital: strategyContext.investmentCap || 100,
+        };
+      } else if (strategyContext.strategyType === "SMART_GRID") {
+        baseParams.type = strategyContext.direction || strategyContext.type || "NEUTRAL";
+        baseParams.levels = strategyContext.levels || 10;
+        baseParams.capital = {
+          perGridAmount: strategyContext.investmentPerRun || 100,
+          maxCapital: strategyContext.investmentCap || 1000,
+        };
+      } else {
+        baseParams.capital = {
+          perOrderAmount: strategyContext.investmentPerRun || 100,
+          maxCapital:     strategyContext.investmentCap || 5000,
+        };
+        baseParams.dca = { maxOrders: 20, priceDropPercent: 2 };
+      }
+
       const payload = {
         strategyType:   strategyContext.strategyType || "GROWTH_DCA",
         exchange:       strategyContext.exchange || "BINANCE",
@@ -328,14 +340,7 @@ export function BacktestInputDialog({
         initialCapital: strategyContext.investmentCap || 10000,
         name:           form.name,
         passphrase:     form.passphrase || "default-passphrase",
-        params: {
-          segment: (strategyContext.segment || "SPOT").toUpperCase(),
-          capital: {
-            perOrderAmount: strategyContext.investmentPerRun || 100,
-            maxCapital:     strategyContext.investmentCap || 5000,
-          },
-          dca: { maxOrders: 20, priceDropPercent: 2 },
-        },
+        params: baseParams,
       };
 
       const response = await apiClient.post(apiurls.backtest.run, payload);
@@ -502,8 +507,12 @@ export function BacktestResultsDialog({
   // ── Pull metrics (prefer nested metrics object) ──────────────────────────────
   const m = results.metrics ?? {};
 
+  const trades: BacktestTrade[] = Array.isArray(results.trades) && results.trades.length > 0
+    ? results.trades
+    : (Array.isArray(m.executions) ? m.executions : []);
+
   const totalPnL       = m.totalPnL       ?? results.netPL       ?? null;
-  const totalTrades    = m.totalTrades    ?? results.tradesExecuted ?? 0;
+  const totalTrades    = (m.totalTrades && m.totalTrades > 0) ? m.totalTrades : (results.tradesExecuted ?? trades.length);
   const pendingTrades  = m.pendingTrades  ?? results.pendingTrades  ?? 0;
   const avgTradePnL    = m.avgTradePnL    ?? results.avgTradePL     ?? null;
   const winRate        = m.winRate        ?? null;
@@ -527,26 +536,22 @@ export function BacktestResultsDialog({
   const status          = results.status ?? "—";
   const completedAt     = fmtDate(results.completedAt);
 
-  const trades: BacktestTrade[] = Array.isArray(results.trades) ? results.trades : [];
-
   // ── Export CSV ───────────────────────────────────────────────────────────────
   const handleExport = () => {
     try {
       const rows = [
-        ["#", "Side/Type", "Executed At", "Price (USDT)", "Qty", "P&L (USDT)"],
+        ["Id", "Side/Type", "Executed At", "Price (USDT)", "Qty"],
         ...trades.map((t, i) => {
-          const rawPnl = t.profit ?? t.pnl ?? t.realizedPnl ?? "";
           const rawPrice = t.price ?? t.executionPrice ?? "";
           const rawQty   = t.quantity ?? t.qty ?? "";
           const rawDate  = t.dateTime ?? t.date_time ?? t.executedAt ??
             (t.timestamp ? new Date(t.timestamp).toISOString() : "");
           return [
-            t.id ?? i + 1,
+            i + 1,
             t.type ?? t.side ?? "",
             rawDate,
             rawPrice !== "" ? Number(rawPrice).toFixed(2) : "",
             rawQty,
-            rawPnl !== "" ? Number(rawPnl).toFixed(2) : "",
           ];
         }),
       ].map((r) => r.join(",")).join("\n");

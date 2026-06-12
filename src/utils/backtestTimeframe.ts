@@ -16,6 +16,13 @@ export interface BacktestStrategyContext {
   hourInterval?: number;
   timeFrame?: string;
   timeframe?: string;
+  lowerLimit?: number;
+  upperLimit?: number;
+  entryInterval?: number;
+  bookProfitBy?: number;
+  levels?: number;
+  direction?: string;
+  type?: string;
 }
 
 export type ResolvedBacktestTimeframe =

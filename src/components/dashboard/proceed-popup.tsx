@@ -40,6 +40,7 @@ interface StrategyData {
   profitPercentage?: number;
   dataSetDays?: number;
   gridMode?: string;
+  type?: string;
 
   // Price Action / UTC / LESI candle timeframe
   quantity?: number;
@@ -246,6 +247,13 @@ export function ProceedPopup({
     hourInterval: strategyData.frequencyData?.intervalHours,
     timeFrame: strategyData.timeframe ?? (strategyData as { timeFrame?: string }).timeFrame,
     timeframe: strategyData.timeframe,
+    lowerLimit: strategyData.lowerLimit,
+    upperLimit: strategyData.upperLimit,
+    entryInterval: strategyData.entryInterval,
+    bookProfitBy: strategyData.bookProfitBy,
+    levels: strategyData.levels,
+    direction: strategyData.direction,
+    type: strategyData.type,
   };
 
   const handleBacktestResults = (results: any, name: string) => {

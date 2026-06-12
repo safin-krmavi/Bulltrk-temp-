@@ -5,8 +5,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { format } from "date-fns";
-import { Bot } from "@/hooks/useBotManagement";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -27,47 +25,56 @@ interface TradeConfirmationDialogProps {
   isOpen: boolean;
   onClose: () => void;
   selectedApi: string;
-  selectedBot: Bot | null;
 }
 
-// Add this interface for the backtest response
-// interface BacktestResponse {
-//   status: string;
-//   message: string;
-//   data: {
-//     result: string;
-//     metrics: {
-//       profit_loss: number;
-//       win_rate: number;
-//       // Add other metrics as needed
-//     };
-//   };
-// }
-
-// Add this interface for the backtest results
-interface BacktestResultResponse {
-  result: string;
+interface BacktestMetrics {
+  winRate: number;
+  totalPnL: number;
+  avgTradePnL: number;
+  maxDrawdown: number;
+  sharpeRatio: number;
+  totalTrades: number;
+  profitFactor: number;
+  pendingTrades: number;
+  returnPercentage: number;
 }
 
-// Add this interface for the paper trade response
-interface PaperTradeResponse {
+interface BacktestData {
+  id: string;
+  name: string;
+  strategyType: string;
+  exchange: string;
+  symbol: string;
+  interval: string;
+  startDate: string;
+  endDate: string;
+  initialCapital: number;
+  status: string;
+  metrics: BacktestMetrics;
+  createdAt: string;
+  completedAt: string;
+}
+
+interface BacktestResponse {
+  success: boolean;
   message: string;
+  data: BacktestData;
 }
+
+
+
 
 export function TradeConfirmationDialog({
   isOpen,
   onClose,
   selectedApi,
-  selectedBot,
 }: TradeConfirmationDialogProps) {
   const [isBacktesting] = useState(false);
   const [showBacktestAlert, setShowBacktestAlert] = useState(false);
   const [isPaperTrading, setIsPaperTrading] = useState(false);
   const [showPaperTradeAlert, setShowPaperTradeAlert] = useState(false);
-  const [paperTradeMessage, setPaperTradeMessage] = useState<string>("");
   
-  // New state for backtest results
-  const [backtestResults, setBacktestResults] = useState<BacktestResultResponse | null>(null);
+  const [backtestResults, setBacktestResults] = useState<BacktestData | null>(null);
   const [showBacktestResults, setShowBacktestResults] = useState(false);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
   const [isBacktestSubmitting, setIsBacktestSubmitting] = useState(false);
@@ -97,7 +104,7 @@ export function TradeConfirmationDialog({
   const handleRunBacktest = async () => {
     setIsBacktestSubmitting(true);
     try {
-      await apiClient.post("/bots/1/backtest", {
+      const response = await apiClient.post<BacktestResponse>("/bots/1/backtest", {
         name: backtestForm.name,
         from: backtestForm.from,
         to: backtestForm.to,
@@ -105,7 +112,16 @@ export function TradeConfirmationDialog({
         notification: backtestForm.notification,
       });
       setShowBacktestForm(false);
-      toast.success("Backtest started successfully.");
+      
+      // If the backtest is synchronous and returns DONE, show it immediately
+      if (response.data?.data?.status === "DONE") {
+        setBacktestResults(response.data.data);
+        setShowBacktestResults(true);
+        toast.success("Backtest completed successfully.");
+      } else {
+        setShowBacktestAlert(true);
+        toast.success("Backtest started successfully.");
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to start backtest");
     } finally {
@@ -128,18 +144,10 @@ export function TradeConfirmationDialog({
 
   // Function to fetch backtest results
   const fetchBacktestResults = async () => {
-    if (!selectedBot) {
-      toast.error("No bot selected");
-      return;
-    }
-
     setIsLoadingResults(true);
     try {
-      const response = await apiClient.get<BacktestResultResponse>(
-        `/bots/${selectedBot.id}/backtest-result`
-      );
-      
-      setBacktestResults(response.data);
+      const response = await apiClient.get<BacktestResponse>(`/bots/1/backtest-result`);
+      setBacktestResults(response.data.data);
       setShowBacktestResults(true);
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to fetch backtest results");
@@ -160,18 +168,13 @@ export function TradeConfirmationDialog({
   }, [showPaperTradeAlert]);
 
   const handlePaperTrade = async () => {
-    if (!selectedBot) {
-      toast.error("No bot selected");
-      return;
-    }
-
     setIsPaperTrading(true);
     try {
-      const response = await apiClient.post<PaperTradeResponse>(
-        `/bots/${selectedBot.id}/paper/start`
-      );
-      setPaperTradeMessage(response.data.message);
-      setShowPaperTradeAlert(true);
+      // Removing the API call since bot endpoints are removed
+      toast.error("Paper Trading API unavailable");
+      // const response = await apiClient.post<PaperTradeResponse>(`/bots/1/paper/start`);
+      // setPaperTradeMessage(response.data.message);
+      // setShowPaperTradeAlert(true);
     } catch (error: any) {
       toast.error(
         error.response?.data?.message || "Failed to start paper trading"
@@ -206,36 +209,7 @@ export function TradeConfirmationDialog({
               </div>
             </div>
 
-            {/* Bot Details Section */}
-            {selectedBot && (
-              <div className="mb-4">
-                <h3 className="font-bold text-sm mb-2">Bot Details</h3>
-                <div className="grid grid-cols-3 gap-y-2">
-                  <div className="text-sm">Name:</div>
-                  <div className="text-sm col-span-2">{selectedBot.name}</div>
 
-                  <div className="text-sm">Mode:</div>
-                  <div className="text-sm col-span-2 capitalize">
-                    {selectedBot.mode}
-                  </div>
-
-                  <div className="text-sm">Execution Type:</div>
-                  <div className="text-sm col-span-2 capitalize">
-                    {selectedBot.execution_type}
-                  </div>
-
-                  <div className="text-sm">Created:</div>
-                  <div className="text-sm col-span-2">
-                    {format(new Date(selectedBot.created_at), "dd MMM yyyy HH:mm")}
-                  </div>
-
-                  <div className="text-sm">Last Updated:</div>
-                  <div className="text-sm col-span-2">
-                    {format(new Date(selectedBot.updated_at), "dd MMM yyyy HH:mm")}
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Advanced Settings Section */}
             <div className="mb-4">
@@ -314,7 +288,7 @@ export function TradeConfirmationDialog({
           <AlertDialogHeader>
             <AlertDialogTitle>Paper Trading Started</AlertDialogTitle>
             <AlertDialogDescription>
-              {paperTradeMessage || "Paper trading has been started successfully."}
+              Paper trading has been started successfully.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -324,29 +298,74 @@ export function TradeConfirmationDialog({
       </AlertDialog>
 
       {/* Backtest Results Dialog */}
-      <AlertDialog open={showBacktestResults} onOpenChange={setShowBacktestResults}>
-        <AlertDialogContent className="bg-card dark:bg-[#232326] border border-border dark:border-gray-700 shadow-lg text-foreground dark:text-white rounded-lg transition-colors duration-300">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Backtest Results</AlertDialogTitle>
-            <AlertDialogDescription>
-              {isLoadingResults ? (
-                <div className="text-center py-4">Loading results...</div>
-              ) : backtestResults ? (
-                <div className="space-y-2">
-                  <div className="text-sm">
-                    <strong>Result:</strong> {backtestResults.result}
+      <Dialog open={showBacktestResults} onOpenChange={setShowBacktestResults}>
+        <DialogContent className="max-w-[800px] p-6 bg-card dark:bg-[#232326] border border-border dark:border-gray-700 shadow-lg text-foreground dark:text-white rounded-lg transition-colors duration-300">
+          <DialogHeader>
+            <DialogTitle>Backtest Results</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {isLoadingResults ? (
+              <div className="text-center py-4">Loading results...</div>
+            ) : backtestResults ? (
+              <div className="space-y-4 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-muted/30 p-4 rounded-lg">
+                  <div><strong className="text-muted-foreground block text-xs">Name</strong> {backtestResults.name}</div>
+                  <div><strong className="text-muted-foreground block text-xs">Strategy</strong> {backtestResults.strategyType}</div>
+                  <div><strong className="text-muted-foreground block text-xs">Symbol</strong> {backtestResults.symbol} ({backtestResults.exchange})</div>
+                  <div><strong className="text-muted-foreground block text-xs">Interval</strong> {backtestResults.interval}</div>
+                  <div><strong className="text-muted-foreground block text-xs">Initial Capital</strong> ${backtestResults.initialCapital}</div>
+                  <div><strong className="text-muted-foreground block text-xs">Status</strong> {backtestResults.status}</div>
+                </div>
+                
+                <h3 className="font-semibold text-lg mt-6 border-b border-border pb-2">Metrics</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-background border rounded-lg p-3 shadow-sm text-center">
+                    <strong className="text-muted-foreground block text-xs mb-1">Total Trades</strong>
+                    <div className="text-xl font-medium">{backtestResults.metrics.totalTrades}</div>
+                  </div>
+                  <div className="bg-background border rounded-lg p-3 shadow-sm text-center">
+                    <strong className="text-muted-foreground block text-xs mb-1">Win Rate</strong>
+                    <div className="text-xl font-medium">{(backtestResults.metrics.winRate * 100).toFixed(2)}%</div>
+                  </div>
+                  <div className="bg-background border rounded-lg p-3 shadow-sm text-center">
+                    <strong className="text-muted-foreground block text-xs mb-1">Total PnL</strong>
+                    <div className={`text-xl font-medium ${backtestResults.metrics.totalPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      ${backtestResults.metrics.totalPnL.toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="bg-background border rounded-lg p-3 shadow-sm text-center">
+                    <strong className="text-muted-foreground block text-xs mb-1">Return</strong>
+                    <div className={`text-xl font-medium ${backtestResults.metrics.returnPercentage >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {backtestResults.metrics.returnPercentage.toFixed(2)}%
+                    </div>
+                  </div>
+                  <div className="bg-background border rounded-lg p-3 shadow-sm text-center">
+                    <strong className="text-muted-foreground block text-xs mb-1">Avg Trade PnL</strong>
+                    <div className="text-xl font-medium">${backtestResults.metrics.avgTradePnL.toFixed(2)}</div>
+                  </div>
+                  <div className="bg-background border rounded-lg p-3 shadow-sm text-center">
+                    <strong className="text-muted-foreground block text-xs mb-1">Max Drawdown</strong>
+                    <div className="text-xl font-medium text-red-500">{(backtestResults.metrics.maxDrawdown * 100).toFixed(2)}%</div>
+                  </div>
+                  <div className="bg-background border rounded-lg p-3 shadow-sm text-center">
+                    <strong className="text-muted-foreground block text-xs mb-1">Sharpe Ratio</strong>
+                    <div className="text-xl font-medium">{backtestResults.metrics.sharpeRatio.toFixed(2)}</div>
+                  </div>
+                  <div className="bg-background border rounded-lg p-3 shadow-sm text-center">
+                    <strong className="text-muted-foreground block text-xs mb-1">Profit Factor</strong>
+                    <div className="text-xl font-medium">{backtestResults.metrics.profitFactor.toFixed(2)}</div>
                   </div>
                 </div>
-              ) : (
-                <div className="text-center py-4">No results available</div>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Close</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              </div>
+            ) : (
+              <div className="text-center py-4">No results available</div>
+            )}
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button className="bg-[#4A1C24] hover:bg-[#3A161C] text-white" onClick={() => setShowBacktestResults(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Backtest Form Dialog */}
       <Dialog open={showBacktestForm} onOpenChange={setShowBacktestForm}>

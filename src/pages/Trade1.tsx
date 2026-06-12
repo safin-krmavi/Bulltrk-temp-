@@ -18,8 +18,6 @@ import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { useBotManagement } from "@/hooks/useBotManagement";
-import { format } from "date-fns";
 import { BrokerageConnection, brokerageService } from "@/api/brokerage";
 // import { useTheme } from "@/App";
 
@@ -31,19 +29,9 @@ export default function TradePage() {
   });
 
   const [selectedApi, setSelectedApi] = useState<string>("");
-  const [selectedBot, setSelectedBot] = useState<string>("");
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [brokerages, setBrokerages] = useState<BrokerageConnection[]>([]);
   const [isBrokeragesLoading, setIsBrokeragesLoading] = useState(true);
-
-  const {
-    bots,
-    isLoading: isBotsLoading,
-    getBotDetails,
-  } = useBotManagement(selectedBot);
-
-  // Get the selected bot details - updated to match the API response structure
-  const selectedBotDetails = getBotDetails.data;
 
   // const { theme } = useTheme();
 
@@ -62,18 +50,8 @@ export default function TradePage() {
     fetchBrokerages();
   }, []);
 
-  useEffect(() => {
-    console.log("Bot Data:", {
-      bots,
-      isLoading: isBotsLoading,
-      botList: bots?.data,
-      hasBots: bots?.data && bots.data.length > 0,
-      selectedBotDetails,
-    });
-  }, [bots, isBotsLoading, selectedBotDetails]);
-
   const handleProceed = () => {
-    if (!selectedApi || !selectedBot) {
+    if (!selectedApi) {
       // You might want to show an error message here
       return;
     }
@@ -222,128 +200,7 @@ export default function TradePage() {
             </div>
           </Card>
 
-          {/* BOT Name */}
-          <Card className="bg-card dark:bg-[#232326] border border-border dark:border-gray-700 shadow-lg text-foreground dark:text-white rounded-lg transition-colors duration-300">
-            <CardHeader
-              className="bg-[#4A1C24] text-white cursor-pointer flex flex-row items-center justify-between p-4 rounded-t-lg"
-              onClick={() => toggleSection("botName")}
-            >
-              <CardTitle className="text-base font-medium">BOT Name</CardTitle>
-              {sections.botName ? (
-                <ChevronUp className="h-5 w-5" />
-              ) : (
-                <ChevronDown className="h-5 w-5" />
-              )}
-            </CardHeader>
-            <div
-              className={cn(
-                "transition-all duration-200",
-                sections.botName ? "block" : "hidden"
-              )}
-            >
-              <CardContent className="p-4 pt-0 space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Select Bot</label>
-                  <Select value={selectedBot} onValueChange={setSelectedBot}>
-                    <SelectTrigger className="w-full bg-background border border-border rounded">
-                      <SelectValue placeholder="Select a bot" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {isBotsLoading ? (
-                        <SelectItem value="loading" disabled>
-                          Loading bots...
-                        </SelectItem>
-                      ) : !bots?.data || bots.data?.length === 0 ? (
-                        <SelectItem value="no-bots" disabled>
-                          No bots available
-                        </SelectItem>
-                      ) : (
-                        bots.data?.map((bot) => (
-                          <SelectItem key={bot.id} value={bot.id.toString()}>
-                            {bot.name} ({bot.mode})
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
 
-                {/* Bot Details */}
-                {selectedBot && (
-                  <div className="mt-4 space-y-3 border-t border-border pt-4">
-                    <h3 className="font-medium">Bot Details</h3>
-                    {getBotDetails.isLoading ? (
-                      <div className="text-sm text-muted-foreground">
-                        Loading bot details...
-                      </div>
-                    ) : getBotDetails.error ? (
-                      <div className="text-sm text-destructive">
-                        Error loading bot details
-                      </div>
-                    ) : selectedBotDetails ? (
-                      <div className="space-y-2 text-sm">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="text-muted-foreground">Name:</div>
-                          <div>{selectedBotDetails.name}</div>
-
-                          <div className="text-muted-foreground">
-                            Strategy ID:
-                          </div>
-                          <div>{selectedBotDetails.strategy_id}</div>
-
-                          <div className="text-muted-foreground">Mode:</div>
-                          <div className="capitalize">
-                            {selectedBotDetails.mode}
-                          </div>
-
-                          <div className="text-muted-foreground">Status:</div>
-                          <div className="capitalize">
-                            {selectedBotDetails.status}
-                          </div>
-
-                          <div className="text-muted-foreground">
-                            Execution Type:
-                          </div>
-                          <div className="capitalize">
-                            {selectedBotDetails.execution_type}
-                          </div>
-
-                          {selectedBotDetails.schedule_expression && (
-                            <>
-                              <div className="text-muted-foreground">
-                                Schedule:
-                              </div>
-                              <div>
-                                {selectedBotDetails.schedule_expression}
-                              </div>
-                            </>
-                          )}
-
-                          <div className="text-muted-foreground">Created:</div>
-                          <div>
-                            {format(
-                              new Date(selectedBotDetails.created_at),
-                              "dd MMM yyyy HH:mm"
-                            )}
-                          </div>
-
-                          <div className="text-muted-foreground">
-                            Last Updated:
-                          </div>
-                          <div>
-                            {format(
-                              new Date(selectedBotDetails.updated_at),
-                              "dd MMM yyyy HH:mm"
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-              </CardContent>
-            </div>
-          </Card>
 
           {/* Advanced Settings */}
           <Card className="bg-card dark:bg-[#232326] border border-border dark:border-gray-700 shadow-lg text-foreground dark:text-white rounded-lg transition-colors duration-300">
@@ -377,7 +234,7 @@ export default function TradePage() {
             <Button
               className="w-fit px-6 bg-[#4A1C24] hover:bg-[#5A2525] text-white shadow-md transition-colors duration-200"
               onClick={handleProceed}
-              disabled={!selectedApi || !selectedBot}
+              disabled={!selectedApi}
             >
               Proceed
             </Button>
@@ -394,7 +251,6 @@ export default function TradePage() {
             isOpen={showConfirmation}
             onClose={() => setShowConfirmation(false)}
             selectedApi={selectedApi}
-            selectedBot={selectedBotDetails || null}
           />
         </div>
       )}
